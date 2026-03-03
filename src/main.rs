@@ -1,6 +1,8 @@
-use headway::cli::test;
+use clap::Parser;
+use headway::Cli;
 
 fn main() {
-    println!("Hello, world!");
-    test();
+    let args = Cli::parse();
+
+    println!("{args:?}");
 }

@@ -1,3 +1,3 @@
-pub fn test() {
-    println!("test");
-}
+mod parser;
+
+pub use parser::Cli;
