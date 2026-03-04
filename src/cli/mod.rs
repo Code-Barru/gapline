@@ -1,3 +1,3 @@
 mod parser;
 
-pub use parser::Cli;
+pub use parser::{Cli, Commands, CrudTarget, OutputFormat};

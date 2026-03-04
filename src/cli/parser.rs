@@ -7,11 +7,11 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[command(propagate_version = true)]
 pub struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
 #[derive(Debug, Subcommand)]
-enum Commands {
+pub enum Commands {
     #[command(about = "Validates a GTFS feed")]
     Validate {
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
@@ -97,7 +97,7 @@ enum Commands {
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
-enum OutputFormat {
+pub enum OutputFormat {
     Json,
     Csv,
     Xml,
@@ -105,7 +105,7 @@ enum OutputFormat {
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
-enum CrudTarget {
+pub enum CrudTarget {
     Trips,
     Stops,
     StopTimes,
