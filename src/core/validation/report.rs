@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use crate::validation::{Severity, ValidationError};
 
 /// Aggregated summary of validation findings by severity.
@@ -18,11 +20,12 @@ use crate::validation::{Severity, ValidationError};
 ///         .message("Consider improving this"),
 /// ];
 ///
-/// let report = ValidationReport::from(&errors);
+/// let report = ValidationReport::from(errors);
 /// assert_eq!(report.error_count(), 1);
 /// assert_eq!(report.warning_count(), 1);
 /// assert!(report.has_errors());
 /// ```
+#[derive(Serialize)]
 pub struct ValidationReport {
     /// Number of findings with [`Severity::Error`].
     errors: usize,
@@ -30,6 +33,8 @@ pub struct ValidationReport {
     warnings: usize,
     /// Number of findings with [`Severity::Info`].
     infos: usize,
+    /// Array containing [`ValidationError`]
+    pub error_list: Vec<ValidationError>,
 }
 
 impl ValidationReport {
@@ -61,9 +66,9 @@ impl ValidationReport {
     }
 }
 
-impl From<&Vec<ValidationError>> for ValidationReport {
+impl From<Vec<ValidationError>> for ValidationReport {
     /// Builds a report by counting each [`ValidationError`] by its severity.
-    fn from(errors: &Vec<ValidationError>) -> ValidationReport {
+    fn from(errors: Vec<ValidationError>) -> ValidationReport {
         let error_count = errors
             .iter()
             .filter(|e| e.severity == Severity::Error)
@@ -81,6 +86,7 @@ impl From<&Vec<ValidationError>> for ValidationReport {
             errors: error_count,
             warnings: warning_count,
             infos: info_count,
+            error_list: errors,
         }
     }
 }

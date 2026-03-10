@@ -111,7 +111,7 @@ fn test_report_counts() {
         ValidationError::new("r6", "3", Severity::Info),
     ];
 
-    let report = ValidationReport::from(&errors);
+    let report = ValidationReport::from(errors);
 
     assert_eq!(report.error_count(), 2);
     assert_eq!(report.warning_count(), 3);
@@ -127,7 +127,7 @@ fn test_report_has_errors_false() {
         ValidationError::new("r2", "1", Severity::Info),
     ];
 
-    let report = ValidationReport::from(&errors);
+    let report = ValidationReport::from(errors);
 
     assert!(!report.has_errors());
 }
@@ -138,7 +138,7 @@ fn test_report_has_errors_false() {
 fn test_report_has_errors_true() {
     let errors = vec![ValidationError::new("r1", "1", Severity::Error)];
 
-    let report = ValidationReport::from(&errors);
+    let report = ValidationReport::from(errors);
 
     assert!(report.has_errors());
 }

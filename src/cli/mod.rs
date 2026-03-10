@@ -12,6 +12,8 @@
 //! - `OutputFormat` -- Supported output formats (JSON, CSV, XML, text).
 //! - `CrudTarget` -- GTFS files that support CRUD operations.
 
+mod output;
 mod parser;
 
+pub use output::render_report;
 pub use parser::{Cli, Commands, CrudTarget, OutputFormat};
