@@ -175,12 +175,10 @@ fn render_text(
         } else {
             "Status: FAIL".to_string()
         }
+    } else if is_tty {
+        format!("Status: {}", "PASS".green().bold())
     } else {
-        if is_tty {
-            format!("Status: {}", "PASS".green().bold())
-        } else {
-            "Status: PASS".to_string()
-        }
+        "Status: PASS".to_string()
     };
     writeln!(writer, "{status}")?;
 

@@ -15,3 +15,6 @@
 
 /// GTFS feed validation engine.
 pub mod validation;
+
+/// PARSER
+pub mod parser;
