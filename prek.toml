@@ -3,4 +3,5 @@ repo = "local"
 hooks = [
     { id = "cargo-fmt", name = "cargo fmt", entry = "cargo fmt --all -- --check", language = "system", types = ["rust"], pass_filenames = false },
     { id = "cargo-clippy", name = "cargo clippy", entry = "cargo clippy --all-targets --all-features -- -W clippy::pedantic", language = "system", types = ["rust"], pass_filenames = false },
+    { id = "conventional-commit", name = "conventional commit", entry = "scripts/check-commit-msg.sh", language = "script", stages = ["commit-msg"], always_run = true, pass_filenames = true },
 ]
