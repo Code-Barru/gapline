@@ -114,14 +114,6 @@ cargo clippy
 
 The project is still in incubation and the validation engine is being written.
 
-## Philosophy
-
-**Completeness**: Unlike existing tools that cover subsets of the GTFS specification, headway targets 100% coverage from day one.
-
-**Zero maintenance**: All edge cases are handled. Users no longer need to write, debug, or maintain custom scripts.
-
-**Local-first**: All processing happens on the user's machine. No data leaves the system, no network dependency, no cloud accounts.
-
 ## License
 
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
