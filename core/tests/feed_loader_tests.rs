@@ -54,7 +54,7 @@ fn test_zip_valid_file_names() {
 
     let source = FeedLoader::open(&zip_path).unwrap();
     let mut names = source.file_names();
-    names.sort_by_key(|f| f.to_string());
+    names.sort_by_key(std::string::ToString::to_string);
 
     assert_eq!(
         names,
@@ -95,7 +95,7 @@ fn test_zip_with_subdirectory() {
 
     let source = FeedLoader::open(&zip_path).unwrap();
     let mut names = source.file_names();
-    names.sort_by_key(|f| f.to_string());
+    names.sort_by_key(std::string::ToString::to_string);
 
     assert_eq!(names, vec![GtfsFiles::Agency, GtfsFiles::Stops]);
 
@@ -118,7 +118,7 @@ fn test_directory_valid_file_names() {
 
     let source = FeedLoader::open(dir.path()).unwrap();
     let mut names = source.file_names();
-    names.sort_by_key(|f| f.to_string());
+    names.sort_by_key(std::string::ToString::to_string);
 
     assert_eq!(
         names,
@@ -466,7 +466,7 @@ fn test_zip_ignores_unknown_files() {
 
     let source = FeedLoader::open(&zip_path).unwrap();
     let mut names = source.file_names();
-    names.sort_by_key(|f| f.to_string());
+    names.sort_by_key(std::string::ToString::to_string);
 
     // Only recognized GTFS files should be present.
     assert_eq!(names, vec![GtfsFiles::Agency, GtfsFiles::Stops]);

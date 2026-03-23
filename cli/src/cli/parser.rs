@@ -143,20 +143,6 @@ pub enum Commands {
         #[arg(value_name = "file.hw", help = "Headway file path")]
         file: PathBuf,
     },
-
-    /// Test purposes
-    Test {
-        /// Output format for the results.
-        #[arg(
-            long,
-            help = "Output format: json, csv, xml and text",
-            hide_possible_values = true
-        )]
-        format: OutputFormat,
-        /// Output destination
-        #[arg(short, long, value_name = "PATH", help = "Output path")]
-        output: Option<PathBuf>,
-    },
 }
 
 /// Supported output formats for validation reports and query results.

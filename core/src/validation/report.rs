@@ -33,8 +33,8 @@ pub struct ValidationReport {
     warnings: usize,
     /// Number of findings with [`Severity::Info`].
     infos: usize,
-    /// Array containing [`ValidationError`]
-    pub error_list: Vec<ValidationError>,
+    /// Array containing [`ValidationError`].
+    error_list: Vec<ValidationError>,
 }
 
 impl ValidationReport {
@@ -59,34 +59,49 @@ impl ValidationReport {
     /// Returns `true` if the report contains at least one [`Severity::Error`].
     #[must_use]
     pub fn has_errors(&self) -> bool {
-        if self.errors > 0 {
-            return true;
-        }
-        false
+        self.errors > 0
+    }
+
+    /// Returns a reference to the list of validation errors.
+    #[must_use]
+    pub fn errors(&self) -> &[ValidationError] {
+        &self.error_list
+    }
+
+    /// Returns references to the validation errors sorted by file name.
+    ///
+    /// Errors with a file name come first (alphabetically), followed by
+    /// errors without a file name.
+    #[must_use]
+    pub fn errors_sorted_by_file(&self) -> Vec<&ValidationError> {
+        let mut sorted: Vec<&ValidationError> = self.error_list.iter().collect();
+        sorted.sort_by(|a, b| match (&a.file_name, &b.file_name) {
+            (Some(fa), Some(fb)) => fa.cmp(fb),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
+        });
+        sorted
     }
 }
 
 impl From<Vec<ValidationError>> for ValidationReport {
     /// Builds a report by counting each [`ValidationError`] by its severity.
-    fn from(errors: Vec<ValidationError>) -> ValidationReport {
-        let error_count = errors
-            .iter()
-            .filter(|e| e.severity == Severity::Error)
-            .count();
-        let warning_count = errors
-            .iter()
-            .filter(|e| e.severity == Severity::Warning)
-            .count();
-        let info_count = errors
-            .iter()
-            .filter(|e| e.severity == Severity::Info)
-            .count();
+    fn from(error_list: Vec<ValidationError>) -> ValidationReport {
+        let (mut errors, mut warnings, mut infos) = (0, 0, 0);
+        for e in &error_list {
+            match e.severity {
+                Severity::Error => errors += 1,
+                Severity::Warning => warnings += 1,
+                Severity::Info => infos += 1,
+            }
+        }
 
         Self {
-            errors: error_count,
-            warnings: warning_count,
-            infos: info_count,
-            error_list: errors,
+            errors,
+            warnings,
+            infos,
+            error_list,
         }
     }
 }

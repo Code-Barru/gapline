@@ -188,16 +188,7 @@ fn test_tty_detection_pipe() {
     assert!(!content.contains("\x1b["));
 }
 
-// Test 9: TTY detection - direct terminal
-// Note: This is hard to test in unit tests as we're not in a real TTY
-// We'd need integration tests that run the actual binary
-#[test]
-fn test_tty_detection_terminal() {
-    // Skip for now - requires integration test with actual TTY
-    // Would need to run: headway validate ... in a PTY
-}
-
-// Test 10: Format not supported - XML
+// Test 9: Format not supported - XML
 #[test]
 fn test_format_xml_not_supported() {
     let errors = create_test_errors_1();
@@ -220,28 +211,7 @@ fn test_format_csv_not_supported() {
     assert!(result.is_err());
 }
 
-// Test 12: Color by severity - ERROR (red)
-#[test]
-fn test_color_severity_error() {
-    // This would require TTY testing - skip for unit tests
-    // Integration test needed
-}
-
-// Test 13: Color by severity - WARNING (yellow)
-#[test]
-fn test_color_severity_warning() {
-    // This would require TTY testing - skip for unit tests
-    // Integration test needed
-}
-
-// Test 14: Color by severity - INFO (cyan)
-#[test]
-fn test_color_severity_info() {
-    // This would require TTY testing - skip for unit tests
-    // Integration test needed
-}
-
-// Test 15: Summary PASS - only warnings
+// Test 11: Summary PASS - only warnings
 #[test]
 fn test_summary_pass_with_warnings() {
     let errors = vec![

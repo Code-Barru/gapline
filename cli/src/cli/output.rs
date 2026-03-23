@@ -4,7 +4,19 @@ use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::Path;
 
 use crate::cli::OutputFormat;
-use headway_core::validation::ValidationReport;
+use headway_core::validation::{Severity, ValidationReport};
+
+/// Maps a [`Severity`] to its terminal display color.
+///
+/// This keeps the `colored` dependency in the CLI crate where it belongs,
+/// rather than leaking a presentation concern into `headway-core`.
+fn severity_color(severity: Severity) -> Color {
+    match severity {
+        Severity::Error => Color::Red,
+        Severity::Warning => Color::Yellow,
+        Severity::Info => Color::Cyan,
+    }
+}
 
 /// Helper function to create a file with better error messages
 fn create_output_file(path: &Path) -> Result<std::fs::File, std::io::Error> {
@@ -113,18 +125,12 @@ fn render_text(
     };
 
     // Sort errors by file name for grouped display
-    let mut sorted_errors = report.error_list.clone();
-    sorted_errors.sort_by(|a, b| match (&a.file_name, &b.file_name) {
-        (Some(file_a), Some(file_b)) => file_a.cmp(file_b),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        (None, Some(_)) => std::cmp::Ordering::Greater,
-        (None, None) => std::cmp::Ordering::Equal,
-    });
+    let sorted_errors = report.errors_sorted_by_file();
 
     for error in &sorted_errors {
         let severity_str = error.severity.to_string();
         let label = if is_tty {
-            format!("[{}]", severity_str.color(error.severity.color()))
+            format!("[{}]", severity_str.color(severity_color(error.severity)))
         } else {
             format!("[{severity_str}]")
         };
@@ -201,7 +207,7 @@ fn render_json(
     output_dest: Option<&Path>,
 ) -> Result<(), std::io::Error> {
     let json = json!({
-        "errors": report.error_list,
+        "errors": report.errors(),
         "summary" : {
             "error_count": report.error_count(),
             "info_count": report.info_count(),

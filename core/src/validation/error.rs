@@ -1,4 +1,3 @@
-use colored::Color;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -139,17 +138,5 @@ impl Display for Severity {
             Severity::Error => "ERROR",
         };
         f.pad(s)
-    }
-}
-
-impl Severity {
-    /// Returns the color associated to the enum's value
-    #[must_use]
-    pub fn color(&self) -> Color {
-        match self {
-            Severity::Error => Color::Red,
-            Severity::Warning => Color::Yellow,
-            Severity::Info => Color::Cyan,
-        }
     }
 }
