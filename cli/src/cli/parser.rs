@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 ///
 /// ```no_run
 /// use clap::Parser;
-/// use headway::Cli;
+/// use headway::cli::Cli;
 ///
 /// let cli = Cli::parse();
 /// ```

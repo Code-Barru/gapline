@@ -1,4 +1,6 @@
-use headway::validation::{GtfsFeed, Severity, ValidationError, ValidationReport, ValidationRule};
+use headway_core::validation::{
+    GtfsFeed, Severity, ValidationError, ValidationReport, ValidationRule,
+};
 
 // ---------- Test 1 : Minimal builder ----------
 

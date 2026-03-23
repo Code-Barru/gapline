@@ -1,7 +1,7 @@
 use std::io::{BufRead, Write};
 use std::path::Path;
 
-use headway::core::parser::{FeedLoader, FeedSource, GtfsFiles, ParserError};
+use headway_core::parser::{FeedLoader, FeedSource, GtfsFiles, ParserError};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------

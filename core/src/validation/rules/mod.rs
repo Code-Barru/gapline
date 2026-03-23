@@ -10,7 +10,7 @@ use crate::validation::{Severity, ValidationError};
 /// # Implementing a Rule
 ///
 /// ```ignore
-/// use headway::validation::{ValidationRule, ValidationError, Severity, GtfsFeed};
+/// use headway_core::validation::{ValidationRule, ValidationError, Severity, GtfsFeed};
 ///
 /// pub struct MissingRequiredFileRule;
 ///

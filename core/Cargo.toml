@@ -1,0 +1,20 @@
+[package]
+name    = "headway-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+csv        = { workspace = true }
+rayon      = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+toml       = { workspace = true }
+zip        = { workspace = true }
+colored    = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

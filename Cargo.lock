@@ -421,8 +421,18 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "colored",
- "csv",
+ "headway-core",
  "indicatif",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "headway-core"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "csv",
  "rayon",
  "serde",
  "serde_json",

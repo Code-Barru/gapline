@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-use crate::core::parser::feed_source::GtfsFiles;
+use crate::parser::feed_source::GtfsFiles;
 
 /// Errors that can occur when loading a GTFS feed from a ZIP archive or directory.
 #[derive(Debug, Error)]

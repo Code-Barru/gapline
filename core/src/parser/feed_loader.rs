@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 
-use crate::core::parser::error::ParserError;
-use crate::core::parser::feed_source::{FeedSource, GtfsFiles};
+use crate::parser::error::ParserError;
+use crate::parser::feed_source::{FeedSource, GtfsFiles};
 
 /// Entry point for loading a GTFS feed from a ZIP archive or directory.
 ///

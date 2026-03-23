@@ -3,7 +3,8 @@ use serde_json::{json, to_string_pretty};
 use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::Path;
 
-use crate::{cli::OutputFormat, validation::ValidationReport};
+use crate::cli::OutputFormat;
+use headway_core::validation::ValidationReport;
 
 /// Helper function to create a file with better error messages
 fn create_output_file(path: &Path) -> Result<std::fs::File, std::io::Error> {
@@ -45,7 +46,7 @@ fn create_output_file(path: &Path) -> Result<std::fs::File, std::io::Error> {
 ///
 /// ```no_run
 /// use headway::cli::{render_report, OutputFormat};
-/// use headway::validation::{ValidationReport, ValidationError, Severity};
+/// use headway_core::validation::{ValidationReport, ValidationError, Severity};
 ///
 /// let errors = vec![
 ///     ValidationError::new("e1", "1", Severity::Error)

@@ -15,7 +15,7 @@ use std::fmt::{Display, Formatter};
 /// # Examples
 ///
 /// ```
-/// use headway::validation::{ValidationError, Severity};
+/// use headway_core::validation::{ValidationError, Severity};
 ///
 /// // Structural error (no file/line context needed)
 /// let structural = ValidationError::new("missing_required_file", "1", Severity::Error)
@@ -32,14 +32,22 @@ use std::fmt::{Display, Formatter};
 /// ```
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValidationError {
-    pub(crate) rule_id: String,
-    pub(crate) section: String,
-    pub(crate) severity: Severity,
-    pub(crate) message: String,
-    pub(crate) file_name: Option<String>,
-    pub(crate) line_number: Option<usize>,
-    pub(crate) field_name: Option<String>,
-    pub(crate) value: Option<String>,
+    /// Unique rule identifier.
+    pub rule_id: String,
+    /// Specification section number.
+    pub section: String,
+    /// Severity level.
+    pub severity: Severity,
+    /// Human-readable error message.
+    pub message: String,
+    /// GTFS file name where the issue was found.
+    pub file_name: Option<String>,
+    /// 1-indexed line number within the file.
+    pub line_number: Option<usize>,
+    /// CSV field/column name.
+    pub field_name: Option<String>,
+    /// Actual value that triggered the error.
+    pub value: Option<String>,
 }
 
 impl ValidationError {

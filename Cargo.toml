@@ -1,31 +1,37 @@
-[package]
-name = "headway"
+[workspace]
+members = ["core", "cli"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 
+[workspace.dependencies]
+# Core
+csv        = "1.4.0"
+rayon      = "1.11.0"
+serde      = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+thiserror  = "2.0.18"
+toml       = "1.0.3"
+zip        = "8.2.0"
+# CLI
+clap      = { version = "4.5.60", features = ["derive"] }
+colored   = "3.1.1"
+indicatif = "0.18.4"
+# Internal
+headway-core = { path = "core" }
+# Dev
+tempfile = "3.26.0"
+
 [profile.release]
-opt-level = 3
-strip = true
-lto = true
+opt-level     = 3
+strip         = true
+lto           = true
 codegen-units = 1
 
 [profile.release.package."*"]
 opt-level = 3
 
-[dependencies]
-clap = { version = "4.5.60", features = ["derive"] }
-colored = "3.1.1"
-csv = "1.4.0"
-indicatif = "0.18.4"
-rayon = "1.11.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-thiserror = "2.0.18"
-toml = "1.0.3"
-zip = "8.2.0"
-
-[dev-dependencies]
-tempfile = "3.26.0"
-
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = "warn"

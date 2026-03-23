@@ -3,7 +3,7 @@ use std::fmt;
 use std::io::{BufRead, BufReader, Cursor};
 use std::path::PathBuf;
 
-use crate::core::parser::error::ParserError;
+use crate::parser::error::ParserError;
 
 /// Abstraction over a loaded GTFS feed, whether from a ZIP archive or a directory.
 ///

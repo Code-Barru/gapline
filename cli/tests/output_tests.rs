@@ -1,5 +1,5 @@
 use headway::cli::{OutputFormat, render_report};
-use headway::validation::{Severity, ValidationError, ValidationReport};
+use headway_core::validation::{Severity, ValidationError, ValidationReport};
 use std::fs;
 use tempfile::NamedTempFile;
 

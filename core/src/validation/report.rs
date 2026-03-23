@@ -11,7 +11,7 @@ use crate::validation::{Severity, ValidationError};
 /// # Examples
 ///
 /// ```
-/// use headway::validation::{ValidationError, ValidationReport, Severity};
+/// use headway_core::validation::{ValidationError, ValidationReport, Severity};
 ///
 /// let errors = vec![
 ///     ValidationError::new("rule_a", "1", Severity::Error)
