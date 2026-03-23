@@ -31,10 +31,20 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-targets --all-features -- -W clippy::pedantic
 
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: [fmt, clippy]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all
+
   build:
     name: Build Release
     runs-on: ubuntu-latest
-    needs: [fmt, clippy]
+    needs: [fmt, clippy, test]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
