@@ -15,6 +15,7 @@
 //! - `GtfsFeed` -- Placeholder for the in-memory GTFS feed data model.
 
 mod error;
+pub mod file_structure;
 mod report;
 mod rules;
 

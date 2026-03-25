@@ -98,12 +98,16 @@ impl FeedLoader {
             files.insert(gtfs_file, buf);
         }
 
-        Ok(FeedSource::Zip { files })
+        Ok(FeedSource::Zip {
+            files,
+            raw_entry_names: raw_names,
+        })
     }
 
     /// Opens a directory and lists recognized GTFS `.txt` files at the root level.
     fn open_directory(path: &Path) -> Result<FeedSource, ParserError> {
         let mut file_names = Vec::new();
+        let mut raw_entry_names = Vec::new();
 
         for entry in std::fs::read_dir(path)? {
             let entry = entry?;
@@ -115,16 +119,20 @@ impl FeedLoader {
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
 
+            raw_entry_names.push(name_str.to_string());
+
             if let Ok(gtfs_file) = GtfsFiles::try_from(name_str.as_ref()) {
                 file_names.push(gtfs_file);
             }
         }
 
         file_names.sort_by_key(std::string::ToString::to_string);
+        raw_entry_names.sort();
 
         Ok(FeedSource::Directory {
             path: path.to_path_buf(),
             file_names,
+            raw_entry_names,
         })
     }
 
