@@ -12,13 +12,17 @@
 //! - `Severity` -- Classification of findings as `Error`, `Warning`, or `Info`.
 //! - `ValidationReport` -- Aggregated summary counts by severity.
 //! - `ValidationRule` -- Trait that all validation rules must implement.
+//! - `StructuralValidationRule` -- Trait for pre-parsing rules (sections 1 & 2).
 //! - `GtfsFeed` -- Placeholder for the in-memory GTFS feed data model.
 
+pub mod csv_formating;
 mod error;
 pub mod file_structure;
 mod report;
 mod rules;
+mod structural_rule;
 
 pub use error::{Severity, ValidationError};
 pub use report::ValidationReport;
 pub use rules::{GtfsFeed, ValidationRule};
+pub use structural_rule::StructuralValidationRule;
