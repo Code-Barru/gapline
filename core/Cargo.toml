@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 csv        = { workspace = true }
+indicatif  = { workspace = true }
 rayon      = { workspace = true }
 regex      = { workspace = true }
 serde      = { workspace = true }

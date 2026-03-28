@@ -16,13 +16,16 @@
 //! - `GtfsFeed` -- Placeholder for the in-memory GTFS feed data model.
 
 pub mod csv_formating;
+pub mod engine;
 mod error;
 pub mod file_structure;
 mod report;
 mod rules;
 mod structural_rule;
+mod validate;
 
 pub use error::{Severity, ValidationError};
 pub use report::ValidationReport;
 pub use rules::{GtfsFeed, ValidationRule};
 pub use structural_rule::StructuralValidationRule;
+pub use validate::validate;

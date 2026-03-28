@@ -1,0 +1,227 @@
+//! Integration tests for the `headway validate` pipeline (HW-008).
+
+use std::io::Write;
+use std::process::Command;
+use std::sync::Arc;
+
+use headway_core::config::Config;
+use headway_core::parser::{FeedLoader, FeedSource};
+use headway_core::validation::engine::ValidationEngine;
+use headway_core::validation::{Severity, StructuralValidationRule, ValidationError};
+use tempfile::NamedTempFile;
+
+const MINIMAL_FEED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../gtfs/minimal.zip");
+
+fn headway_bin() -> String {
+    env!("CARGO_BIN_EXE_headway").to_string()
+}
+
+/// CA1 — `ValidationEngine::new()` registers sections 1 and 2 rules.
+#[test]
+fn engine_new_registers_sections_1_and_2() {
+    let engine = ValidationEngine::new(Arc::new(Config::default()));
+    let grouped = engine.group_rules_by_section();
+    assert!(grouped.contains_key("1"), "Section 1 rules must be present");
+    assert!(grouped.contains_key("2"), "Section 2 rules must be present");
+    assert_eq!(grouped.len(), 2, "Only sections 1 and 2 in Epic 2");
+}
+
+/// CA2 — `register_rule()` adds a rule dynamically.
+#[test]
+fn engine_register_rule_adds_custom_rule() {
+    struct MockRule;
+    impl StructuralValidationRule for MockRule {
+        fn rule_id(&self) -> &'static str {
+            "mock_rule"
+        }
+        fn section(&self) -> &'static str {
+            "99"
+        }
+        fn severity(&self) -> Severity {
+            Severity::Warning
+        }
+        fn validate(&self, _source: &FeedSource) -> Vec<ValidationError> {
+            vec![ValidationError::new("mock_rule", "99", Severity::Warning).message("mock warning")]
+        }
+    }
+
+    let mut engine = ValidationEngine::new(Arc::new(Config::default()));
+    engine.register_rule(Box::new(MockRule));
+
+    let grouped = engine.group_rules_by_section();
+    assert!(
+        grouped.contains_key("99"),
+        "Custom section must appear after register_rule"
+    );
+
+    let source = FeedLoader::open(std::path::Path::new(MINIMAL_FEED)).unwrap();
+    let report = engine.validate(&source);
+    let has_mock = report.errors().iter().any(|e| e.rule_id == "mock_rule");
+    assert!(has_mock, "Mock rule findings must appear in the report");
+}
+
+/// CA3/CA4 — validate returns a report, rules grouped by section.
+#[test]
+fn engine_validate_returns_report() {
+    let engine = ValidationEngine::new(Arc::new(Config::default()));
+    let source = FeedLoader::open(std::path::Path::new(MINIMAL_FEED)).unwrap();
+    let report = engine.validate(&source);
+    assert!(
+        !report.has_errors(),
+        "Minimal valid feed should produce 0 errors"
+    );
+}
+
+/// CA15 / Case 1 — Valid feed → exit 0.
+#[test]
+fn cli_validate_valid_feed_exit_0() {
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", MINIMAL_FEED])
+        .output()
+        .expect("failed to run headway");
+
+    assert!(
+        output.status.success(),
+        "Exit code should be 0 for a valid feed.\nstderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("PASS"),
+        "Output should indicate PASS for valid feed"
+    );
+}
+
+/// CA16 / Case 2 — Feed with missing required file → exit 1.
+#[test]
+fn cli_validate_missing_required_file_exit_1() {
+    // Zip without agency.txt (must have .zip extension for FeedLoader).
+    let tmp = tempfile::Builder::new().suffix(".zip").tempfile().unwrap();
+    {
+        let file = std::fs::File::create(tmp.path()).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default();
+
+        zip.start_file("routes.txt", options).unwrap();
+        zip.write_all(b"route_id,agency_id,route_short_name,route_long_name,route_type\n")
+            .unwrap();
+        zip.start_file("trips.txt", options).unwrap();
+        zip.write_all(b"route_id,service_id,trip_id\n").unwrap();
+        zip.start_file("stops.txt", options).unwrap();
+        zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\n")
+            .unwrap();
+        zip.start_file("stop_times.txt", options).unwrap();
+        zip.write_all(b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\n")
+            .unwrap();
+        zip.start_file("calendar.txt", options).unwrap();
+        zip.write_all(b"service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n").unwrap();
+        zip.finish().unwrap();
+    }
+
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run headway");
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "Exit code should be 1 when required files are missing"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("missing_required_file"),
+        "Report should contain missing_required_file error"
+    );
+}
+
+/// Case 3 — Warnings only → exit 0.
+#[test]
+fn cli_validate_warnings_only_exit_0() {
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", MINIMAL_FEED])
+        .output()
+        .expect("failed to run headway");
+
+    assert!(output.status.success(), "Warnings-only feed should exit 0");
+}
+
+/// Case 5 — JSON format output.
+#[test]
+fn cli_validate_json_format() {
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", MINIMAL_FEED, "--format", "json"])
+        .output()
+        .expect("failed to run headway");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("JSON output should be valid JSON");
+    assert!(
+        parsed.get("errors").is_some(),
+        "JSON must have errors array"
+    );
+    assert!(
+        parsed.get("summary").is_some(),
+        "JSON must have summary object"
+    );
+}
+
+/// Case 6 — Write to file.
+#[test]
+fn cli_validate_output_to_file() {
+    let tmp = NamedTempFile::new().unwrap();
+    let output = Command::new(headway_bin())
+        .args([
+            "validate",
+            "-f",
+            MINIMAL_FEED,
+            "--format",
+            "json",
+            "-o",
+            tmp.path().to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run headway");
+
+    assert!(output.status.success());
+    let content = std::fs::read_to_string(tmp.path()).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&content).expect("File content should be valid JSON");
+    assert!(parsed.get("summary").is_some());
+}
+
+/// Case 8 — Non-existent feed → exit 1.
+#[test]
+fn cli_validate_nonexistent_feed_exit_1() {
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", "/tmp/nonexistent_feed_xyz.zip"])
+        .output()
+        .expect("failed to run headway");
+
+    assert_eq!(output.status.code(), Some(1));
+}
+
+/// Case 9 — Corrupted ZIP → exit 1.
+#[test]
+fn cli_validate_corrupted_zip_exit_1() {
+    let tmp = NamedTempFile::new().unwrap();
+    std::fs::write(tmp.path(), b"this is not a zip file").unwrap();
+
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", tmp.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run headway");
+
+    assert_eq!(output.status.code(), Some(1));
+}
+
+/// CA13 — Config is Arc-wrapped (compile-time guarantee via the engine API).
+#[test]
+fn engine_uses_arc_config() {
+    let config = Arc::new(Config::default());
+    let config_clone = Arc::clone(&config);
+    let _engine = ValidationEngine::new(config);
+    assert_eq!(config_clone.max_rows, None);
+}

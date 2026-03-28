@@ -17,6 +17,9 @@
 //!     .file("agency.txt");
 //! ```
 
+/// Application configuration.
+pub mod config;
+
 /// GTFS feed loading from ZIP archives and directories.
 pub mod parser;
 
