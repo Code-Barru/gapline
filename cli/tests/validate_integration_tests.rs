@@ -10,10 +10,70 @@ use headway_core::validation::engine::ValidationEngine;
 use headway_core::validation::{Severity, StructuralValidationRule, ValidationError};
 use tempfile::NamedTempFile;
 
-const MINIMAL_FEED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../gtfs/minimal.zip");
-
 fn headway_bin() -> String {
     env!("CARGO_BIN_EXE_headway").to_string()
+}
+
+/// Creates a minimal valid GTFS zip with all required files + data rows.
+fn create_valid_feed() -> NamedTempFile {
+    let tmp = tempfile::Builder::new().suffix(".zip").tempfile().unwrap();
+    let file = std::fs::File::create(tmp.path()).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default();
+
+    zip.start_file("agency.txt", opts).unwrap();
+    zip.write_all(b"agency_id,agency_name,agency_url,agency_timezone\nA1,Agency,http://a.com,America/New_York\n").unwrap();
+
+    zip.start_file("routes.txt", opts).unwrap();
+    zip.write_all(
+        b"route_id,agency_id,route_short_name,route_long_name,route_type\nR1,A1,1,Route One,3\n",
+    )
+    .unwrap();
+
+    zip.start_file("trips.txt", opts).unwrap();
+    zip.write_all(b"route_id,service_id,trip_id\nR1,S1,T1\n")
+        .unwrap();
+
+    zip.start_file("stops.txt", opts).unwrap();
+    zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\nST1,Stop One,40.0,-74.0\n")
+        .unwrap();
+
+    zip.start_file("stop_times.txt", opts).unwrap();
+    zip.write_all(
+        b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,08:00:00,08:00:00,ST1,1\n",
+    )
+    .unwrap();
+
+    zip.start_file("calendar.txt", opts).unwrap();
+    zip.write_all(b"service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nS1,1,1,1,1,1,0,0,20240101,20241231\n").unwrap();
+
+    zip.finish().unwrap();
+    tmp
+}
+
+/// Creates a zip without agency.txt (missing required file).
+fn create_feed_missing_agency() -> NamedTempFile {
+    let tmp = tempfile::Builder::new().suffix(".zip").tempfile().unwrap();
+    let file = std::fs::File::create(tmp.path()).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default();
+
+    zip.start_file("routes.txt", opts).unwrap();
+    zip.write_all(b"route_id,agency_id,route_short_name,route_long_name,route_type\n")
+        .unwrap();
+    zip.start_file("trips.txt", opts).unwrap();
+    zip.write_all(b"route_id,service_id,trip_id\n").unwrap();
+    zip.start_file("stops.txt", opts).unwrap();
+    zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\n")
+        .unwrap();
+    zip.start_file("stop_times.txt", opts).unwrap();
+    zip.write_all(b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\n")
+        .unwrap();
+    zip.start_file("calendar.txt", opts).unwrap();
+    zip.write_all(b"service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n").unwrap();
+
+    zip.finish().unwrap();
+    tmp
 }
 
 /// CA1 — `ValidationEngine::new()` registers sections 1 and 2 rules.
@@ -54,7 +114,8 @@ fn engine_register_rule_adds_custom_rule() {
         "Custom section must appear after register_rule"
     );
 
-    let source = FeedLoader::open(std::path::Path::new(MINIMAL_FEED)).unwrap();
+    let feed = create_valid_feed();
+    let source = FeedLoader::open(feed.path()).unwrap();
     let report = engine.validate(&source);
     let has_mock = report.errors().iter().any(|e| e.rule_id == "mock_rule");
     assert!(has_mock, "Mock rule findings must appear in the report");
@@ -64,7 +125,8 @@ fn engine_register_rule_adds_custom_rule() {
 #[test]
 fn engine_validate_returns_report() {
     let engine = ValidationEngine::new(Arc::new(Config::default()));
-    let source = FeedLoader::open(std::path::Path::new(MINIMAL_FEED)).unwrap();
+    let feed = create_valid_feed();
+    let source = FeedLoader::open(feed.path()).unwrap();
     let report = engine.validate(&source);
     assert!(
         !report.has_errors(),
@@ -75,8 +137,9 @@ fn engine_validate_returns_report() {
 /// CA15 / Case 1 — Valid feed → exit 0.
 #[test]
 fn cli_validate_valid_feed_exit_0() {
+    let feed = create_valid_feed();
     let output = Command::new(headway_bin())
-        .args(["validate", "-f", MINIMAL_FEED])
+        .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
         .expect("failed to run headway");
 
@@ -95,31 +158,9 @@ fn cli_validate_valid_feed_exit_0() {
 /// CA16 / Case 2 — Feed with missing required file → exit 1.
 #[test]
 fn cli_validate_missing_required_file_exit_1() {
-    // Zip without agency.txt (must have .zip extension for FeedLoader).
-    let tmp = tempfile::Builder::new().suffix(".zip").tempfile().unwrap();
-    {
-        let file = std::fs::File::create(tmp.path()).unwrap();
-        let mut zip = zip::ZipWriter::new(file);
-        let options = zip::write::SimpleFileOptions::default();
-
-        zip.start_file("routes.txt", options).unwrap();
-        zip.write_all(b"route_id,agency_id,route_short_name,route_long_name,route_type\n")
-            .unwrap();
-        zip.start_file("trips.txt", options).unwrap();
-        zip.write_all(b"route_id,service_id,trip_id\n").unwrap();
-        zip.start_file("stops.txt", options).unwrap();
-        zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\n")
-            .unwrap();
-        zip.start_file("stop_times.txt", options).unwrap();
-        zip.write_all(b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\n")
-            .unwrap();
-        zip.start_file("calendar.txt", options).unwrap();
-        zip.write_all(b"service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n").unwrap();
-        zip.finish().unwrap();
-    }
-
+    let feed = create_feed_missing_agency();
     let output = Command::new(headway_bin())
-        .args(["validate", "-f", tmp.path().to_str().unwrap()])
+        .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
         .expect("failed to run headway");
 
@@ -138,8 +179,9 @@ fn cli_validate_missing_required_file_exit_1() {
 /// Case 3 — Warnings only → exit 0.
 #[test]
 fn cli_validate_warnings_only_exit_0() {
+    let feed = create_valid_feed();
     let output = Command::new(headway_bin())
-        .args(["validate", "-f", MINIMAL_FEED])
+        .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
         .expect("failed to run headway");
 
@@ -149,8 +191,15 @@ fn cli_validate_warnings_only_exit_0() {
 /// Case 5 — JSON format output.
 #[test]
 fn cli_validate_json_format() {
+    let feed = create_valid_feed();
     let output = Command::new(headway_bin())
-        .args(["validate", "-f", MINIMAL_FEED, "--format", "json"])
+        .args([
+            "validate",
+            "-f",
+            feed.path().to_str().unwrap(),
+            "--format",
+            "json",
+        ])
         .output()
         .expect("failed to run headway");
 
@@ -171,12 +220,13 @@ fn cli_validate_json_format() {
 /// Case 6 — Write to file.
 #[test]
 fn cli_validate_output_to_file() {
+    let feed = create_valid_feed();
     let tmp = NamedTempFile::new().unwrap();
     let output = Command::new(headway_bin())
         .args([
             "validate",
             "-f",
-            MINIMAL_FEED,
+            feed.path().to_str().unwrap(),
             "--format",
             "json",
             "-o",
