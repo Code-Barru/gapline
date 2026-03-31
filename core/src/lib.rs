@@ -20,6 +20,9 @@
 /// Application configuration.
 pub mod config;
 
+/// GTFS data model: IDs, types, enums, records, feed.
+pub mod models;
+
 /// GTFS feed loading from ZIP archives and directories.
 pub mod parser;
 
