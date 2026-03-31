@@ -13,7 +13,7 @@
 //! - `ValidationReport` -- Aggregated summary counts by severity.
 //! - `ValidationRule` -- Trait that all validation rules must implement.
 //! - `StructuralValidationRule` -- Trait for pre-parsing rules (sections 1 & 2).
-//! - `GtfsFeed` -- Placeholder for the in-memory GTFS feed data model.
+//! - `GtfsFeed` -- In-memory GTFS feed data model (see [`crate::models::GtfsFeed`]).
 
 pub mod csv_formating;
 pub mod engine;
@@ -26,6 +26,6 @@ mod validate;
 
 pub use error::{Severity, ValidationError};
 pub use report::ValidationReport;
-pub use rules::{GtfsFeed, ValidationRule};
+pub use rules::ValidationRule;
 pub use structural_rule::StructuralValidationRule;
 pub use validate::validate;

@@ -2,32 +2,14 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 
-use crate::parser::error::ParserError;
+use crate::models::GtfsFeed;
+use crate::parser::error::{ParseError, ParserError};
 use crate::parser::feed_source::{FeedSource, GtfsFiles};
+use crate::parser::file_parsers;
 
-/// Entry point for loading a GTFS feed from a ZIP archive or directory.
-///
-/// `FeedLoader` detects the feed format (ZIP or directory) and returns a
-/// [`FeedSource`] that provides uniform access to the raw file contents.
-/// It does **not** parse CSV data into structs — that is handled by later stages.
-///
-/// Only files matching a known [`GtfsFiles`] variant are indexed.
-/// Unknown files (e.g. `custom_data.txt`) are silently ignored.
 pub struct FeedLoader;
 
 impl FeedLoader {
-    /// Opens a GTFS feed at the given path.
-    ///
-    /// # Behaviour
-    ///
-    /// - If `path` does not exist, returns [`ParserError::FileNotFound`].
-    /// - If `path` is a `.zip` file, the archive is read in memory via the `zip` crate.
-    ///   Files inside a single subdirectory (e.g. `gtfs/agency.txt`) have their prefix
-    ///   normalized. Only files matching a known [`GtfsFiles`] variant are kept.
-    /// - If `path` is a directory, only `.txt` files at the root level that match a
-    ///   known [`GtfsFiles`] variant are listed.
-    /// - Otherwise, returns [`ParserError::NotAGtfsFeed`].
-    ///
     /// # Errors
     ///
     /// Returns [`ParserError`] on missing path, corrupt ZIP, I/O failure, or
@@ -48,7 +30,183 @@ impl FeedLoader {
         Err(ParserError::NotAGtfsFeed(path.to_path_buf()))
     }
 
-    /// Opens a ZIP archive and reads all recognized GTFS entries into memory.
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn load(source: &FeedSource) -> (GtfsFeed, Vec<ParseError>) {
+        let available = source.file_names();
+        let has = |f: GtfsFiles| available.contains(&f);
+
+        macro_rules! parse_vec {
+            ($file:expr, $parser:path) => {
+                if has($file) {
+                    match source.read_file($file) {
+                        Ok(r) => $parser(r),
+                        Err(_) => (vec![], vec![]),
+                    }
+                } else {
+                    (vec![], vec![])
+                }
+            };
+        }
+
+        // Parse all files in parallel via nested rayon::join.
+        // Each branch is independent — no shared mutable state.
+        let (
+            ((agencies_r, stops_r), (routes_r, trips_r)),
+            ((stop_times_r, calendars_r), (cal_dates_r, shapes_r)),
+        ) = rayon::join(
+            || {
+                rayon::join(
+                    || {
+                        rayon::join(
+                            || parse_vec!(GtfsFiles::Agency, file_parsers::agency::parse),
+                            || parse_vec!(GtfsFiles::Stops, file_parsers::stops::parse),
+                        )
+                    },
+                    || {
+                        rayon::join(
+                            || parse_vec!(GtfsFiles::Routes, file_parsers::routes::parse),
+                            || parse_vec!(GtfsFiles::Trips, file_parsers::trips::parse),
+                        )
+                    },
+                )
+            },
+            || {
+                rayon::join(
+                    || {
+                        rayon::join(
+                            || parse_vec!(GtfsFiles::StopTimes, file_parsers::stop_times::parse),
+                            || parse_vec!(GtfsFiles::Calendar, file_parsers::calendar::parse),
+                        )
+                    },
+                    || {
+                        rayon::join(
+                            || {
+                                parse_vec!(
+                                    GtfsFiles::CalendarDates,
+                                    file_parsers::calendar_dates::parse
+                                )
+                            },
+                            || parse_vec!(GtfsFiles::Shapes, file_parsers::shapes::parse),
+                        )
+                    },
+                )
+            },
+        );
+
+        let (
+            ((freqs_r, transfers_r), (pathways_r, levels_r)),
+            ((fare_attr_r, fare_rules_r), (translations_r, attributions_r)),
+        ) = rayon::join(
+            || {
+                rayon::join(
+                    || {
+                        rayon::join(
+                            || parse_vec!(GtfsFiles::Frequencies, file_parsers::frequencies::parse),
+                            || parse_vec!(GtfsFiles::Transfers, file_parsers::transfers::parse),
+                        )
+                    },
+                    || {
+                        rayon::join(
+                            || parse_vec!(GtfsFiles::Pathways, file_parsers::pathways::parse),
+                            || parse_vec!(GtfsFiles::Levels, file_parsers::levels::parse),
+                        )
+                    },
+                )
+            },
+            || {
+                rayon::join(
+                    || {
+                        rayon::join(
+                            || {
+                                parse_vec!(
+                                    GtfsFiles::FareAttributes,
+                                    file_parsers::fare_attributes::parse
+                                )
+                            },
+                            || parse_vec!(GtfsFiles::FareRules, file_parsers::fare_rules::parse),
+                        )
+                    },
+                    || {
+                        rayon::join(
+                            || {
+                                parse_vec!(
+                                    GtfsFiles::Translations,
+                                    file_parsers::translations::parse
+                                )
+                            },
+                            || {
+                                parse_vec!(
+                                    GtfsFiles::Attributions,
+                                    file_parsers::attributions::parse
+                                )
+                            },
+                        )
+                    },
+                )
+            },
+        );
+
+        // feed_info is small — parse sequentially
+        let feed_info_r = if has(GtfsFiles::FeedInfo) {
+            match source.read_file(GtfsFiles::FeedInfo) {
+                Ok(r) => file_parsers::feed_info::parse(r),
+                Err(_) => (None, vec![]),
+            }
+        } else {
+            (None, vec![])
+        };
+
+        let mut all_errors = Vec::new();
+
+        macro_rules! unpack {
+            ($result:expr, $errors:expr) => {{
+                $errors.append(&mut $result.1);
+                $result.0
+            }};
+        }
+
+        let mut agencies_r = agencies_r;
+        let mut stops_r = stops_r;
+        let mut routes_r = routes_r;
+        let mut trips_r = trips_r;
+        let mut stop_times_r = stop_times_r;
+        let mut calendars_r = calendars_r;
+        let mut cal_dates_r = cal_dates_r;
+        let mut shapes_r = shapes_r;
+        let mut freqs_r = freqs_r;
+        let mut transfers_r = transfers_r;
+        let mut pathways_r = pathways_r;
+        let mut levels_r = levels_r;
+        let mut fare_attr_r = fare_attr_r;
+        let mut fare_rules_r = fare_rules_r;
+        let mut translations_r = translations_r;
+        let mut attributions_r = attributions_r;
+        let mut feed_info_r = feed_info_r;
+
+        let feed = GtfsFeed {
+            agencies: unpack!(agencies_r, all_errors),
+            stops: unpack!(stops_r, all_errors),
+            routes: unpack!(routes_r, all_errors),
+            trips: unpack!(trips_r, all_errors),
+            stop_times: unpack!(stop_times_r, all_errors),
+            calendars: unpack!(calendars_r, all_errors),
+            calendar_dates: unpack!(cal_dates_r, all_errors),
+            shapes: unpack!(shapes_r, all_errors),
+            frequencies: unpack!(freqs_r, all_errors),
+            transfers: unpack!(transfers_r, all_errors),
+            pathways: unpack!(pathways_r, all_errors),
+            levels: unpack!(levels_r, all_errors),
+            feed_info: unpack!(feed_info_r, all_errors),
+            fare_attributes: unpack!(fare_attr_r, all_errors),
+            fare_rules: unpack!(fare_rules_r, all_errors),
+            translations: unpack!(translations_r, all_errors),
+            attributions: unpack!(attributions_r, all_errors),
+        };
+
+        (feed, all_errors)
+    }
+
     fn open_zip(path: &Path) -> Result<FeedSource, ParserError> {
         let has_zip_extension = path
             .extension()
@@ -61,7 +219,6 @@ impl FeedLoader {
         let file = std::fs::File::open(path)?;
         let mut archive = zip::ZipArchive::new(file)?;
 
-        // First pass: collect raw entry names (excluding directories).
         let raw_names: Vec<String> = (0..archive.len())
             .filter_map(|i| {
                 let entry = archive.by_index(i).ok()?;
@@ -73,10 +230,8 @@ impl FeedLoader {
             })
             .collect();
 
-        // Detect a common subdirectory prefix shared by all entries.
         let prefix = Self::detect_common_prefix(&raw_names);
 
-        // Second pass: read file contents, normalize names, and keep only recognized files.
         let mut files = HashMap::new();
         for i in 0..archive.len() {
             let mut entry = archive.by_index(i)?;
@@ -88,7 +243,7 @@ impl FeedLoader {
             let normalized = raw_name.strip_prefix(&prefix).unwrap_or(&raw_name);
 
             let Ok(gtfs_file) = GtfsFiles::try_from(normalized) else {
-                continue; // Unknown file — skip silently
+                continue;
             };
 
             let capacity = usize::try_from(entry.size()).unwrap_or(0);
@@ -104,7 +259,6 @@ impl FeedLoader {
         })
     }
 
-    /// Opens a directory and lists recognized GTFS `.txt` files at the root level.
     fn open_directory(path: &Path) -> Result<FeedSource, ParserError> {
         let mut file_names = Vec::new();
         let mut raw_entry_names = Vec::new();
@@ -136,23 +290,17 @@ impl FeedLoader {
         })
     }
 
-    /// Detects a common directory prefix shared by all file entries.
-    ///
-    /// For example, if all entries start with `"gtfs/"`, the prefix is `"gtfs/"`.
-    /// Returns an empty string if there is no common prefix or entries are at root level.
     fn detect_common_prefix(names: &[String]) -> String {
         if names.is_empty() {
             return String::new();
         }
 
-        // Find the prefix of the first entry (everything up to and including the last `/`).
         let first = &names[0];
         let Some(slash_pos) = first.rfind('/') else {
             return String::new();
         };
         let candidate = &first[..=slash_pos];
 
-        // Check if all other entries share this prefix.
         let all_share = names.iter().all(|name| name.starts_with(candidate));
         if all_share {
             candidate.to_owned()

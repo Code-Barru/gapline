@@ -13,6 +13,12 @@ pub struct Longitude(pub f64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct GtfsDate(pub NaiveDate);
 
+impl Default for GtfsDate {
+    fn default() -> Self {
+        Self(NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
+    }
+}
+
 impl fmt::Display for GtfsDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.format("%Y%m%d"))
@@ -27,7 +33,9 @@ impl FromStr for GtfsDate {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub struct GtfsTime {
     pub total_seconds: u32,
 }

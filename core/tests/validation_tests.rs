@@ -1,6 +1,5 @@
-use headway_core::validation::{
-    GtfsFeed, Severity, ValidationError, ValidationReport, ValidationRule,
-};
+use headway_core::models::GtfsFeed;
+use headway_core::validation::{Severity, ValidationError, ValidationReport, ValidationRule};
 
 // ---------- Test 1 : Minimal builder ----------
 
@@ -173,7 +172,7 @@ impl ValidationRule for DummyRule {
 #[test]
 fn test_validation_rule_trait() {
     let rule = DummyRule;
-    let feed = GtfsFeed {};
+    let feed = GtfsFeed::default();
 
     let results = rule.validate(&feed);
 
