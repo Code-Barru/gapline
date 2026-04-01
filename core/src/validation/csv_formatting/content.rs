@@ -57,29 +57,24 @@ impl StructuralValidationRule for InvalidContentRule {
             let file_name = file.to_string();
 
             let mut line_num: usize = 0;
-            let mut in_quoted = false;
 
             for line in content.split('\n') {
                 line_num += 1;
                 let line_bytes = line.as_bytes();
 
                 for &b in line_bytes {
-                    match b {
-                        b'"' => in_quoted = !in_quoted,
-                        b'\t' => {
-                            errors.push(
-                                ValidationError::new(
-                                    "control_character",
-                                    self.section(),
-                                    self.severity(),
-                                )
-                                .message("Tab character (0x09) found in value")
-                                .file(file_name.clone())
-                                .line(line_num),
-                            );
-                            break;
-                        }
-                        _ => {}
+                    if b == b'\t' {
+                        errors.push(
+                            ValidationError::new(
+                                "control_character",
+                                self.section(),
+                                self.severity(),
+                            )
+                            .message("Tab character (0x09) found in value")
+                            .file(file_name.clone())
+                            .line(line_num),
+                        );
+                        break;
                     }
                 }
 
@@ -138,8 +133,6 @@ impl StructuralValidationRule for InvalidContentRule {
                             .value(m.as_str().to_string()),
                     );
                 }
-
-                in_quoted = false;
             }
         }
 

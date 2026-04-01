@@ -32,43 +32,48 @@ pub fn is_poorly_cased(value: &str) -> bool {
     alpha_chars.iter().all(|c| c.is_uppercase()) || alpha_chars.iter().all(|c| c.is_lowercase())
 }
 
-fn collect_text_fields(feed: &GtfsFeed) -> Vec<(&'static str, &'static str, &str)> {
+fn collect_text_fields(feed: &GtfsFeed) -> Vec<(&'static str, &'static str, &str, usize)> {
     let mut fields = Vec::new();
 
-    for a in &feed.agencies {
-        fields.push(("agency.txt", "agency_name", a.agency_name.as_str()));
+    for (i, a) in feed.agencies.iter().enumerate() {
+        let line = i + 2;
+        fields.push(("agency.txt", "agency_name", a.agency_name.as_str(), line));
     }
 
-    for s in &feed.stops {
+    for (i, s) in feed.stops.iter().enumerate() {
+        let line = i + 2;
         if let Some(ref name) = s.stop_name {
-            fields.push(("stops.txt", "stop_name", name.as_str()));
+            fields.push(("stops.txt", "stop_name", name.as_str(), line));
         }
         if let Some(ref desc) = s.stop_desc {
-            fields.push(("stops.txt", "stop_desc", desc.as_str()));
+            fields.push(("stops.txt", "stop_desc", desc.as_str(), line));
         }
     }
 
-    for r in &feed.routes {
+    for (i, r) in feed.routes.iter().enumerate() {
+        let line = i + 2;
         if let Some(ref name) = r.route_short_name {
-            fields.push(("routes.txt", "route_short_name", name.as_str()));
+            fields.push(("routes.txt", "route_short_name", name.as_str(), line));
         }
         if let Some(ref name) = r.route_long_name {
-            fields.push(("routes.txt", "route_long_name", name.as_str()));
+            fields.push(("routes.txt", "route_long_name", name.as_str(), line));
         }
         if let Some(ref desc) = r.route_desc {
-            fields.push(("routes.txt", "route_desc", desc.as_str()));
+            fields.push(("routes.txt", "route_desc", desc.as_str(), line));
         }
     }
 
-    for t in &feed.trips {
+    for (i, t) in feed.trips.iter().enumerate() {
+        let line = i + 2;
         if let Some(ref hs) = t.trip_headsign {
-            fields.push(("trips.txt", "trip_headsign", hs.as_str()));
+            fields.push(("trips.txt", "trip_headsign", hs.as_str(), line));
         }
     }
 
-    for st in &feed.stop_times {
+    for (i, st) in feed.stop_times.iter().enumerate() {
+        let line = i + 2;
         if let Some(ref hs) = st.stop_headsign {
-            fields.push(("stop_times.txt", "stop_headsign", hs.as_str()));
+            fields.push(("stop_times.txt", "stop_headsign", hs.as_str(), line));
         }
     }
 
@@ -101,13 +106,14 @@ impl ValidationRule for TextValidator {
         let mut errors = Vec::new();
         let fields = collect_text_fields(feed);
 
-        for (file, field, value) in &fields {
+        for (file, field, value, line) in &fields {
             if has_invalid_chars(value) {
                 errors.push(
                     ValidationError::new("invalid_character", "3", Severity::Error)
                         .file(*file)
                         .field(*field)
                         .value(*value)
+                        .line(*line)
                         .message(format!("Invalid character in {field}: '{value}'")),
                 );
             }
@@ -118,6 +124,7 @@ impl ValidationRule for TextValidator {
                         .file(*file)
                         .field(*field)
                         .value(*value)
+                        .line(*line)
                         .message(format!(
                             "Non-ASCII or non-printable character in {field}: '{value}'"
                         )),
@@ -130,6 +137,7 @@ impl ValidationRule for TextValidator {
                         .file(*file)
                         .field(*field)
                         .value(*value)
+                        .line(*line)
                         .message(format!(
                             "Field {field} is all uppercase or all lowercase, mixed case recommended: '{value}'"
                         )),

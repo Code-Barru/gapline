@@ -414,6 +414,78 @@ impl GtfsFiles {
             ],
         }
     }
+
+    /// Returns the **required** column names for this GTFS file according to the
+    /// [GTFS Schedule Reference](https://gtfs.org/documentation/schedule/reference/).
+    ///
+    /// Conditionally required columns are not included here — they depend on
+    /// context that structural validation cannot evaluate (e.g. number of agencies,
+    /// `location_type` values). Those are validated in later sections.
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn required_columns(self) -> &'static [&'static str] {
+        match self {
+            Self::Agency => &["agency_name", "agency_url", "agency_timezone"],
+            Self::Stops => &["stop_id"],
+            Self::Routes => &["route_id", "route_type"],
+            Self::Trips => &["route_id", "service_id", "trip_id"],
+            Self::StopTimes => &["trip_id", "stop_id", "stop_sequence"],
+            Self::Calendar => &[
+                "service_id",
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+                "start_date",
+                "end_date",
+            ],
+            Self::CalendarDates => &["service_id", "date", "exception_type"],
+            Self::FareAttributes => &[
+                "fare_id",
+                "price",
+                "currency_type",
+                "payment_method",
+                "transfers",
+            ],
+            Self::FareRules => &["fare_id"],
+            Self::Timeframes => &["timeframe_group_id", "start_time", "end_time"],
+            Self::RiderCategories => &["rider_category_id", "rider_category_name"],
+            Self::FareMedia => &["fare_media_id", "fare_media_type"],
+            Self::FareProducts => &["fare_product_id", "amount", "currency"],
+            Self::FareLegRules => &["fare_product_id"],
+            Self::FareLegJoinRules => &["from_leg_group_id", "to_leg_group_id"],
+            Self::FareTransferRules => &["fare_transfer_type"],
+            Self::Areas => &["area_id"],
+            Self::StopAreas => &["area_id", "stop_id"],
+            Self::Networks => &["network_id", "network_name"],
+            Self::RouteNetworks => &["network_id", "route_id"],
+            Self::Shapes => &[
+                "shape_id",
+                "shape_pt_lat",
+                "shape_pt_lon",
+                "shape_pt_sequence",
+            ],
+            Self::Frequencies => &["trip_id", "start_time", "end_time", "headway_secs"],
+            Self::Transfers => &["from_stop_id", "to_stop_id"],
+            Self::Pathways => &[
+                "pathway_id",
+                "from_stop_id",
+                "to_stop_id",
+                "pathway_mode",
+                "is_bidirectional",
+            ],
+            Self::Levels => &["level_id", "level_index"],
+            Self::LocationGroups => &["location_group_id"],
+            Self::LocationGroupStops => &["location_group_id", "stop_id"],
+            Self::BookingRules => &["booking_rule_id", "booking_type"],
+            Self::Translations => &["table_name", "field_name", "language", "translation"],
+            Self::FeedInfo => &["feed_publisher_name", "feed_publisher_url", "feed_lang"],
+            Self::Attributions => &["organization_name"],
+        }
+    }
 }
 
 impl fmt::Display for GtfsFiles {

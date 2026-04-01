@@ -20,7 +20,7 @@ Transit data engineers and application developers face:
 
 **MVP Phase :**
 
-- **Complete validation**: engine implementing 200+ rules from the GTFS Schedule specification
+- **Complete validation**: engine targeting 200+ rules from the GTFS Schedule specification (sections 1–3 implemented)
 - **CRUD operations**: create, read, update, and delete on core GTFS files
 - **Batch processing**: `.hw` files to automate GTFS workflows
 - **Multi-format**: output in colored text, JSON, XML, or CSV

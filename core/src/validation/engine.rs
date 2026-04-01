@@ -30,8 +30,8 @@ use crate::validation::field_type::parse_error_converter;
 use crate::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
     InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
-    MissingRecommendedFileRule, MissingRequiredFileRule, NewLineInValueRule, TooManyRowsRule,
-    UnknownColumnRule, UnknownFileRule,
+    MissingRecommendedFileRule, MissingRequiredColumnRule, MissingRequiredFileRule,
+    NewLineInValueRule, TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
 };
 use crate::validation::{
     StructuralValidationRule, ValidationError, ValidationReport, ValidationRule,
@@ -91,6 +91,7 @@ impl ValidationEngine {
             Box::new(EmptyRowRule),
             Box::new(UnknownFileRule),
             Box::new(UnknownColumnRule),
+            Box::new(MissingRequiredColumnRule),
             Box::new(InvalidEncodingRule),
             Box::new(InvalidDelimiterRule),
             Box::new(InvalidQuotingRule),
