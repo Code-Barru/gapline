@@ -11,6 +11,7 @@ mod delimiter;
 mod encoding;
 mod headers;
 mod quoting;
+pub mod scanner;
 mod whitespace;
 
 pub use case_sensitivity::CaseSensitiveRule;

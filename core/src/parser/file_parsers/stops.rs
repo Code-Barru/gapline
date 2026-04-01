@@ -12,41 +12,55 @@ use crate::parser::field_parsers::{
 const FILE: &str = "stops.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Stop>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
-        let (stop_id, mut e) = required_id::<StopId>(&row, "stop_id", FILE, line);
-        errors.append(&mut e);
+    while let Some((line, row)) = iter.next_row() {
+        let stop_id = required_id::<StopId>(&row, "stop_id", FILE, line, &mut errors);
         let stop_code = optional_str(&row, "stop_code");
         let stop_name = optional_str(&row, "stop_name");
         let tts_stop_name = optional_str(&row, "tts_stop_name");
         let stop_desc = optional_str(&row, "stop_desc");
-        let (stop_lat, mut e) =
-            optional_parse::<f64>(&row, "stop_lat", FILE, line, ParseErrorKind::InvalidFloat);
-        errors.append(&mut e);
-        let (stop_lon, mut e) =
-            optional_parse::<f64>(&row, "stop_lon", FILE, line, ParseErrorKind::InvalidFloat);
-        errors.append(&mut e);
+        let stop_lat = optional_parse::<f64>(
+            &row,
+            "stop_lat",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let stop_lon = optional_parse::<f64>(
+            &row,
+            "stop_lon",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
         let zone_id = optional_str(&row, "zone_id");
         let stop_url = optional_id::<Url>(&row, "stop_url");
-        let (location_type, mut e) =
-            optional_enum(&row, "location_type", FILE, line, LocationType::from_i32);
-        errors.append(&mut e);
+        let location_type = optional_enum(
+            &row,
+            "location_type",
+            FILE,
+            line,
+            LocationType::from_i32,
+            &mut errors,
+        );
         let parent_station = optional_id::<StopId>(&row, "parent_station");
         let stop_timezone = optional_id::<Timezone>(&row, "stop_timezone");
-        let (wheelchair_boarding, mut e) = optional_enum(
+        let wheelchair_boarding = optional_enum(
             &row,
             "wheelchair_boarding",
             FILE,
             line,
             WheelchairAccessible::from_i32,
+            &mut errors,
         );
-        errors.append(&mut e);
         let level_id = optional_id::<LevelId>(&row, "level_id");
         let platform_code = optional_str(&row, "platform_code");
 

@@ -33,6 +33,7 @@ static SPINNER_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 /// Returns [`ParserError`] if the feed cannot be opened.
 pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, ParserError> {
     let source = FeedLoader::open(path)?;
+    let quiet = config.quiet;
     let engine = ValidationEngine::new(config);
 
     let structural_report = engine.validate_structural(&source);
@@ -42,7 +43,7 @@ pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, Pa
     }
 
     let spinner = ProgressBar::new_spinner();
-    if std::io::stderr().is_terminal() {
+    if !quiet && std::io::stderr().is_terminal() {
         spinner.set_style(SPINNER_STYLE.clone());
         spinner.set_message("Loading feed...");
         spinner.enable_steady_tick(std::time::Duration::from_millis(100));

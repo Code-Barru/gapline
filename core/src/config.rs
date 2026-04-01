@@ -12,4 +12,8 @@
 pub struct Config {
     /// Maximum allowed data rows per file. `None` disables the check.
     pub max_rows: Option<usize>,
+    /// Suppress all progress bars and terminal output. Defaults to `false`.
+    ///
+    /// Set to `true` for benchmarks, tests, or non-interactive contexts.
+    pub quiet: bool,
 }

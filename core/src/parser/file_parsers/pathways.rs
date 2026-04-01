@@ -8,63 +8,75 @@ use crate::parser::field_parsers::{optional_parse, optional_str, required_enum, 
 const FILE: &str = "pathways.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Pathway>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
-        let (pathway_id, mut e) = required_id::<PathwayId>(&row, "pathway_id", FILE, line);
-        errors.append(&mut e);
-        let (from_stop_id, mut e) = required_id::<StopId>(&row, "from_stop_id", FILE, line);
-        errors.append(&mut e);
-        let (to_stop_id, mut e) = required_id::<StopId>(&row, "to_stop_id", FILE, line);
-        errors.append(&mut e);
-        let (pathway_mode, mut e) = required_enum(
+    while let Some((line, row)) = iter.next_row() {
+        let pathway_id = required_id::<PathwayId>(&row, "pathway_id", FILE, line, &mut errors);
+        let from_stop_id = required_id::<StopId>(&row, "from_stop_id", FILE, line, &mut errors);
+        let to_stop_id = required_id::<StopId>(&row, "to_stop_id", FILE, line, &mut errors);
+        let pathway_mode = required_enum(
             &row,
             "pathway_mode",
             FILE,
             line,
             PathwayMode::from_i32,
             PathwayMode::Walkway,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (is_bidirectional, mut e) = required_enum(
+        let is_bidirectional = required_enum(
             &row,
             "is_bidirectional",
             FILE,
             line,
             IsBidirectional::from_i32,
             IsBidirectional::Unidirectional,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (length, mut e) =
-            optional_parse::<f64>(&row, "length", FILE, line, ParseErrorKind::InvalidFloat);
-        errors.append(&mut e);
-        let (traversal_time, mut e) = optional_parse::<u32>(
+        let length = optional_parse::<f64>(
+            &row,
+            "length",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let traversal_time = optional_parse::<u32>(
             &row,
             "traversal_time",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (stair_count, mut e) = optional_parse::<i32>(
+        let stair_count = optional_parse::<i32>(
             &row,
             "stair_count",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (max_slope, mut e) =
-            optional_parse::<f64>(&row, "max_slope", FILE, line, ParseErrorKind::InvalidFloat);
-        errors.append(&mut e);
-        let (min_width, mut e) =
-            optional_parse::<f64>(&row, "min_width", FILE, line, ParseErrorKind::InvalidFloat);
-        errors.append(&mut e);
+        let max_slope = optional_parse::<f64>(
+            &row,
+            "max_slope",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let min_width = optional_parse::<f64>(
+            &row,
+            "min_width",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
         let signposted_as = optional_str(&row, "signposted_as");
         let reversed_signposted_as = optional_str(&row, "reversed_signposted_as");
 

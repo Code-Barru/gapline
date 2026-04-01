@@ -8,16 +8,15 @@ use crate::parser::field_parsers::{optional_id, optional_str, required_id};
 const FILE: &str = "fare_rules.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<FareRule>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
-        let (fare_id, mut e) = required_id::<FareId>(&row, "fare_id", FILE, line);
-        errors.append(&mut e);
+    while let Some((line, row)) = iter.next_row() {
+        let fare_id = required_id::<FareId>(&row, "fare_id", FILE, line, &mut errors);
         let route_id = optional_id::<RouteId>(&row, "route_id");
         let origin_id = optional_str(&row, "origin_id");
         let destination_id = optional_str(&row, "destination_id");

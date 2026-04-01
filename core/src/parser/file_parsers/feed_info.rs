@@ -14,35 +14,33 @@ pub fn parse(reader: impl BufRead) -> (Option<FeedInfo>, Vec<ParseError>) {
         return (None, vec![]);
     };
 
-    let Some((line, row)) = iter.next() else {
+    let Some((line, row)) = iter.next_row() else {
         return (None, vec![]);
     };
 
     let mut errors = Vec::new();
 
-    let (feed_publisher_name, mut e) = required_str(&row, "feed_publisher_name", FILE, line);
-    errors.append(&mut e);
-    let (feed_publisher_url, mut e) = required_id::<Url>(&row, "feed_publisher_url", FILE, line);
-    errors.append(&mut e);
-    let (feed_lang, mut e) = required_id::<LanguageCode>(&row, "feed_lang", FILE, line);
-    errors.append(&mut e);
+    let feed_publisher_name = required_str(&row, "feed_publisher_name", FILE, line, &mut errors);
+    let feed_publisher_url =
+        required_id::<Url>(&row, "feed_publisher_url", FILE, line, &mut errors);
+    let feed_lang = required_id::<LanguageCode>(&row, "feed_lang", FILE, line, &mut errors);
     let default_lang = optional_id::<LanguageCode>(&row, "default_lang");
-    let (feed_start_date, mut e) = optional_parse::<GtfsDate>(
+    let feed_start_date = optional_parse::<GtfsDate>(
         &row,
         "feed_start_date",
         FILE,
         line,
         ParseErrorKind::InvalidDate,
+        &mut errors,
     );
-    errors.append(&mut e);
-    let (feed_end_date, mut e) = optional_parse::<GtfsDate>(
+    let feed_end_date = optional_parse::<GtfsDate>(
         &row,
         "feed_end_date",
         FILE,
         line,
         ParseErrorKind::InvalidDate,
+        &mut errors,
     );
-    errors.append(&mut e);
     let feed_version = optional_str(&row, "feed_version");
     let feed_contact_email = optional_id::<Email>(&row, "feed_contact_email");
     let feed_contact_url = optional_id::<Url>(&row, "feed_contact_url");

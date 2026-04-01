@@ -8,24 +8,23 @@ use crate::parser::field_parsers::{optional_str, required_id, required_parse};
 const FILE: &str = "levels.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Level>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
-        let (level_id, mut e) = required_id::<LevelId>(&row, "level_id", FILE, line);
-        errors.append(&mut e);
-        let (level_index, mut e) = required_parse::<f64>(
+    while let Some((line, row)) = iter.next_row() {
+        let level_id = required_id::<LevelId>(&row, "level_id", FILE, line, &mut errors);
+        let level_index = required_parse::<f64>(
             &row,
             "level_index",
             FILE,
             line,
             ParseErrorKind::InvalidFloat,
+            &mut errors,
         );
-        errors.append(&mut e);
         let level_name = optional_str(&row, "level_name");
 
         records.push(Level {

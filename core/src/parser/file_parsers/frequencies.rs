@@ -8,33 +8,47 @@ use crate::parser::field_parsers::{optional_enum, required_id, required_parse};
 const FILE: &str = "frequencies.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Frequency>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
-        let (trip_id, mut e) = required_id::<TripId>(&row, "trip_id", FILE, line);
-        errors.append(&mut e);
-        let (start_time, mut e) =
-            required_parse::<GtfsTime>(&row, "start_time", FILE, line, ParseErrorKind::InvalidTime);
-        errors.append(&mut e);
-        let (end_time, mut e) =
-            required_parse::<GtfsTime>(&row, "end_time", FILE, line, ParseErrorKind::InvalidTime);
-        errors.append(&mut e);
-        let (headway_secs, mut e) = required_parse::<u32>(
+    while let Some((line, row)) = iter.next_row() {
+        let trip_id = required_id::<TripId>(&row, "trip_id", FILE, line, &mut errors);
+        let start_time = required_parse::<GtfsTime>(
+            &row,
+            "start_time",
+            FILE,
+            line,
+            ParseErrorKind::InvalidTime,
+            &mut errors,
+        );
+        let end_time = required_parse::<GtfsTime>(
+            &row,
+            "end_time",
+            FILE,
+            line,
+            ParseErrorKind::InvalidTime,
+            &mut errors,
+        );
+        let headway_secs = required_parse::<u32>(
             &row,
             "headway_secs",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (exact_times, mut e) =
-            optional_enum(&row, "exact_times", FILE, line, ExactTimes::from_i32);
-        errors.append(&mut e);
+        let exact_times = optional_enum(
+            &row,
+            "exact_times",
+            FILE,
+            line,
+            ExactTimes::from_i32,
+            &mut errors,
+        );
 
         records.push(Frequency {
             trip_id,

@@ -8,44 +8,43 @@ use crate::parser::field_parsers::{optional_id, optional_parse, optional_str, re
 const FILE: &str = "attributions.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Attribution>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
+    while let Some((line, row)) = iter.next_row() {
         let attribution_id = optional_str(&row, "attribution_id");
         let agency_id = optional_id::<AgencyId>(&row, "agency_id");
         let route_id = optional_id::<RouteId>(&row, "route_id");
         let trip_id = optional_id::<TripId>(&row, "trip_id");
-        let (organization_name, mut e) = required_str(&row, "organization_name", FILE, line);
-        errors.append(&mut e);
-        let (is_producer, mut e) = optional_parse::<u8>(
+        let organization_name = required_str(&row, "organization_name", FILE, line, &mut errors);
+        let is_producer = optional_parse::<u8>(
             &row,
             "is_producer",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (is_operator, mut e) = optional_parse::<u8>(
+        let is_operator = optional_parse::<u8>(
             &row,
             "is_operator",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
-        let (is_authority, mut e) = optional_parse::<u8>(
+        let is_authority = optional_parse::<u8>(
             &row,
             "is_authority",
             FILE,
             line,
             ParseErrorKind::InvalidInteger,
+            &mut errors,
         );
-        errors.append(&mut e);
         let attribution_url = optional_id::<Url>(&row, "attribution_url");
         let attribution_email = optional_id::<Email>(&row, "attribution_email");
         let attribution_phone = optional_id::<Phone>(&row, "attribution_phone");

@@ -26,13 +26,18 @@ indicatif = "0.18.4"
 # Internal
 headway-core = { path = "core" }
 # Dev
-tempfile = "3.26.0"
+tempfile  = "3.26.0"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [profile.release]
 opt-level     = 3
-strip         = true
-lto           = true
+debug         = true
+# strip         = true
+# lto           = true
 codegen-units = 1
+
+[profile.bench]
+debug = true
 
 [profile.release.package."*"]
 opt-level = 3

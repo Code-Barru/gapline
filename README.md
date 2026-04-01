@@ -95,8 +95,21 @@ cargo test
 ### Run benchmarks
 
 ```bash
-cargo bench
+cargo bench -p headway-core
 ```
+
+Les rapports HTML Criterion sont générés dans `target/criterion/`.
+
+### Flamegraph
+
+Nécessite [`cargo-flamegraph`](https://github.com/flamegraph-rs/flamegraph) et `perf` (Linux) :
+
+```bash
+cargo install flamegraph
+cargo flamegraph --bench core_bench -p headway-core -- --bench
+```
+
+Le flamegraph SVG est généré à la racine du projet (`flamegraph.svg`).
 
 ### Format code
 

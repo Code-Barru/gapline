@@ -8,21 +8,19 @@ use crate::parser::field_parsers::{optional_id, required_id, required_str};
 const FILE: &str = "agency.txt";
 
 pub fn parse(reader: impl BufRead) -> (Vec<Agency>, Vec<ParseError>) {
-    let Ok(iter) = parse_csv(reader) else {
+    let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
     };
 
     let mut records = Vec::new();
     let mut errors = Vec::new();
 
-    for (line, row) in iter {
+    while let Some((line, row)) = iter.next_row() {
         let agency_id = optional_id::<AgencyId>(&row, "agency_id");
-        let (agency_name, mut e) = required_str(&row, "agency_name", FILE, line);
-        errors.append(&mut e);
-        let (agency_url, mut e) = required_id::<Url>(&row, "agency_url", FILE, line);
-        errors.append(&mut e);
-        let (agency_timezone, mut e) = required_id::<Timezone>(&row, "agency_timezone", FILE, line);
-        errors.append(&mut e);
+        let agency_name = required_str(&row, "agency_name", FILE, line, &mut errors);
+        let agency_url = required_id::<Url>(&row, "agency_url", FILE, line, &mut errors);
+        let agency_timezone =
+            required_id::<Timezone>(&row, "agency_timezone", FILE, line, &mut errors);
         let agency_lang = optional_id::<LanguageCode>(&row, "agency_lang");
         let agency_phone = optional_id::<Phone>(&row, "agency_phone");
         let agency_fare_url = optional_id::<Url>(&row, "agency_fare_url");

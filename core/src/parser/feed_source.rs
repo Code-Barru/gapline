@@ -1,6 +1,7 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
-use std::io::{BufRead, BufReader, Cursor};
+use std::io::{BufRead, BufReader, Cursor, Read};
 use std::path::PathBuf;
 
 use crate::parser::error::ParserError;
@@ -93,6 +94,36 @@ impl FeedSource {
                 }
                 let file = std::fs::File::open(path.join(name.to_string()))?;
                 Ok(Box::new(BufReader::new(file)))
+            }
+        }
+    }
+
+    /// Returns the raw bytes for the given GTFS file.
+    ///
+    /// For ZIP feeds this is zero-copy (`Cow::Borrowed`).
+    /// For directory feeds the file is read into memory (`Cow::Owned`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParserError::GtfsFileNotFound`] if the file is not present.
+    /// Returns [`ParserError::Io`] if the file cannot be read from disk.
+    pub fn read_file_bytes(&self, name: GtfsFiles) -> Result<Cow<'_, [u8]>, ParserError> {
+        match self {
+            FeedSource::Zip { files, .. } => {
+                let bytes = files
+                    .get(&name)
+                    .ok_or(ParserError::GtfsFileNotFound(name))?;
+                Ok(Cow::Borrowed(bytes))
+            }
+            FeedSource::Directory {
+                path, file_names, ..
+            } => {
+                if !file_names.contains(&name) {
+                    return Err(ParserError::GtfsFileNotFound(name));
+                }
+                let mut buf = Vec::new();
+                std::fs::File::open(path.join(name.to_string()))?.read_to_end(&mut buf)?;
+                Ok(Cow::Owned(buf))
             }
         }
     }

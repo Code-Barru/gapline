@@ -22,16 +22,14 @@ use crate::config::Config;
 use crate::models::GtfsFeed;
 use crate::parser::FeedSource;
 use crate::parser::error::ParseError;
-use crate::validation::csv_formatting::{
-    CaseSensitiveRule, InvalidContentRule, InvalidDelimiterRule, InvalidEncodingRule,
-    InvalidQuotingRule, MissingHeaderRule, SuperfluousWhitespaceRule,
-};
+use crate::validation::csv_formatting::scanner;
+use crate::validation::csv_formatting::{CaseSensitiveRule, MissingHeaderRule};
 use crate::validation::field_type::parse_error_converter;
 use crate::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
     InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
     MissingRecommendedFileRule, MissingRequiredColumnRule, MissingRequiredFileRule,
-    NewLineInValueRule, TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
+    TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
 };
 use crate::validation::{
     StructuralValidationRule, ValidationError, ValidationReport, ValidationRule,
@@ -76,6 +74,10 @@ impl ValidationEngine {
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.max_rows;
 
+        // Rules that remain as individual StructuralValidationRule instances.
+        // The 6 content-scanning rules (encoding, delimiter, quoting, content,
+        // whitespace, new_line_in_value) are handled by the single-pass scanner
+        // in validate_structural().
         let pre_rules: Vec<Box<dyn StructuralValidationRule>> = vec![
             Box::new(MissingRequiredFileRule),
             Box::new(MissingRecommendedFileRule),
@@ -84,7 +86,6 @@ impl ValidationEngine {
             Box::new(EmptyColumnNameRule),
             Box::new(DuplicatedColumnRule),
             Box::new(InvalidRowLengthRule),
-            Box::new(NewLineInValueRule),
             Box::new(InvalidInputFilesInSubfolderRule),
             Box::new(CsvParsingFailedRule),
             Box::new(TooManyRowsRule::new(max_rows)),
@@ -92,12 +93,7 @@ impl ValidationEngine {
             Box::new(UnknownFileRule),
             Box::new(UnknownColumnRule),
             Box::new(MissingRequiredColumnRule),
-            Box::new(InvalidEncodingRule),
-            Box::new(InvalidDelimiterRule),
-            Box::new(InvalidQuotingRule),
-            Box::new(InvalidContentRule),
             Box::new(MissingHeaderRule),
-            Box::new(SuperfluousWhitespaceRule),
             Box::new(CaseSensitiveRule),
         ];
 
@@ -144,7 +140,7 @@ impl ValidationEngine {
         sections.sort();
 
         let multi = MultiProgress::new();
-        if !std::io::stderr().is_terminal() {
+        if self.config.quiet || !std::io::stderr().is_terminal() {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
@@ -171,6 +167,21 @@ impl ValidationEngine {
             pb.finish();
         }
 
+        // --- Single-pass scanner for merged formatting rules ---
+        // Runs encoding, delimiter, quoting, content, whitespace, and
+        // new_line_in_value checks in one pass per file, in parallel.
+        let file_names = source.file_names();
+        let scanner_errors: Vec<ValidationError> = file_names
+            .par_iter()
+            .flat_map(|&file| {
+                let Ok(bytes) = source.read_file_bytes(file) else {
+                    return Vec::new();
+                };
+                scanner::scan(file, &bytes)
+            })
+            .collect();
+        all_errors.extend(scanner_errors);
+
         ValidationReport::from(all_errors)
     }
 
@@ -183,7 +194,7 @@ impl ValidationEngine {
         let mut all_errors: Vec<ValidationError> = parse_error_converter::convert(parse_errors);
 
         let multi = MultiProgress::new();
-        if !std::io::stderr().is_terminal() {
+        if self.config.quiet || !std::io::stderr().is_terminal() {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
