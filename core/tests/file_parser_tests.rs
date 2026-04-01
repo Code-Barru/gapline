@@ -278,7 +278,7 @@ fn parse_attributions() {
 // -- TC15: Performance - 100k stop_times
 // Run with: cargo test --release -- --ignored
 #[test]
-#[ignore]
+#[ignore = "Need to be runned in release mode"]
 fn parse_stop_times_100k_performance() {
     let header = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n";
     let mut csv = String::with_capacity(header.len() + 100_000 * 40);
