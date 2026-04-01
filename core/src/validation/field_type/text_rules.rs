@@ -12,9 +12,12 @@ pub fn has_invalid_chars(value: &str) -> bool {
 
 #[must_use]
 pub fn has_non_ascii_or_non_printable(value: &str) -> bool {
-    value
-        .chars()
-        .any(|c| !c.is_ascii() || (c.is_ascii_control() && c != '\t' && c != '\n' && c != '\r'))
+    value.chars().any(|c| {
+        if c == '\t' || c == '\n' || c == '\r' {
+            return false;
+        }
+        c.is_control()
+    })
 }
 
 #[must_use]

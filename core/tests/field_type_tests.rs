@@ -95,9 +95,17 @@ fn invalid_chars_detection() {
 }
 
 #[test]
-fn non_ascii_detection() {
-    assert!(has_non_ascii_or_non_printable("caf\u{00e9}"));
+fn non_printable_detection() {
+    // Accented characters are valid UTF-8 text, not flagged
+    assert!(!has_non_ascii_or_non_printable("café"));
+    assert!(!has_non_ascii_or_non_printable("Université"));
+    assert!(!has_non_ascii_or_non_printable("Dépôt Grenay"));
     assert!(!has_non_ascii_or_non_printable("hello"));
+    // Control characters are flagged
+    assert!(has_non_ascii_or_non_printable("hello\x00world"));
+    assert!(has_non_ascii_or_non_printable("test\x01"));
+    // Whitespace exceptions
+    assert!(!has_non_ascii_or_non_printable("with\ttab"));
 }
 
 #[test]

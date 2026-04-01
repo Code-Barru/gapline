@@ -27,10 +27,6 @@ pub struct Cli {
 /// Available subcommands for headway.
 ///
 /// Follows a git-style pattern: `headway <subcommand> [options]`.
-///
-/// - **Phase 1a:** `Validate`
-/// - **Phase 1b:** `Read`, `Create`, `Update`, `Delete`
-/// - **Phase 1c:** `Run`
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Validate a GTFS feed against the full specification.
