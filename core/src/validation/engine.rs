@@ -1,10 +1,9 @@
 //! Validation engine — orchestrates rule execution against a feed source.
 //!
-//! The engine collects [`StructuralValidationRule`] implementations, groups them
-//! by GTFS specification section, and runs them sequentially. In Epic 2 only
-//! sections 1 and 2 are registered; future Epics add sections 3-8+13 by calling
-//! [`register_rule`](ValidationEngine::register_rule) without modifying the
-//! engine itself.
+//! The engine collects both structural (pre-parsing) and semantic (post-parsing)
+//! validation rules, groups them by GTFS specification section, and runs them
+//! sequentially. Sections 1-2 run against raw `FeedSource`; sections 3+ run
+//! against the parsed `GtfsFeed`.
 
 use std::collections::HashMap;
 use std::io::IsTerminal;
@@ -14,32 +13,34 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rayon::prelude::*;
 
 use crate::config::Config;
+use crate::models::GtfsFeed;
 use crate::parser::FeedSource;
+use crate::parser::error::ParseError;
 use crate::validation::csv_formatting::{
     CaseSensitiveRule, InvalidContentRule, InvalidDelimiterRule, InvalidEncodingRule,
     InvalidQuotingRule, MissingHeaderRule, SuperfluousWhitespaceRule,
 };
+use crate::validation::field_type::parse_error_converter;
 use crate::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
     InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
     MissingRecommendedFileRule, MissingRequiredFileRule, NewLineInValueRule, TooManyRowsRule,
     UnknownColumnRule, UnknownFileRule,
 };
-use crate::validation::{StructuralValidationRule, ValidationError, ValidationReport};
+use crate::validation::{
+    StructuralValidationRule, ValidationError, ValidationReport, ValidationRule,
+};
 
-/// Section display names used in progress bars.
 fn section_label(section: &str) -> &str {
     match section {
         "1" => "File Structure",
         "2" => "CSV Formatting",
+        "3" => "Field Type Validation",
         _ => "Validation",
     }
 }
 
-/// Orchestrates structural validation of a GTFS feed.
-///
-/// Holds an `Arc<Config>` for thread-safe sharing (preparation for parallel
-/// execution in later Epics) and a vector of boxed validation rules.
+/// Orchestrates validation of a GTFS feed.
 ///
 /// # Example
 ///
@@ -52,23 +53,24 @@ fn section_label(section: &str) -> &str {
 /// let config = Arc::new(Config::default());
 /// let engine = ValidationEngine::new(config);
 /// let source = FeedLoader::open(std::path::Path::new("feed.zip")).unwrap();
-/// let report = engine.validate(&source);
+/// let report = engine.validate_structural(&source);
 /// ```
 pub struct ValidationEngine {
-    /// Shared configuration (thread-safe for future rayon usage).
     #[allow(dead_code)]
     config: Arc<Config>,
-    /// Registered validation rules.
-    rules: Vec<Box<dyn StructuralValidationRule>>,
+    /// Pre-parsing rules (sections 1-2) operating on raw `FeedSource`.
+    pre_rules: Vec<Box<dyn StructuralValidationRule>>,
+    /// Post-parsing rules (sections 3+) operating on the loaded `GtfsFeed`.
+    rules: Vec<Box<dyn ValidationRule>>,
 }
 
 impl ValidationEngine {
-    /// Creates a new engine pre-loaded with all section 1 and section 2 rules.
+    /// Creates a new engine pre-loaded with all registered rules.
     #[must_use]
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.max_rows;
 
-        let rules: Vec<Box<dyn StructuralValidationRule>> = vec![
+        let pre_rules: Vec<Box<dyn StructuralValidationRule>> = vec![
             Box::new(MissingRequiredFileRule),
             Box::new(MissingRecommendedFileRule),
             Box::new(MissingCalendarFilesRule),
@@ -92,19 +94,30 @@ impl ValidationEngine {
             Box::new(CaseSensitiveRule),
         ];
 
-        Self { config, rules }
+        let mut engine = Self {
+            config,
+            pre_rules,
+            rules: Vec::new(),
+        };
+        crate::validation::field_type::register_rules(&mut engine);
+        engine
     }
 
-    /// Adds a rule dynamically, enabling extensibility without modifying the engine.
-    pub fn register_rule(&mut self, rule: Box<dyn StructuralValidationRule>) {
+    /// Adds a pre-parsing (structural) rule dynamically.
+    pub fn register_pre_rule(&mut self, rule: Box<dyn StructuralValidationRule>) {
+        self.pre_rules.push(rule);
+    }
+
+    /// Adds a post-parsing rule that operates on the loaded `GtfsFeed`.
+    pub fn register_rule(&mut self, rule: Box<dyn ValidationRule>) {
         self.rules.push(rule);
     }
 
-    /// Groups the registered rules by their section identifier.
+    /// Groups the registered pre-parsing rules by their section identifier.
     #[must_use]
     pub fn group_rules_by_section(&self) -> HashMap<String, Vec<&dyn StructuralValidationRule>> {
         let mut map: HashMap<String, Vec<&dyn StructuralValidationRule>> = HashMap::new();
-        for rule in &self.rules {
+        for rule in &self.pre_rules {
             map.entry(rule.section().to_string())
                 .or_default()
                 .push(rule.as_ref());
@@ -112,16 +125,13 @@ impl ValidationEngine {
         map
     }
 
-    /// Runs all registered rules against the given feed source.
+    /// Runs all pre-parsing rules against the given feed source.
     ///
     /// Rules within each section are executed **in parallel** via rayon.
     /// Sections themselves run sequentially to maintain the gate ordering.
-    /// A progress bar is displayed per section when stderr is a TTY.
-    ///
-    /// Returns a [`ValidationReport`] aggregating all findings.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn validate(&self, source: &FeedSource) -> ValidationReport {
+    pub fn validate_structural(&self, source: &FeedSource) -> ValidationReport {
         let grouped = self.group_rules_by_section();
 
         let mut sections: Vec<&String> = grouped.keys().collect();
@@ -158,6 +168,45 @@ impl ValidationEngine {
             all_errors.extend(section_errors);
             pb.finish();
         }
+
+        ValidationReport::from(all_errors)
+    }
+
+    /// Runs post-parsing validation rules against a loaded `GtfsFeed`.
+    ///
+    /// Also converts any `ParseError`s into `ValidationError`s with
+    /// appropriate rule IDs from section 3.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn validate_feed(&self, feed: &GtfsFeed, parse_errors: &[ParseError]) -> ValidationReport {
+        let mut all_errors: Vec<ValidationError> = parse_error_converter::convert(parse_errors);
+
+        let multi = MultiProgress::new();
+        if !std::io::stderr().is_terminal() {
+            multi.set_draw_target(ProgressDrawTarget::hidden());
+        }
+
+        let style = ProgressStyle::with_template("{msg} [{bar:30.cyan/dim}] {pos}/{len}")
+            .expect("valid progress template")
+            .progress_chars("█░░");
+
+        let label = section_label("3");
+        let pb = multi.add(ProgressBar::new(self.rules.len() as u64));
+        pb.set_style(style);
+        pb.set_message(label.to_string());
+
+        let rule_errors: Vec<ValidationError> = self
+            .rules
+            .par_iter()
+            .flat_map(|rule| {
+                let errors = rule.validate(feed);
+                pb.inc(1);
+                errors
+            })
+            .collect();
+
+        all_errors.extend(rule_errors);
+        pb.finish();
 
         ValidationReport::from(all_errors)
     }

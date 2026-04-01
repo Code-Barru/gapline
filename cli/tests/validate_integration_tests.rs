@@ -1,4 +1,4 @@
-//! Integration tests for the `headway validate` pipeline (HW-008).
+//! Integration tests for the `headway validate` pipeline.
 
 use std::io::Write;
 use std::process::Command;
@@ -76,19 +76,21 @@ fn create_feed_missing_agency() -> NamedTempFile {
     tmp
 }
 
-/// CA1 — `ValidationEngine::new()` registers sections 1 and 2 rules.
 #[test]
 fn engine_new_registers_sections_1_and_2() {
     let engine = ValidationEngine::new(Arc::new(Config::default()));
     let grouped = engine.group_rules_by_section();
     assert!(grouped.contains_key("1"), "Section 1 rules must be present");
     assert!(grouped.contains_key("2"), "Section 2 rules must be present");
-    assert_eq!(grouped.len(), 2, "Only sections 1 and 2 in Epic 2");
+    assert_eq!(
+        grouped.len(),
+        2,
+        "Only sections 1 and 2 for pre-parsing rules"
+    );
 }
 
-/// CA2 — `register_rule()` adds a rule dynamically.
 #[test]
-fn engine_register_rule_adds_custom_rule() {
+fn engine_register_pre_rule_adds_custom_rule() {
     struct MockRule;
     impl StructuralValidationRule for MockRule {
         fn rule_id(&self) -> &'static str {
@@ -106,35 +108,33 @@ fn engine_register_rule_adds_custom_rule() {
     }
 
     let mut engine = ValidationEngine::new(Arc::new(Config::default()));
-    engine.register_rule(Box::new(MockRule));
+    engine.register_pre_rule(Box::new(MockRule));
 
     let grouped = engine.group_rules_by_section();
     assert!(
         grouped.contains_key("99"),
-        "Custom section must appear after register_rule"
+        "Custom section must appear after register_pre_rule"
     );
 
     let feed = create_valid_feed();
     let source = FeedLoader::open(feed.path()).unwrap();
-    let report = engine.validate(&source);
+    let report = engine.validate_structural(&source);
     let has_mock = report.errors().iter().any(|e| e.rule_id == "mock_rule");
     assert!(has_mock, "Mock rule findings must appear in the report");
 }
 
-/// CA3/CA4 — validate returns a report, rules grouped by section.
 #[test]
-fn engine_validate_returns_report() {
+fn engine_validate_structural_returns_report() {
     let engine = ValidationEngine::new(Arc::new(Config::default()));
     let feed = create_valid_feed();
     let source = FeedLoader::open(feed.path()).unwrap();
-    let report = engine.validate(&source);
+    let report = engine.validate_structural(&source);
     assert!(
         !report.has_errors(),
         "Minimal valid feed should produce 0 errors"
     );
 }
 
-/// CA15 / Case 1 — Valid feed → exit 0.
 #[test]
 fn cli_validate_valid_feed_exit_0() {
     let feed = create_valid_feed();
@@ -155,7 +155,6 @@ fn cli_validate_valid_feed_exit_0() {
     );
 }
 
-/// CA16 / Case 2 — Feed with missing required file → exit 1.
 #[test]
 fn cli_validate_missing_required_file_exit_1() {
     let feed = create_feed_missing_agency();
@@ -176,7 +175,6 @@ fn cli_validate_missing_required_file_exit_1() {
     );
 }
 
-/// Case 3 — Warnings only → exit 0.
 #[test]
 fn cli_validate_warnings_only_exit_0() {
     let feed = create_valid_feed();
@@ -188,7 +186,6 @@ fn cli_validate_warnings_only_exit_0() {
     assert!(output.status.success(), "Warnings-only feed should exit 0");
 }
 
-/// Case 5 — JSON format output.
 #[test]
 fn cli_validate_json_format() {
     let feed = create_valid_feed();
@@ -217,7 +214,6 @@ fn cli_validate_json_format() {
     );
 }
 
-/// Case 6 — Write to file.
 #[test]
 fn cli_validate_output_to_file() {
     let feed = create_valid_feed();
@@ -242,7 +238,6 @@ fn cli_validate_output_to_file() {
     assert!(parsed.get("summary").is_some());
 }
 
-/// Case 8 — Non-existent feed → exit 1.
 #[test]
 fn cli_validate_nonexistent_feed_exit_1() {
     let output = Command::new(headway_bin())
@@ -253,7 +248,6 @@ fn cli_validate_nonexistent_feed_exit_1() {
     assert_eq!(output.status.code(), Some(1));
 }
 
-/// Case 9 — Corrupted ZIP → exit 1.
 #[test]
 fn cli_validate_corrupted_zip_exit_1() {
     let tmp = NamedTempFile::new().unwrap();
@@ -267,7 +261,6 @@ fn cli_validate_corrupted_zip_exit_1() {
     assert_eq!(output.status.code(), Some(1));
 }
 
-/// CA13 — Config is Arc-wrapped (compile-time guarantee via the engine API).
 #[test]
 fn engine_uses_arc_config() {
     let config = Arc::new(Config::default());

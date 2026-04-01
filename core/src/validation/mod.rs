@@ -18,6 +18,7 @@
 pub mod csv_formatting;
 pub mod engine;
 mod error;
+pub mod field_type;
 pub mod file_structure;
 mod report;
 mod rules;
