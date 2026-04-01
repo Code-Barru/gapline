@@ -3,20 +3,29 @@
 //! Provides a single function that encapsulates the full validation pipeline:
 //! feed loading → structural validation → parsing → field type validation → report.
 
+use std::io::IsTerminal;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 
 use crate::config::Config;
 use crate::parser::{FeedLoader, ParserError};
 use crate::validation::ValidationReport;
 use crate::validation::engine::ValidationEngine;
 
+static SPINNER_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
+    ProgressStyle::with_template("{spinner:.cyan} {msg}")
+        .expect("hard-coded spinner template is valid")
+        .tick_chars("⣷⣯⣟⡿⢿⣻⣽⣾ ")
+});
+
 /// Runs the full validation pipeline on a GTFS feed.
 ///
 /// 1. Opens the feed at `path`.
-/// 2. Executes structural rules (sections 1-2) via [`ValidationEngine::validate`].
-/// 3. If no blocking errors, parses the feed into a [`GtfsFeed`].
-/// 4. Executes post-parsing rules (section 3+) via [`ValidationEngine::validate_feed`].
+/// 2. Executes structural rules (sections 1-2).
+/// 3. If no blocking errors, parses the feed into a `GtfsFeed`.
+/// 4. Executes post-parsing rules (section 3+).
 /// 5. Merges all findings into a single [`ValidationReport`].
 ///
 /// # Errors
@@ -26,21 +35,26 @@ pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, Pa
     let source = FeedLoader::open(path)?;
     let engine = ValidationEngine::new(config);
 
-    // Phase 1: structural validation (sections 1-2)
     let structural_report = engine.validate_structural(&source);
 
-    // If structural validation found errors, stop here — the feed may not be parsable.
     if structural_report.has_errors() {
         return Ok(structural_report);
     }
 
-    // Phase 2: parse the feed
-    let (feed, parse_errors) = FeedLoader::load(&source);
+    let spinner = ProgressBar::new_spinner();
+    if std::io::stderr().is_terminal() {
+        spinner.set_style(SPINNER_STYLE.clone());
+        spinner.set_message("Loading feed...");
+        spinner.enable_steady_tick(std::time::Duration::from_millis(100));
+    } else {
+        spinner.set_draw_target(ProgressDrawTarget::hidden());
+    }
 
-    // Phase 3: field type validation (section 3+)
+    let (feed, parse_errors) = FeedLoader::load(&source);
+    spinner.finish_and_clear();
+
     let feed_report = engine.validate_feed(&feed, &parse_errors);
 
-    // Merge both reports
     let mut all_errors: Vec<_> = structural_report.errors().to_vec();
     all_errors.extend(feed_report.errors().to_vec());
 

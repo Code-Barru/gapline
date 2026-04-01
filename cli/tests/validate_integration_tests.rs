@@ -261,6 +261,66 @@ fn cli_validate_corrupted_zip_exit_1() {
     assert_eq!(output.status.code(), Some(1));
 }
 
+/// Creates a feed that passes structural gate but has an invalid date in calendar.txt.
+fn create_feed_with_invalid_date() -> NamedTempFile {
+    let tmp = tempfile::Builder::new().suffix(".zip").tempfile().unwrap();
+    let file = std::fs::File::create(tmp.path()).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default();
+
+    zip.start_file("agency.txt", opts).unwrap();
+    zip.write_all(b"agency_id,agency_name,agency_url,agency_timezone\nA1,Agency,http://a.com,America/New_York\n").unwrap();
+
+    zip.start_file("routes.txt", opts).unwrap();
+    zip.write_all(
+        b"route_id,agency_id,route_short_name,route_long_name,route_type\nR1,A1,1,Route One,3\n",
+    )
+    .unwrap();
+
+    zip.start_file("trips.txt", opts).unwrap();
+    zip.write_all(b"route_id,service_id,trip_id\nR1,S1,T1\n")
+        .unwrap();
+
+    zip.start_file("stops.txt", opts).unwrap();
+    zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\nST1,Stop One,40.0,-74.0\n")
+        .unwrap();
+
+    zip.start_file("stop_times.txt", opts).unwrap();
+    zip.write_all(
+        b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,08:00:00,08:00:00,ST1,1\n",
+    )
+    .unwrap();
+
+    // Invalid date: month 13 does not exist
+    zip.start_file("calendar.txt", opts).unwrap();
+    zip.write_all(b"service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nS1,1,1,1,1,1,0,0,20251301,20241231\n").unwrap();
+
+    zip.finish().unwrap();
+    tmp
+}
+
+#[test]
+fn cli_validate_gate_pass_invalid_date_exit_1() {
+    let feed = create_feed_with_invalid_date();
+    let output = Command::new(headway_bin())
+        .args(["validate", "-f", feed.path().to_str().unwrap()])
+        .output()
+        .expect("failed to run headway");
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "Exit code should be 1 when section 3 finds errors.\nstdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("invalid_date"),
+        "Report should contain invalid_date error. Got:\n{stdout}"
+    );
+}
+
 #[test]
 fn engine_uses_arc_config() {
     let config = Arc::new(Config::default());

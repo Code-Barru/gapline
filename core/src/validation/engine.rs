@@ -7,10 +7,16 @@
 
 use std::collections::HashMap;
 use std::io::IsTerminal;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rayon::prelude::*;
+
+static BAR_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
+    ProgressStyle::with_template("{msg} [{bar:30.cyan/dim}] {pos}/{len}")
+        .expect("hard-coded progress template is valid")
+        .progress_chars("█░░")
+});
 
 use crate::config::Config;
 use crate::models::GtfsFeed;
@@ -130,7 +136,6 @@ impl ValidationEngine {
     /// Rules within each section are executed **in parallel** via rayon.
     /// Sections themselves run sequentially to maintain the gate ordering.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub fn validate_structural(&self, source: &FeedSource) -> ValidationReport {
         let grouped = self.group_rules_by_section();
 
@@ -142,10 +147,6 @@ impl ValidationEngine {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
-        let style = ProgressStyle::with_template("{msg} [{bar:30.cyan/dim}] {pos}/{len}")
-            .expect("valid progress template")
-            .progress_chars("█░░");
-
         let mut all_errors: Vec<ValidationError> = Vec::new();
 
         for section_key in sections {
@@ -153,7 +154,7 @@ impl ValidationEngine {
             let label = section_label(section_key);
 
             let pb = multi.add(ProgressBar::new(rules.len() as u64));
-            pb.set_style(style.clone());
+            pb.set_style(BAR_STYLE.clone());
             pb.set_message(label.to_string());
 
             let section_errors: Vec<ValidationError> = rules
@@ -177,7 +178,6 @@ impl ValidationEngine {
     /// Also converts any `ParseError`s into `ValidationError`s with
     /// appropriate rule IDs from section 3.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub fn validate_feed(&self, feed: &GtfsFeed, parse_errors: &[ParseError]) -> ValidationReport {
         let mut all_errors: Vec<ValidationError> = parse_error_converter::convert(parse_errors);
 
@@ -186,13 +186,9 @@ impl ValidationEngine {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
-        let style = ProgressStyle::with_template("{msg} [{bar:30.cyan/dim}] {pos}/{len}")
-            .expect("valid progress template")
-            .progress_chars("█░░");
-
         let label = section_label("3");
         let pb = multi.add(ProgressBar::new(self.rules.len() as u64));
-        pb.set_style(style);
+        pb.set_style(BAR_STYLE.clone());
         pb.set_message(label.to_string());
 
         let rule_errors: Vec<ValidationError> = self
