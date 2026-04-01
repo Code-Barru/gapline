@@ -1,6 +1,6 @@
 //! Shared trait for pre-parsing validation rules.
 //!
-//! Both `file_structure` (section 1) and `csv_formating` (section 2) rules operate
+//! Both `file_structure` (section 1) and `csv_formatting` (section 2) rules operate
 //! on a [`FeedSource`] before any CSV data is loaded into memory.
 
 use crate::parser::FeedSource;

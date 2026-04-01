@@ -35,7 +35,6 @@ impl StructuralValidationRule for EmptyRowRule {
             let name = file.to_string();
 
             for (idx, line_result) in reader.lines().enumerate() {
-                // Skip header (line 0 in iterator = line 1 in file).
                 if idx == 0 {
                     continue;
                 }

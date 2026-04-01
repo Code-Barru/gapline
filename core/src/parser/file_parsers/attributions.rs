@@ -3,9 +3,7 @@ use std::io::BufRead;
 use crate::models::{AgencyId, Attribution, Email, Phone, RouteId, TripId, Url};
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::{ParseError, ParseErrorKind};
-use crate::parser::field_parsers::{
-    optional_id, optional_parse, optional_str, optional_wrapper, required_str,
-};
+use crate::parser::field_parsers::{optional_id, optional_parse, optional_str, required_str};
 
 const FILE: &str = "attributions.txt";
 
@@ -48,9 +46,9 @@ pub fn parse(reader: impl BufRead) -> (Vec<Attribution>, Vec<ParseError>) {
             ParseErrorKind::InvalidInteger,
         );
         errors.append(&mut e);
-        let attribution_url = optional_wrapper::<Url>(&row, "attribution_url");
-        let attribution_email = optional_wrapper::<Email>(&row, "attribution_email");
-        let attribution_phone = optional_wrapper::<Phone>(&row, "attribution_phone");
+        let attribution_url = optional_id::<Url>(&row, "attribution_url");
+        let attribution_email = optional_id::<Email>(&row, "attribution_email");
+        let attribution_phone = optional_id::<Phone>(&row, "attribution_phone");
 
         records.push(Attribution {
             attribution_id,

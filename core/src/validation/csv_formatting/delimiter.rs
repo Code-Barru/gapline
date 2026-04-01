@@ -4,6 +4,7 @@
 use std::io::Read;
 
 use crate::parser::FeedSource;
+use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
 
 /// Checks that every file uses comma as the delimiter and valid line endings.
@@ -35,19 +36,12 @@ impl StructuralValidationRule for InvalidDelimiterRule {
                 continue;
             }
 
-            // Strip BOM.
-            let data = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-                &bytes[3..]
-            } else {
-                &bytes
-            };
+            let data = strip_bom(&bytes);
 
-            // Must be valid UTF-8 for delimiter analysis (encoding rule catches this).
             let Ok(content) = std::str::from_utf8(data) else {
                 continue;
             };
 
-            // Check delimiter on the first line.
             if let Some(first_line) = content.lines().next() {
                 let commas = first_line.matches(',').count();
                 let semicolons = first_line.matches(';').count();
@@ -72,7 +66,6 @@ impl StructuralValidationRule for InvalidDelimiterRule {
                 }
             }
 
-            // Check for bare CR line endings (CR not followed by LF).
             for (i, window) in data.windows(2).enumerate() {
                 if window[0] == b'\r' && window[1] != b'\n' {
                     #[allow(clippy::naive_bytecount)]
@@ -84,11 +77,9 @@ impl StructuralValidationRule for InvalidDelimiterRule {
                             .line(line)
                             .value("\\r"),
                     );
-                    // Report only the first occurrence per file.
                     break;
                 }
             }
-            // Also check if the last byte is a lone CR.
             if data.last() == Some(&b'\r') {
                 #[allow(clippy::naive_bytecount)]
                 let line = data.iter().filter(|&&b| b == b'\n').count() + 1;

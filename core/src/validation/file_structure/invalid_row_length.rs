@@ -37,13 +37,11 @@ impl StructuralValidationRule for InvalidRowLengthRule {
             let expected = columns.len();
             let name = file.to_string();
 
-            // Re-open the file and skip the header to iterate data rows.
             let Ok(reader) = source.read_file(file) else {
                 continue;
             };
 
             for (idx, line_result) in reader.lines().enumerate() {
-                // Line 0 is the header, skip it.
                 if idx == 0 {
                     continue;
                 }
@@ -52,7 +50,6 @@ impl StructuralValidationRule for InvalidRowLengthRule {
                     continue;
                 };
 
-                // Skip empty lines (handled by empty_row rule).
                 if line.trim().is_empty() {
                     continue;
                 }

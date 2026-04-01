@@ -200,7 +200,7 @@ fn test_format_xml_not_supported() {
     // The error message is printed to stderr, but the Result is Err
 }
 
-// Test 11: Format not supported - CSV
+// Test 10: Format not supported - CSV
 #[test]
 fn test_format_csv_not_supported() {
     let errors = create_test_errors_1();

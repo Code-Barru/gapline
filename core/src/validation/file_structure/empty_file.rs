@@ -42,7 +42,6 @@ impl StructuralValidationRule for EmptyFileRule {
 
             let name = file.to_string();
 
-            // Case 1: completely empty file (0 bytes).
             if bytes_read == 0 {
                 errors.push(
                     ValidationError::new(self.rule_id(), self.section(), self.severity())
@@ -52,7 +51,6 @@ impl StructuralValidationRule for EmptyFileRule {
                 continue;
             }
 
-            // Case 2: header present but no data rows.
             let mut second_line = String::new();
             let has_data = reader.read_line(&mut second_line).is_ok_and(|n| n > 0);
 

@@ -28,7 +28,6 @@ impl StructuralValidationRule for UnknownFileRule {
         let mut errors = Vec::new();
 
         for raw_name in source.raw_entry_names() {
-            // Strip any directory prefix to get the base file name.
             let base_name = raw_name
                 .rsplit_once('/')
                 .map_or(raw_name.as_str(), |(_, name)| name);

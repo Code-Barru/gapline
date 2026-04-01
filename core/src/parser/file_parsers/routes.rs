@@ -6,8 +6,7 @@ use crate::models::{
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::ParseError;
 use crate::parser::field_parsers::{
-    optional_enum, optional_id, optional_parse, optional_str, optional_wrapper, required_enum,
-    required_id,
+    optional_enum, optional_id, optional_parse, optional_str, required_enum, required_id,
 };
 
 const FILE: &str = "routes.txt";
@@ -36,9 +35,9 @@ pub fn parse(reader: impl BufRead) -> (Vec<Route>, Vec<ParseError>) {
             RouteType::Bus,
         );
         errors.append(&mut e);
-        let route_url = optional_wrapper::<Url>(&row, "route_url");
-        let route_color = optional_wrapper::<Color>(&row, "route_color");
-        let route_text_color = optional_wrapper::<Color>(&row, "route_text_color");
+        let route_url = optional_id::<Url>(&row, "route_url");
+        let route_color = optional_id::<Color>(&row, "route_color");
+        let route_text_color = optional_id::<Color>(&row, "route_text_color");
         let (route_sort_order, mut e) = optional_parse(
             &row,
             "route_sort_order",

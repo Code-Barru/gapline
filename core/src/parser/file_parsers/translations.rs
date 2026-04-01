@@ -3,7 +3,7 @@ use std::io::BufRead;
 use crate::models::{LanguageCode, Translation};
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::ParseError;
-use crate::parser::field_parsers::{optional_str, required_str, required_wrapper};
+use crate::parser::field_parsers::{optional_str, required_id, required_str};
 
 const FILE: &str = "translations.txt";
 
@@ -20,7 +20,7 @@ pub fn parse(reader: impl BufRead) -> (Vec<Translation>, Vec<ParseError>) {
         errors.append(&mut e);
         let (field_name, mut e) = required_str(&row, "field_name", FILE, line);
         errors.append(&mut e);
-        let (language, mut e) = required_wrapper::<LanguageCode>(&row, "language", FILE, line);
+        let (language, mut e) = required_id::<LanguageCode>(&row, "language", FILE, line);
         errors.append(&mut e);
         let (translation, mut e) = required_str(&row, "translation", FILE, line);
         errors.append(&mut e);

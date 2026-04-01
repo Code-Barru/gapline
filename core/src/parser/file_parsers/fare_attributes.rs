@@ -3,9 +3,7 @@ use std::io::BufRead;
 use crate::models::{AgencyId, CurrencyCode, FareAttribute, FareId};
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::{ParseError, ParseErrorKind};
-use crate::parser::field_parsers::{
-    optional_id, optional_parse, required_id, required_parse, required_wrapper,
-};
+use crate::parser::field_parsers::{optional_id, optional_parse, required_id, required_parse};
 
 const FILE: &str = "fare_attributes.txt";
 
@@ -23,8 +21,7 @@ pub fn parse(reader: impl BufRead) -> (Vec<FareAttribute>, Vec<ParseError>) {
         let (price, mut e) =
             required_parse::<f64>(&row, "price", FILE, line, ParseErrorKind::InvalidFloat);
         errors.append(&mut e);
-        let (currency_type, mut e) =
-            required_wrapper::<CurrencyCode>(&row, "currency_type", FILE, line);
+        let (currency_type, mut e) = required_id::<CurrencyCode>(&row, "currency_type", FILE, line);
         errors.append(&mut e);
         let (payment_method, mut e) = required_parse::<u8>(
             &row,

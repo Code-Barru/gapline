@@ -53,9 +53,8 @@ impl StructuralValidationRule for NewLineInValueRule {
 
                 if ch == '"' {
                     if in_quotes {
-                        // Check for escaped quote ("").
                         if i + 1 < len && chars[i + 1] == '"' {
-                            i += 2; // Skip escaped quote.
+                            i += 2;
                             continue;
                         }
                         in_quotes = false;
@@ -73,7 +72,6 @@ impl StructuralValidationRule for NewLineInValueRule {
                                 .file(&name)
                                 .line(quote_open_line),
                         );
-                        // Reset state so we don't emit duplicates for the same opening quote.
                         in_quotes = false;
                     }
                     line_number += 1;

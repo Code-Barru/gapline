@@ -3,7 +3,7 @@ use std::io::BufRead;
 
 use csv::{Reader, StringRecord};
 
-const UTF8_BOM: &str = "\u{feff}";
+use crate::validation::utils::strip_bom_str;
 
 pub struct CsvRecords<R> {
     reader: Reader<R>,
@@ -51,11 +51,7 @@ pub fn parse_csv<R: BufRead>(reader: R) -> Result<CsvRecords<R>, csv::Error> {
         .iter()
         .enumerate()
         .map(|(i, h)| {
-            let s = if i == 0 {
-                h.strip_prefix(UTF8_BOM).unwrap_or(h)
-            } else {
-                h
-            };
+            let s = if i == 0 { strip_bom_str(h) } else { h };
             s.to_owned()
         })
         .collect();

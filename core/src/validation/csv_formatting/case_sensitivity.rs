@@ -61,7 +61,6 @@ impl StructuralValidationRule for CaseSensitiveRule {
 
         // --- File name casing ---
         for raw_name in source.raw_entry_names() {
-            // Skip entries in subdirectories.
             if raw_name.contains('/') {
                 continue;
             }
@@ -91,7 +90,6 @@ impl StructuralValidationRule for CaseSensitiveRule {
 
             for col in &columns {
                 let trimmed = col.trim();
-                // Check if it matches any expected column case-insensitively but not exactly.
                 for &expected_col in expected {
                     if trimmed != expected_col && trimmed.eq_ignore_ascii_case(expected_col) {
                         errors.push(

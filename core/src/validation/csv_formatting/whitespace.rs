@@ -4,6 +4,7 @@
 use std::io::Read;
 
 use crate::parser::FeedSource;
+use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
 
 /// Warns when fields have leading or trailing spaces next to the delimiter.
@@ -37,11 +38,7 @@ impl StructuralValidationRule for SuperfluousWhitespaceRule {
                 continue;
             }
 
-            let data = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-                &bytes[3..]
-            } else {
-                &bytes
-            };
+            let data = strip_bom(&bytes);
 
             let Ok(content) = std::str::from_utf8(data) else {
                 continue;
@@ -52,12 +49,9 @@ impl StructuralValidationRule for SuperfluousWhitespaceRule {
             for (line_idx, line) in content.lines().enumerate() {
                 let line_num = line_idx + 1;
 
-                // Simple split by comma, skipping quoted fields.
                 let fields = split_respecting_quotes(line);
 
                 for field in &fields {
-                    // Only check unquoted fields or the raw representation.
-                    // A field that starts/ends with space (and is not quoted) is suspect.
                     if !field.starts_with('"') && (field.starts_with(' ') || field.ends_with(' ')) {
                         errors.push(
                             ValidationError::new(self.rule_id(), self.section(), self.severity())

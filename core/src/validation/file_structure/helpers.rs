@@ -3,12 +3,13 @@
 use std::io::BufRead;
 
 use crate::parser::{FeedSource, GtfsFiles, ParserError};
+use crate::validation::utils::strip_bom_str;
 
 /// Reads and returns the CSV header (first line) of a GTFS file as individual column names.
 ///
 /// Strips a leading UTF-8 BOM if present. Returns `Ok(None)` if the file is
 /// empty (0 bytes). Returns the raw column strings without trimming whitespace
-/// (that is the responsibility of the `leading_or_trailing_whitespaces` rule).
+/// (that is the responsibility of the `superfluous_whitespace` rule).
 ///
 /// # Errors
 ///
@@ -25,10 +26,7 @@ pub fn read_header(
         return Ok(None);
     }
 
-    // Strip UTF-8 BOM if present.
-    let line = first_line.strip_prefix('\u{FEFF}').unwrap_or(&first_line);
-
-    // Strip trailing newline characters.
+    let line = strip_bom_str(&first_line);
     let line = line.trim_end_matches(['\n', '\r']);
 
     let columns: Vec<String> = line.split(',').map(String::from).collect();

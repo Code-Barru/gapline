@@ -6,7 +6,7 @@ use crate::models::{
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::{ParseError, ParseErrorKind};
 use crate::parser::field_parsers::{
-    optional_enum, optional_id, optional_parse, optional_str, optional_wrapper, required_id,
+    optional_enum, optional_id, optional_parse, optional_str, required_id,
 };
 
 const FILE: &str = "stops.txt";
@@ -33,12 +33,12 @@ pub fn parse(reader: impl BufRead) -> (Vec<Stop>, Vec<ParseError>) {
             optional_parse::<f64>(&row, "stop_lon", FILE, line, ParseErrorKind::InvalidFloat);
         errors.append(&mut e);
         let zone_id = optional_str(&row, "zone_id");
-        let stop_url = optional_wrapper::<Url>(&row, "stop_url");
+        let stop_url = optional_id::<Url>(&row, "stop_url");
         let (location_type, mut e) =
             optional_enum(&row, "location_type", FILE, line, LocationType::from_i32);
         errors.append(&mut e);
         let parent_station = optional_id::<StopId>(&row, "parent_station");
-        let stop_timezone = optional_wrapper::<Timezone>(&row, "stop_timezone");
+        let stop_timezone = optional_id::<Timezone>(&row, "stop_timezone");
         let (wheelchair_boarding, mut e) = optional_enum(
             &row,
             "wheelchair_boarding",

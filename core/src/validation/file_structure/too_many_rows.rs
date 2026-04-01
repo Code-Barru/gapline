@@ -48,7 +48,6 @@ impl StructuralValidationRule for TooManyRowsRule {
                 continue;
             };
 
-            // Count lines minus 1 for the header.
             let total_lines = reader.lines().count();
             let data_rows = total_lines.saturating_sub(1);
 

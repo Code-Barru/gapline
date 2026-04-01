@@ -4,10 +4,9 @@ use headway_core::parser::{FeedSource, GtfsFiles};
 use headway_core::validation::Severity;
 use headway_core::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
-    InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, LeadingOrTrailingWhitespacesRule,
-    MissingCalendarFilesRule, MissingRecommendedFileRule, MissingRequiredFileRule,
-    NewLineInValueRule, StructuralValidationRule, TooManyRowsRule, UnknownColumnRule,
-    UnknownFileRule,
+    InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
+    MissingRecommendedFileRule, MissingRequiredFileRule, NewLineInValueRule,
+    StructuralValidationRule, TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
 };
 
 // ---------------------------------------------------------------------------
@@ -427,29 +426,6 @@ fn empty_row_detected() {
 fn empty_row_none() {
     let source = zip_source_with_content(&[(GtfsFiles::Stops, b"stop_id\n1\n2\n3")]);
     let errors = EmptyRowRule.validate(&source);
-    assert!(errors.is_empty());
-}
-
-// ===========================================================================
-// leading_or_trailing_whitespaces
-// ===========================================================================
-
-#[test]
-fn whitespace_detected() {
-    let source = zip_source_with_content(&[(GtfsFiles::Stops, b"stop_id,stop_name\n1, Gare ")]);
-    let errors = LeadingOrTrailingWhitespacesRule.validate(&source);
-    assert_eq!(errors.len(), 1);
-    assert_eq!(errors[0].rule_id, "leading_or_trailing_whitespaces");
-    assert_eq!(errors[0].field_name.as_deref(), Some("stop_name"));
-    assert_eq!(errors[0].value.as_deref(), Some(" Gare "));
-    assert_eq!(errors[0].line_number, Some(2));
-    assert_eq!(errors[0].severity, Severity::Warning);
-}
-
-#[test]
-fn whitespace_none() {
-    let source = zip_source_with_content(&[(GtfsFiles::Stops, b"stop_id,stop_name\n1,Gare")]);
-    let errors = LeadingOrTrailingWhitespacesRule.validate(&source);
     assert!(errors.is_empty());
 }
 

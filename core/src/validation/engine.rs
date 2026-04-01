@@ -15,15 +15,15 @@ use rayon::prelude::*;
 
 use crate::config::Config;
 use crate::parser::FeedSource;
-use crate::validation::csv_formating::{
+use crate::validation::csv_formatting::{
     CaseSensitiveRule, InvalidContentRule, InvalidDelimiterRule, InvalidEncodingRule,
     InvalidQuotingRule, MissingHeaderRule, SuperfluousWhitespaceRule,
 };
 use crate::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
-    InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, LeadingOrTrailingWhitespacesRule,
-    MissingCalendarFilesRule, MissingRecommendedFileRule, MissingRequiredFileRule,
-    NewLineInValueRule, TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
+    InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
+    MissingRecommendedFileRule, MissingRequiredFileRule, NewLineInValueRule, TooManyRowsRule,
+    UnknownColumnRule, UnknownFileRule,
 };
 use crate::validation::{StructuralValidationRule, ValidationError, ValidationReport};
 
@@ -81,7 +81,6 @@ impl ValidationEngine {
             Box::new(CsvParsingFailedRule),
             Box::new(TooManyRowsRule::new(max_rows)),
             Box::new(EmptyRowRule),
-            Box::new(LeadingOrTrailingWhitespacesRule),
             Box::new(UnknownFileRule),
             Box::new(UnknownColumnRule),
             Box::new(InvalidEncodingRule),

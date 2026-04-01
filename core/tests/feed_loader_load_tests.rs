@@ -31,7 +31,7 @@ fn create_minimal_feed(dir: &Path) {
     }
 }
 
-// -- TC9: fichier absent optionnel -> vec vide
+// -- TC9: absent optional file -> empty vec
 #[test]
 fn absent_optional_file_empty_vec() {
     let tmp = tempfile::tempdir().unwrap();
@@ -43,7 +43,7 @@ fn absent_optional_file_empty_vec() {
     assert!(feed.shapes.is_empty());
     assert!(feed.frequencies.is_empty());
     assert!(feed.feed_info.is_none());
-    // Pas d'erreur liée aux fichiers optionnels absents
+    // No errors related to absent optional files
     let shape_errors: Vec<_> = errors
         .iter()
         .filter(|e| e.file_name == "shapes.txt")
@@ -51,7 +51,7 @@ fn absent_optional_file_empty_vec() {
     assert!(shape_errors.is_empty());
 }
 
-// -- TC10: tous les fichiers requis parsés
+// -- TC10: all required files parsed
 #[test]
 fn all_required_files_parsed() {
     let tmp = tempfile::tempdir().unwrap();
@@ -69,13 +69,13 @@ fn all_required_files_parsed() {
     assert!(errors.is_empty());
 }
 
-// -- TC14: parsing parallèle d'un feed complet
+// -- TC14: parallel parsing of a full feed
 #[test]
 fn parallel_parsing_full_feed() {
     let tmp = tempfile::tempdir().unwrap();
     create_minimal_feed(tmp.path());
 
-    // Ajouter des fichiers optionnels
+    // Add optional files
     let extras: &[(&str, &str)] = &[
         (
             "calendar_dates.txt",
@@ -123,7 +123,7 @@ fn parallel_parsing_full_feed() {
     assert_eq!(feed.fare_rules.len(), 1);
 }
 
-// -- TC16/17: feed_info présent/absent
+// -- TC16/17: feed_info present/absent
 #[test]
 fn feed_info_present() {
     let tmp = tempfile::tempdir().unwrap();
@@ -151,7 +151,7 @@ fn feed_info_absent() {
     assert!(feed.feed_info.is_none());
 }
 
-// -- Erreurs collectées séparément
+// -- Errors collected separately
 #[test]
 fn errors_collected_separately() {
     let tmp = tempfile::tempdir().unwrap();

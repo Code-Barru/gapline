@@ -6,6 +6,7 @@
 use std::io::Read;
 
 use crate::parser::FeedSource;
+use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
 
 /// Checks that every file in the feed is valid UTF-8.
@@ -37,16 +38,10 @@ impl StructuralValidationRule for InvalidEncodingRule {
                 continue;
             }
 
-            // Strip UTF-8 BOM if present.
-            let data = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-                &bytes[3..]
-            } else {
-                &bytes
-            };
+            let data = strip_bom(&bytes);
 
             if let Err(e) = std::str::from_utf8(data) {
                 let offset = e.valid_up_to();
-                // Convert byte offset to approximate line number.
                 #[allow(clippy::naive_bytecount)]
                 let line = data[..offset].iter().filter(|&&b| b == b'\n').count() + 1;
 

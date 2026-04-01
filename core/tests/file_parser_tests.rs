@@ -22,7 +22,7 @@ fn parse_agency_minimal() {
     assert_eq!(agencies[0].agency_timezone.0, "America/Montreal");
 }
 
-// -- TC2: stops.txt avec optionnels absents
+// -- TC2: stops.txt with absent optional fields
 #[test]
 fn parse_stops_optional_absent() {
     let csv = b"stop_id,stop_name,stop_lat,stop_lon\nS1,Gare,45.5,-73.6\n";
@@ -35,7 +35,7 @@ fn parse_stops_optional_absent() {
     assert!((stops[0].stop_lat.unwrap().0 - 45.5).abs() < f64::EPSILON);
 }
 
-// -- TC3: routes.txt avec enum route_type
+// -- TC3: routes.txt with route_type enum
 #[test]
 fn parse_routes_enum() {
     let csv = b"route_id,route_type\nR1,3\n";
@@ -43,9 +43,9 @@ fn parse_routes_enum() {
 
     assert_eq!(routes.len(), 1);
     assert_eq!(routes[0].route_type, RouteType::Bus);
-    // route_short_name et route_long_name optionnels -> pas d'erreur
-    // mais agency_id optionnel non requis
-    // route_type requis -> pas d'erreur
+    // route_short_name and route_long_name are optional -> no error
+    // agency_id is optional and not required
+    // route_type is required -> no error
     let type_errors: Vec<_> = errors
         .iter()
         .filter(|e| e.field_name == "route_type")
@@ -114,7 +114,7 @@ fn parse_agency_with_bom() {
     assert_eq!(agencies[0].agency_id.as_ref().unwrap().0, "STM");
 }
 
-// -- TC11: colonne inconnue ignorée
+// -- TC11: unknown column ignored
 #[test]
 fn unknown_column_ignored() {
     let csv = b"agency_id,agency_name,agency_url,agency_timezone,agency_color\nSTM,STM,http://stm.info,America/Montreal,#FF0000\n";
@@ -124,7 +124,7 @@ fn unknown_column_ignored() {
     assert!(errors.is_empty());
 }
 
-// -- TC12: valeur vide pour champ optionnel -> None
+// -- TC12: empty value for optional field -> None
 #[test]
 fn empty_value_optional_field() {
     let csv = b"stop_id,stop_name,stop_desc,stop_lat,stop_lon\nS1,Gare,,45.5,-73.6\n";
@@ -132,7 +132,7 @@ fn empty_value_optional_field() {
     assert!(stops[0].stop_desc.is_none());
 }
 
-// -- TC13: valeur vide pour champ requis -> default + erreur
+// -- TC13: empty value for required field -> default + error
 #[test]
 fn empty_value_required_field() {
     let csv = b"agency_id,agency_name,agency_url,agency_timezone\nSTM,,http://stm.info,America/Montreal\n";
@@ -167,7 +167,7 @@ fn parse_feed_info_empty() {
     assert!(errors.is_empty());
 }
 
-// -- TC18: type invalide collecté
+// -- TC18: invalid type collected
 #[test]
 fn invalid_type_collected() {
     let csv = b"stop_id,stop_name,stop_lat,stop_lon\nS1,Gare,not_a_number,-73.6\n";
@@ -278,7 +278,7 @@ fn parse_attributions() {
 // -- TC15: Performance - 100k stop_times
 // Run with: cargo test --release -- --ignored
 #[test]
-#[ignore = "Need to be runned in release mode"]
+#[ignore = "Must be run in release mode"]
 fn parse_stop_times_100k_performance() {
     let header = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n";
     let mut csv = String::with_capacity(header.len() + 100_000 * 40);

@@ -124,21 +124,6 @@ pub fn optional_id<T: From<String>>(row: &HashMap<String, String>, field: &str) 
     get(row, field).map(T::from)
 }
 
-#[must_use]
-pub fn required_wrapper<T: From<String>>(
-    row: &HashMap<String, String>,
-    field: &str,
-    file: &str,
-    line: usize,
-) -> (T, Vec<ParseError>) {
-    required_id(row, field, file, line)
-}
-
-#[must_use]
-pub fn optional_wrapper<T: From<String>>(row: &HashMap<String, String>, field: &str) -> Option<T> {
-    optional_id(row, field)
-}
-
 pub fn required_enum<T>(
     row: &HashMap<String, String>,
     field: &str,

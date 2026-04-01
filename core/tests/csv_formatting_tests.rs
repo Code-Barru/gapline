@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use headway_core::parser::{FeedSource, GtfsFiles};
-use headway_core::validation::csv_formating::{
+use headway_core::validation::csv_formatting::{
     CaseSensitiveRule, InvalidContentRule, InvalidDelimiterRule, InvalidEncodingRule,
     InvalidQuotingRule, MissingHeaderRule, SuperfluousWhitespaceRule,
 };
@@ -40,7 +40,7 @@ fn single_file(file: GtfsFiles, content: Vec<u8>) -> HashMap<GtfsFiles, Vec<u8>>
 }
 
 // ===========================================================================
-// #1 — CSV valide UTF-8 sans BOM → 0 erreurs section 2
+// #1 — Valid UTF-8 without BOM -> 0 errors section 2
 // ===========================================================================
 #[test]
 fn t01_valid_utf8_no_bom() {
@@ -53,7 +53,7 @@ fn t01_valid_utf8_no_bom() {
 }
 
 // ===========================================================================
-// #2 — CSV valide UTF-8 avec BOM → 0 erreurs
+// #2 — Valid UTF-8 with BOM -> 0 errors
 // ===========================================================================
 #[test]
 fn t02_valid_utf8_with_bom() {
@@ -64,7 +64,7 @@ fn t02_valid_utf8_with_bom() {
 }
 
 // ===========================================================================
-// #3 — Encodage Latin-1 → ERROR
+// #3 — Latin-1 encoding -> ERROR
 // ===========================================================================
 #[test]
 fn t03_latin1_encoding() {
@@ -81,7 +81,7 @@ fn t03_latin1_encoding() {
 }
 
 // ===========================================================================
-// #4 — Encodage UTF-16 → ERROR
+// #4 — UTF-16 encoding -> ERROR
 // ===========================================================================
 #[test]
 fn t04_utf16_encoding() {
@@ -94,7 +94,7 @@ fn t04_utf16_encoding() {
 }
 
 // ===========================================================================
-// #5 — Délimiteur point-virgule → ERROR
+// #5 — Semicolon delimiter -> ERROR
 // ===========================================================================
 #[test]
 fn t05_semicolon_delimiter() {
@@ -108,7 +108,7 @@ fn t05_semicolon_delimiter() {
 }
 
 // ===========================================================================
-// #6 — Délimiteur tabulation → ERROR
+// #6 — Tab delimiter -> ERROR
 // ===========================================================================
 #[test]
 fn t06_tab_delimiter() {
@@ -122,7 +122,7 @@ fn t06_tab_delimiter() {
 }
 
 // ===========================================================================
-// #7 — Terminaison CRLF → 0 erreurs
+// #7 — CRLF line ending -> 0 errors
 // ===========================================================================
 #[test]
 fn t07_crlf_line_ending() {
@@ -134,7 +134,7 @@ fn t07_crlf_line_ending() {
 }
 
 // ===========================================================================
-// #8 — Terminaison LF seul → 0 erreurs
+// #8 — LF-only line ending -> 0 errors
 // ===========================================================================
 #[test]
 fn t08_lf_line_ending() {
@@ -146,7 +146,7 @@ fn t08_lf_line_ending() {
 }
 
 // ===========================================================================
-// #9 — Nom de fichier mauvaise casse → ERROR
+// #9 — Wrong file name casing -> ERROR
 // ===========================================================================
 #[test]
 fn t09_wrong_file_name_casing() {
@@ -164,7 +164,7 @@ fn t09_wrong_file_name_casing() {
 }
 
 // ===========================================================================
-// #10 — Nom de colonne mauvaise casse → ERROR
+// #10 — Wrong column name casing -> ERROR
 // ===========================================================================
 #[test]
 fn t10_wrong_column_name_casing() {
@@ -179,7 +179,7 @@ fn t10_wrong_column_name_casing() {
 }
 
 // ===========================================================================
-// #11 — Valeur avec virgule non quotée → ERROR quoting
+// #11 — Unquoted value with comma -> ERROR quoting
 // ===========================================================================
 #[test]
 fn t11_unquoted_comma_in_value() {
@@ -205,7 +205,7 @@ fn t11_unquoted_comma_in_value() {
 }
 
 // ===========================================================================
-// #12 — Valeur correctement quotée → 0 erreurs
+// #12 — Correctly quoted value -> 0 errors
 // ===========================================================================
 #[test]
 fn t12_correctly_quoted_value() {
@@ -217,7 +217,7 @@ fn t12_correctly_quoted_value() {
 }
 
 // ===========================================================================
-// #13 — Guillemets internes simples (non doublés) → ERROR
+// #13 — Single inner quotes (not doubled) -> ERROR
 // ===========================================================================
 #[test]
 fn t13_single_inner_quote() {
@@ -232,7 +232,7 @@ fn t13_single_inner_quote() {
 }
 
 // ===========================================================================
-// #14 — Guillemets internes doublés → 0 erreurs
+// #14 — Doubled inner quotes -> 0 errors
 // ===========================================================================
 #[test]
 fn t14_doubled_inner_quotes() {
@@ -244,7 +244,7 @@ fn t14_doubled_inner_quotes() {
 }
 
 // ===========================================================================
-// #15 — Tabulation dans valeur → ERROR caractères de contrôle
+// #15 — Tab in value -> ERROR control character
 // ===========================================================================
 #[test]
 fn t15_tab_in_value() {
@@ -259,7 +259,7 @@ fn t15_tab_in_value() {
 }
 
 // ===========================================================================
-// #16 — CR isolé dans valeur → ERROR
+// #16 — Bare CR in value -> ERROR
 // ===========================================================================
 #[test]
 fn t16_bare_cr_in_value() {
@@ -272,7 +272,7 @@ fn t16_bare_cr_in_value() {
 }
 
 // ===========================================================================
-// #17 — Balise HTML dans valeur → ERROR contenu interdit
+// #17 — HTML tag in value -> ERROR forbidden content
 // ===========================================================================
 #[test]
 fn t17_html_tag_in_value() {
@@ -295,7 +295,7 @@ fn t17_html_tag_in_value() {
 }
 
 // ===========================================================================
-// #18 — Commentaire HTML → ERROR
+// #18 — HTML comment -> ERROR
 // ===========================================================================
 #[test]
 fn t18_html_comment() {
@@ -312,7 +312,7 @@ fn t18_html_comment() {
 }
 
 // ===========================================================================
-// #19 — Séquence d'échappement littérale → ERROR
+// #19 — Literal escape sequence -> ERROR
 // ===========================================================================
 #[test]
 fn t19_literal_escape_sequence() {
@@ -329,7 +329,7 @@ fn t19_literal_escape_sequence() {
 }
 
 // ===========================================================================
-// #20 — Espaces superflus entre champs → WARNING
+// #20 — Superfluous whitespace between fields -> WARNING
 // ===========================================================================
 #[test]
 fn t20_superfluous_whitespace() {
@@ -346,7 +346,7 @@ fn t20_superfluous_whitespace() {
 }
 
 // ===========================================================================
-// #21 — Espace dans valeur (légitime) → 0 erreurs
+// #21 — Space within value (legitimate) -> 0 errors
 // ===========================================================================
 #[test]
 fn t21_internal_space_ok() {
@@ -358,7 +358,7 @@ fn t21_internal_space_ok() {
 }
 
 // ===========================================================================
-// #22 — Fichier mixte — plusieurs violations → erreurs distinctes
+// #22 — Mixed file — multiple violations -> distinct errors
 // ===========================================================================
 #[test]
 fn t22_mixed_violations() {
@@ -371,7 +371,6 @@ fn t22_mixed_violations() {
     let content_errors = InvalidContentRule.validate(&source);
     let ws_errors = SuperfluousWhitespaceRule.validate(&source);
 
-    // Tab → control_character, HTML → forbidden_content, whitespace → superfluous_whitespace
     assert!(
         content_errors
             .iter()
@@ -389,7 +388,6 @@ fn t22_mixed_violations() {
         "expected superfluous_whitespace warning"
     );
 
-    // All errors have section "2".
     for e in content_errors.iter().chain(ws_errors.iter()) {
         assert_eq!(e.section, "2");
     }
@@ -438,7 +436,6 @@ fn t_quote_in_unquoted_field() {
 // ===========================================================================
 #[test]
 fn t_ca10_all_errors_section_2() {
-    // Latin-1 → encoding error with section 2
     let mut content = b"agency_id,agency_name\n1,Caf".to_vec();
     content.push(0xE9);
     content.push(b'\n');
@@ -446,7 +443,6 @@ fn t_ca10_all_errors_section_2() {
     let errors = InvalidEncodingRule.validate(&source);
     assert!(errors.iter().all(|e| e.section == "2"));
 
-    // Semicolon → delimiter error with section 2
     let source = zip_source(single_file(
         GtfsFiles::Agency,
         b"agency_id;agency_name\n1;Test\n".to_vec(),
@@ -460,7 +456,6 @@ fn t_ca10_all_errors_section_2() {
 // ===========================================================================
 #[test]
 fn t_ca11_error_context() {
-    // HTML tag → should have file_name, line_number, value
     let source = zip_source(single_file(
         GtfsFiles::Stops,
         b"stop_id,stop_name\n1,\"<b>Gare</b>\"\n".to_vec(),

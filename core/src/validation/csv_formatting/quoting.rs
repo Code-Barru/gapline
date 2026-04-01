@@ -4,6 +4,7 @@
 use std::io::Read;
 
 use crate::parser::FeedSource;
+use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
 
 /// Checks RFC 4180 quoting: values containing commas or quotes must be quoted,
@@ -50,11 +51,7 @@ impl StructuralValidationRule for InvalidQuotingRule {
                 continue;
             }
 
-            let data = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-                &bytes[3..]
-            } else {
-                &bytes
-            };
+            let data = strip_bom(&bytes);
 
             let Ok(content) = std::str::from_utf8(data) else {
                 continue;
@@ -73,16 +70,11 @@ impl StructuralValidationRule for InvalidQuotingRule {
                             state = State::InQuoted;
                             current_field.clear();
                         }
-                        ',' => {
-                            // Empty field, stay in FieldStart.
+                        ',' | '\r' => {
                             current_field.clear();
                         }
                         '\n' => {
                             line_num += 1;
-                            current_field.clear();
-                        }
-                        '\r' => {
-                            // Will be followed by \n (CRLF) or handled as bare CR elsewhere.
                             current_field.clear();
                         }
                         _ => {
@@ -105,7 +97,6 @@ impl StructuralValidationRule for InvalidQuotingRule {
                             current_field.clear();
                         }
                         '"' => {
-                            // Quote in middle of unquoted field — error.
                             errors.push(
                                 ValidationError::new(
                                     self.rule_id(),
@@ -116,7 +107,6 @@ impl StructuralValidationRule for InvalidQuotingRule {
                                 .file(file_name.clone())
                                 .line(line_num),
                             );
-                            // Continue consuming the field.
                             current_field.push(ch);
                         }
                         _ => {
@@ -137,12 +127,10 @@ impl StructuralValidationRule for InvalidQuotingRule {
                     },
                     State::AfterQuote => match ch {
                         '"' => {
-                            // Escaped quote ("") — valid.
                             state = State::InQuoted;
                             current_field.push('"');
                         }
-                        ',' => {
-                            // End of quoted field, move to next.
+                        ',' | '\r' => {
                             state = State::FieldStart;
                             current_field.clear();
                         }
@@ -151,12 +139,7 @@ impl StructuralValidationRule for InvalidQuotingRule {
                             line_num += 1;
                             current_field.clear();
                         }
-                        '\r' => {
-                            state = State::FieldStart;
-                            current_field.clear();
-                        }
                         _ => {
-                            // Character after closing quote that isn't comma/newline/quote.
                             errors.push(
                                 ValidationError::new(
                                     "invalid_inner_quotes",
@@ -169,20 +152,17 @@ impl StructuralValidationRule for InvalidQuotingRule {
                                 .file(file_name.clone())
                                 .line(field_start_in_line.max(line_num)),
                             );
-                            // Recover: treat as unquoted for the rest.
                             state = State::InUnquoted;
                             current_field.push(ch);
                         }
                     },
                 }
 
-                // Track field_start_in_line for quoted fields.
                 if state == State::InQuoted && current_field.is_empty() {
                     field_start_in_line = line_num;
                 }
             }
 
-            // Check for unclosed quote at EOF.
             if state == State::InQuoted {
                 errors.push(
                     ValidationError::new(self.rule_id(), self.section(), self.severity())
