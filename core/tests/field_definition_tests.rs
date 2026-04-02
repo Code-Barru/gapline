@@ -1,10 +1,16 @@
 //! Tests for section 4 — Field Definition Validation.
 
+use chrono::NaiveDate;
 use headway_core::models::*;
 use headway_core::validation::field_definition::agency::AgencyFieldDefinitionRule;
+use headway_core::validation::field_definition::attributions::AttributionsFieldDefinitionRule;
+use headway_core::validation::field_definition::feed_info::FeedInfoFieldDefinitionRule;
+use headway_core::validation::field_definition::pathways::PathwaysFieldDefinitionRule;
 use headway_core::validation::field_definition::routes::RoutesFieldDefinitionRule;
 use headway_core::validation::field_definition::stop_times::StopTimesFieldDefinitionRule;
 use headway_core::validation::field_definition::stops::StopsFieldDefinitionRule;
+use headway_core::validation::field_definition::transfers::TransfersFieldDefinitionRule;
+use headway_core::validation::field_definition::translations::TranslationsFieldDefinitionRule;
 use headway_core::validation::field_definition::trips::TripsFieldDefinitionRule;
 use headway_core::validation::{Severity, ValidationRule};
 
@@ -108,8 +114,87 @@ fn make_stop_time(
     }
 }
 
+fn gtfs_date(y: i32, m: u32, d: u32) -> GtfsDate {
+    GtfsDate(NaiveDate::from_ymd_opt(y, m, d).unwrap())
+}
+
 fn time(h: u32, m: u32) -> GtfsTime {
     GtfsTime::from_hms(h, m, 0)
+}
+
+fn make_transfer(
+    from: Option<&str>,
+    to: Option<&str>,
+    tt: TransferType,
+    min_time: Option<u32>,
+) -> Transfer {
+    Transfer {
+        from_stop_id: from.map(|s| StopId::from(s.to_string())),
+        to_stop_id: to.map(|s| StopId::from(s.to_string())),
+        from_route_id: None,
+        to_route_id: None,
+        from_trip_id: None,
+        to_trip_id: None,
+        transfer_type: tt,
+        min_transfer_time: min_time,
+    }
+}
+
+fn make_pathway(
+    id: &str,
+    from: &str,
+    to: &str,
+    mode: PathwayMode,
+    bidir: IsBidirectional,
+    length: Option<f64>,
+) -> Pathway {
+    Pathway {
+        pathway_id: PathwayId::from(id.to_string()),
+        from_stop_id: StopId::from(from.to_string()),
+        to_stop_id: StopId::from(to.to_string()),
+        pathway_mode: mode,
+        is_bidirectional: bidir,
+        length,
+        traversal_time: None,
+        stair_count: None,
+        max_slope: None,
+        min_width: None,
+        signposted_as: None,
+        reversed_signposted_as: None,
+    }
+}
+
+fn make_translation(table: &str, field: &str, lang: &str, record_id: Option<&str>) -> Translation {
+    Translation {
+        table_name: table.to_string(),
+        field_name: field.to_string(),
+        language: LanguageCode::from(lang.to_string()),
+        translation: "translated".to_string(),
+        record_id: record_id.map(std::string::ToString::to_string),
+        record_sub_id: None,
+        field_value: None,
+    }
+}
+
+fn make_attribution(
+    name: &str,
+    producer: Option<u8>,
+    operator: Option<u8>,
+    authority: Option<u8>,
+) -> Attribution {
+    Attribution {
+        attribution_id: None,
+        agency_id: None,
+        route_id: None,
+        trip_id: None,
+        organization_name: name.to_string(),
+        is_producer: producer,
+        is_operator: operator,
+        is_authority: authority,
+        attribution_url: None,
+        attribution_email: None,
+        attribution_phone: None,
+    }
 }
 
 fn valid_feed() -> GtfsFeed {
@@ -183,6 +268,11 @@ fn valid_feed_produces_no_errors() {
         Box::new(RoutesFieldDefinitionRule),
         Box::new(TripsFieldDefinitionRule),
         Box::new(StopTimesFieldDefinitionRule),
+        Box::new(TransfersFieldDefinitionRule),
+        Box::new(PathwaysFieldDefinitionRule),
+        Box::new(FeedInfoFieldDefinitionRule),
+        Box::new(TranslationsFieldDefinitionRule),
+        Box::new(AttributionsFieldDefinitionRule),
     ];
     let all_errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
     assert!(
@@ -454,5 +544,403 @@ fn errors_from_multiple_files_are_all_reported() {
     assert!(
         count_errors(&all_errors, Severity::Error) >= 3,
         "Expected at least 3 errors across files, got: {all_errors:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Transfers tests (CA4)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn transfers_from_stop_id_missing() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.transfers.push(make_transfer(
+        None,
+        Some("S2"),
+        TransferType::Recommended,
+        None,
+    ));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "from_stop_id").len(), 1);
+}
+
+#[test]
+fn transfers_to_stop_id_missing() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        None,
+        TransferType::Recommended,
+        None,
+    ));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "to_stop_id").len(), 1);
+}
+
+#[test]
+fn transfers_min_time_required_type_2() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        TransferType::MinimumTime,
+        None,
+    ));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "min_transfer_time").len(), 1);
+}
+
+#[test]
+fn transfers_min_time_optional_type_0() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        TransferType::Recommended,
+        None,
+    ));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn transfers_valid_type_2_with_min_time() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        TransferType::MinimumTime,
+        Some(120),
+    ));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn transfers_absent_file_no_errors() {
+    let mut feed = valid_feed();
+    // transfers.txt NOT in loaded_files
+    feed.transfers
+        .push(make_transfer(None, None, TransferType::MinimumTime, None));
+    let errors = TransfersFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Pathways tests (CA5, CA6)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pathways_length_required_mode_fare_gate() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("pathways.txt".to_string());
+    feed.pathways.push(make_pathway(
+        "PW1",
+        "S1",
+        "S2",
+        PathwayMode::FareGate,
+        IsBidirectional::Bidirectional,
+        None,
+    ));
+    let errors = PathwaysFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "length").len(), 1);
+}
+
+#[test]
+fn pathways_length_required_mode_exit_gate() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("pathways.txt".to_string());
+    feed.pathways.push(make_pathway(
+        "PW1",
+        "S1",
+        "S2",
+        PathwayMode::ExitGate,
+        IsBidirectional::Bidirectional,
+        None,
+    ));
+    let errors = PathwaysFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "length").len(), 1);
+}
+
+#[test]
+fn pathways_length_optional_mode_walkway() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("pathways.txt".to_string());
+    feed.pathways.push(make_pathway(
+        "PW1",
+        "S1",
+        "S2",
+        PathwayMode::Walkway,
+        IsBidirectional::Bidirectional,
+        None,
+    ));
+    let errors = PathwaysFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn pathways_length_present_mode_fare_gate_ok() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("pathways.txt".to_string());
+    feed.pathways.push(make_pathway(
+        "PW1",
+        "S1",
+        "S2",
+        PathwayMode::FareGate,
+        IsBidirectional::Bidirectional,
+        Some(10.0),
+    ));
+    let errors = PathwaysFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn pathways_absent_file_no_errors() {
+    let mut feed = valid_feed();
+    feed.pathways.push(make_pathway(
+        "PW1",
+        "S1",
+        "S2",
+        PathwayMode::ExitGate,
+        IsBidirectional::Bidirectional,
+        None,
+    ));
+    let errors = PathwaysFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// FeedInfo tests (CA8)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn feed_info_start_date_missing_warning() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("feed_info.txt".to_string());
+    feed.feed_info = Some(FeedInfo {
+        feed_publisher_name: "Test".to_string(),
+        feed_publisher_url: Url::from("https://example.com".to_string()),
+        feed_lang: LanguageCode::from("en".to_string()),
+        default_lang: None,
+        feed_start_date: None,
+        feed_end_date: Some(gtfs_date(2025, 12, 31)),
+        feed_version: None,
+        feed_contact_email: None,
+        feed_contact_url: None,
+    });
+    let errors = FeedInfoFieldDefinitionRule.validate(&feed);
+    let start_errors = errors_for_field(&errors, "feed_start_date");
+    assert_eq!(start_errors.len(), 1);
+    assert_eq!(start_errors[0].severity, Severity::Warning);
+}
+
+#[test]
+fn feed_info_end_date_missing_warning() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("feed_info.txt".to_string());
+    feed.feed_info = Some(FeedInfo {
+        feed_publisher_name: "Test".to_string(),
+        feed_publisher_url: Url::from("https://example.com".to_string()),
+        feed_lang: LanguageCode::from("en".to_string()),
+        default_lang: None,
+        feed_start_date: Some(gtfs_date(2025, 1, 1)),
+        feed_end_date: None,
+        feed_version: None,
+        feed_contact_email: None,
+        feed_contact_url: None,
+    });
+    let errors = FeedInfoFieldDefinitionRule.validate(&feed);
+    let end_errors = errors_for_field(&errors, "feed_end_date");
+    assert_eq!(end_errors.len(), 1);
+    assert_eq!(end_errors[0].severity, Severity::Warning);
+}
+
+#[test]
+fn feed_info_both_dates_present_no_warning() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("feed_info.txt".to_string());
+    feed.feed_info = Some(FeedInfo {
+        feed_publisher_name: "Test".to_string(),
+        feed_publisher_url: Url::from("https://example.com".to_string()),
+        feed_lang: LanguageCode::from("en".to_string()),
+        default_lang: None,
+        feed_start_date: Some(gtfs_date(2025, 1, 1)),
+        feed_end_date: Some(gtfs_date(2025, 12, 31)),
+        feed_version: None,
+        feed_contact_email: None,
+        feed_contact_url: None,
+    });
+    let errors = FeedInfoFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn feed_info_absent_file_no_errors() {
+    let mut feed = valid_feed();
+    // feed_info.txt NOT in loaded_files
+    feed.feed_info = Some(FeedInfo {
+        feed_publisher_name: "Test".to_string(),
+        feed_publisher_url: Url::from("https://example.com".to_string()),
+        feed_lang: LanguageCode::from("en".to_string()),
+        default_lang: None,
+        feed_start_date: None,
+        feed_end_date: None,
+        feed_version: None,
+        feed_contact_email: None,
+        feed_contact_url: None,
+    });
+    let errors = FeedInfoFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Translations tests (CA11)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn translations_record_id_required_non_feed_info() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("translations.txt".to_string());
+    feed.translations
+        .push(make_translation("stops", "stop_name", "fr", None));
+    let errors = TranslationsFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "record_id").len(), 1);
+}
+
+#[test]
+fn translations_record_id_not_required_feed_info() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("translations.txt".to_string());
+    feed.translations.push(make_translation(
+        "feed_info",
+        "feed_publisher_name",
+        "fr",
+        None,
+    ));
+    let errors = TranslationsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn translations_record_id_present_no_error() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("translations.txt".to_string());
+    feed.translations
+        .push(make_translation("stops", "stop_name", "fr", Some("S1")));
+    let errors = TranslationsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn translations_absent_file_no_errors() {
+    let mut feed = valid_feed();
+    feed.translations
+        .push(make_translation("stops", "stop_name", "fr", None));
+    let errors = TranslationsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Attributions tests (CA12)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn attributions_no_role_set() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("attributions.txt".to_string());
+    feed.attributions
+        .push(make_attribution("Org X", Some(0), Some(0), Some(0)));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "is_producer").len(), 1);
+}
+
+#[test]
+fn attributions_no_role_all_none() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("attributions.txt".to_string());
+    feed.attributions
+        .push(make_attribution("Org X", None, None, None));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert_eq!(errors_for_field(&errors, "is_producer").len(), 1);
+}
+
+#[test]
+fn attributions_producer_set() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("attributions.txt".to_string());
+    feed.attributions
+        .push(make_attribution("Org X", Some(1), None, None));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn attributions_operator_set() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("attributions.txt".to_string());
+    feed.attributions
+        .push(make_attribution("Org X", None, Some(1), None));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn attributions_authority_set() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("attributions.txt".to_string());
+    feed.attributions
+        .push(make_attribution("Org X", None, None, Some(1)));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn attributions_absent_file_no_errors() {
+    let mut feed = valid_feed();
+    feed.attributions
+        .push(make_attribution("Org X", None, None, None));
+    let errors = AttributionsFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Multi-file cumulation — secondary files (Test 16)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn errors_from_secondary_files_are_all_reported() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("transfers.txt".to_string());
+    feed.loaded_files.insert("translations.txt".to_string());
+    feed.loaded_files.insert("attributions.txt".to_string());
+
+    // transfers error: missing from_stop_id
+    feed.transfers.push(make_transfer(
+        None,
+        Some("S2"),
+        TransferType::Recommended,
+        None,
+    ));
+    // translations error: missing record_id for non-feed_info
+    feed.translations
+        .push(make_translation("stops", "stop_name", "fr", None));
+    // attributions error: no role set
+    feed.attributions
+        .push(make_attribution("Org", None, None, None));
+
+    let rules: Vec<Box<dyn ValidationRule>> = vec![
+        Box::new(TransfersFieldDefinitionRule),
+        Box::new(TranslationsFieldDefinitionRule),
+        Box::new(AttributionsFieldDefinitionRule),
+    ];
+    let all_errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
+    assert!(
+        count_errors(&all_errors, Severity::Error) >= 3,
+        "Expected at least 3 errors across secondary files, got: {all_errors:?}"
     );
 }

@@ -8,13 +8,20 @@
 //! **Note:** Fields that are unconditionally required and already enforced by
 //! the parser (via `required_id`, `required_parse`, etc.) are *not*
 //! re-validated here — only rules requiring cross-record or conditional logic
-//! live in this module. `calendar.txt` is entirely covered by the parser and
-//! has no section 4 rule.
+//! live in this module. The following files are entirely covered by the parser
+//! and have no section 4 rule: `calendar.txt`, `calendar_dates.txt`,
+//! `shapes.txt`, `frequencies.txt`, `levels.txt`, `fare_attributes.txt`,
+//! `fare_rules.txt`.
 
 pub mod agency;
+pub mod attributions;
+pub mod feed_info;
+pub mod pathways;
 pub mod routes;
 pub mod stop_times;
 pub mod stops;
+pub mod transfers;
+pub mod translations;
 pub mod trips;
 
 use crate::validation::engine::ValidationEngine;
@@ -26,4 +33,9 @@ pub fn register_rules(engine: &mut ValidationEngine) {
     engine.register_rule(Box::new(routes::RoutesFieldDefinitionRule));
     engine.register_rule(Box::new(trips::TripsFieldDefinitionRule));
     engine.register_rule(Box::new(stop_times::StopTimesFieldDefinitionRule));
+    engine.register_rule(Box::new(transfers::TransfersFieldDefinitionRule));
+    engine.register_rule(Box::new(pathways::PathwaysFieldDefinitionRule));
+    engine.register_rule(Box::new(feed_info::FeedInfoFieldDefinitionRule));
+    engine.register_rule(Box::new(translations::TranslationsFieldDefinitionRule));
+    engine.register_rule(Box::new(attributions::AttributionsFieldDefinitionRule));
 }
