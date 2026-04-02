@@ -151,10 +151,10 @@ impl FeedLoader {
         let feed_info_r = if has(GtfsFiles::FeedInfo) {
             match source.read_file(GtfsFiles::FeedInfo) {
                 Ok(r) => file_parsers::feed_info::parse(r),
-                Err(_) => (None, vec![]),
+                Err(_) => (None, 0, vec![]),
             }
         } else {
-            (None, vec![])
+            (None, 0, vec![])
         };
 
         let mut all_errors = Vec::new();
@@ -182,7 +182,8 @@ impl FeedLoader {
         let mut fare_rules_r = fare_rules_r;
         let mut translations_r = translations_r;
         let mut attributions_r = attributions_r;
-        let mut feed_info_r = feed_info_r;
+        let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
+        all_errors.append(&mut feed_info_errors);
 
         let loaded_files: HashSet<String> = available
             .iter()
@@ -203,7 +204,8 @@ impl FeedLoader {
             transfers: unpack!(transfers_r, all_errors),
             pathways: unpack!(pathways_r, all_errors),
             levels: unpack!(levels_r, all_errors),
-            feed_info: unpack!(feed_info_r, all_errors),
+            feed_info,
+            feed_info_line_count,
             fare_attributes: unpack!(fare_attr_r, all_errors),
             fare_rules: unpack!(fare_rules_r, all_errors),
             translations: unpack!(translations_r, all_errors),

@@ -25,6 +25,10 @@ pub struct GtfsFeed {
     pub pathways: Vec<Pathway>,
     pub levels: Vec<Level>,
     pub feed_info: Option<FeedInfo>,
+    /// Number of data rows found in `feed_info.txt` (0 if absent).
+    /// The spec allows at most one row; duplicates are detected by section 6.
+    #[serde(default)]
+    pub feed_info_line_count: usize,
     pub fare_attributes: Vec<FareAttribute>,
     pub fare_rules: Vec<FareRule>,
     pub translations: Vec<Translation>,

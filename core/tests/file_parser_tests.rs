@@ -150,9 +150,10 @@ fn empty_value_required_field() {
 #[test]
 fn parse_feed_info_single_row() {
     let csv = b"feed_publisher_name,feed_publisher_url,feed_lang\nACME,http://acme.com,en\n";
-    let (info, errors) = file_parsers::feed_info::parse(reader(csv));
+    let (info, line_count, errors) = file_parsers::feed_info::parse(reader(csv));
 
     assert!(errors.is_empty());
+    assert_eq!(line_count, 1);
     let info = info.unwrap();
     assert_eq!(info.feed_publisher_name, "ACME");
     assert_eq!(info.feed_lang.0, "en");
@@ -162,8 +163,9 @@ fn parse_feed_info_single_row() {
 #[test]
 fn parse_feed_info_empty() {
     let csv = b"feed_publisher_name,feed_publisher_url,feed_lang\n";
-    let (info, errors) = file_parsers::feed_info::parse(reader(csv));
+    let (info, line_count, errors) = file_parsers::feed_info::parse(reader(csv));
     assert!(info.is_none());
+    assert_eq!(line_count, 0);
     assert!(errors.is_empty());
 }
 

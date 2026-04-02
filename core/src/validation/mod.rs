@@ -21,6 +21,7 @@ mod error;
 pub mod field_definition;
 pub mod field_type;
 pub mod file_structure;
+pub mod primary_key;
 mod report;
 mod rules;
 mod structural_rule;

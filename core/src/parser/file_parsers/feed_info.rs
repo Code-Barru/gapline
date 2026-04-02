@@ -9,13 +9,13 @@ use crate::parser::field_parsers::{
 
 const FILE: &str = "feed_info.txt";
 
-pub fn parse(reader: impl BufRead) -> (Option<FeedInfo>, Vec<ParseError>) {
+pub fn parse(reader: impl BufRead) -> (Option<FeedInfo>, usize, Vec<ParseError>) {
     let Ok(mut iter) = parse_csv(reader) else {
-        return (None, vec![]);
+        return (None, 0, vec![]);
     };
 
     let Some((line, row)) = iter.next_row() else {
-        return (None, vec![]);
+        return (None, 0, vec![]);
     };
 
     let mut errors = Vec::new();
@@ -57,5 +57,10 @@ pub fn parse(reader: impl BufRead) -> (Option<FeedInfo>, Vec<ParseError>) {
         feed_contact_url,
     };
 
-    (Some(info), errors)
+    let mut line_count = 1;
+    while iter.next_row().is_some() {
+        line_count += 1;
+    }
+
+    (Some(info), line_count, errors)
 }
