@@ -12,8 +12,8 @@ fn stop_id_display() {
 
 #[test]
 fn stop_id_eq() {
-    assert_eq!(StopId("S01".into()), StopId("S01".into()));
-    assert_ne!(StopId("S01".into()), StopId("S02".into()));
+    assert_eq!(StopId::from("S01"), StopId::from("S01"));
+    assert_ne!(StopId::from("S01"), StopId::from("S02"));
 }
 
 #[test]

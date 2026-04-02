@@ -16,10 +16,10 @@ fn parse_agency_minimal() {
 
     assert_eq!(agencies.len(), 1);
     assert!(errors.is_empty());
-    assert_eq!(agencies[0].agency_id.as_ref().unwrap().0, "STM");
+    assert_eq!(agencies[0].agency_id.as_ref().unwrap().as_ref(), "STM");
     assert_eq!(agencies[0].agency_name, "STM");
-    assert_eq!(agencies[0].agency_url.0, "http://stm.info");
-    assert_eq!(agencies[0].agency_timezone.0, "America/Montreal");
+    assert_eq!(agencies[0].agency_url.as_ref(), "http://stm.info");
+    assert_eq!(agencies[0].agency_timezone.as_ref(), "America/Montreal");
 }
 
 // -- TC2: stops.txt with absent optional fields
@@ -30,7 +30,7 @@ fn parse_stops_optional_absent() {
 
     assert_eq!(stops.len(), 1);
     assert!(errors.is_empty());
-    assert_eq!(stops[0].stop_id.0, "S1");
+    assert_eq!(stops[0].stop_id.as_ref(), "S1");
     assert!(stops[0].stop_desc.is_none());
     assert!((stops[0].stop_lat.unwrap().0 - 45.5).abs() < f64::EPSILON);
 }
@@ -111,7 +111,7 @@ fn parse_agency_with_bom() {
 
     assert_eq!(agencies.len(), 1);
     assert!(errors.is_empty());
-    assert_eq!(agencies[0].agency_id.as_ref().unwrap().0, "STM");
+    assert_eq!(agencies[0].agency_id.as_ref().unwrap().as_ref(), "STM");
 }
 
 // -- TC11: unknown column ignored
@@ -230,7 +230,7 @@ fn parse_levels() {
     let (levels, errors) = file_parsers::levels::parse(reader(csv));
 
     assert!(errors.is_empty());
-    assert_eq!(levels[0].level_id.0, "L1");
+    assert_eq!(levels[0].level_id.as_ref(), "L1");
     assert_eq!(levels[0].level_name.as_deref(), Some("Ground"));
 }
 
@@ -252,7 +252,7 @@ fn parse_fare_rules() {
     let (rules, errors) = file_parsers::fare_rules::parse(reader(csv));
 
     assert!(errors.is_empty());
-    assert_eq!(rules[0].route_id.as_ref().unwrap().0, "R1");
+    assert_eq!(rules[0].route_id.as_ref().unwrap().as_ref(), "R1");
 }
 
 // -- translations

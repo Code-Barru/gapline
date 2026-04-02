@@ -118,5 +118,164 @@ fn bench_validation(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_feed_loading, bench_validation);
+/// Create a large synthetic feed: 1 agency, 10 routes, 1 calendar,
+/// 200 stops, 1000 trips with 100 `stop_times` each (100k total).
+fn create_large_feed() -> headway_core::models::GtfsFeed {
+    use headway_core::models::{
+        Agency, AgencyId, Calendar, GtfsDate, GtfsFeed, Route, RouteId, RouteType, ServiceId, Stop,
+        StopId, StopTime, Timezone, Trip, TripId, Url,
+    };
+
+    let mut feed = GtfsFeed::default();
+
+    feed.agencies.push(Agency {
+        agency_id: Some(AgencyId::from("A1")),
+        agency_name: "Bench Agency".into(),
+        agency_url: Url::from("http://bench.test"),
+        agency_timezone: Timezone::from("UTC"),
+        agency_lang: None,
+        agency_phone: None,
+        agency_fare_url: None,
+        agency_email: None,
+    });
+
+    for route_index in 0..10 {
+        feed.routes.push(Route {
+            route_id: RouteId::from(format!("R{route_index}")),
+            agency_id: Some(AgencyId::from("A1")),
+            route_short_name: None,
+            route_long_name: None,
+            route_desc: None,
+            route_type: RouteType::Bus,
+            route_url: None,
+            route_color: None,
+            route_text_color: None,
+            route_sort_order: None,
+            continuous_pickup: None,
+            continuous_drop_off: None,
+            network_id: None,
+        });
+    }
+
+    feed.calendars.push(Calendar {
+        service_id: ServiceId::from("SVC1"),
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false,
+        start_date: GtfsDate::default(),
+        end_date: GtfsDate::default(),
+    });
+
+    for stop_index in 0..200 {
+        feed.stops.push(Stop {
+            stop_id: StopId::from(format!("S{stop_index}")),
+            stop_code: None,
+            stop_name: None,
+            tts_stop_name: None,
+            stop_desc: None,
+            stop_lat: None,
+            stop_lon: None,
+            zone_id: None,
+            stop_url: None,
+            location_type: None,
+            parent_station: None,
+            stop_timezone: None,
+            wheelchair_boarding: None,
+            level_id: None,
+            platform_code: None,
+        });
+    }
+
+    for trip_index in 0..1000 {
+        let route_id = format!("R{}", trip_index % 10);
+        let trip_id = format!("T{trip_index}");
+        feed.trips.push(Trip {
+            route_id: RouteId::from(route_id),
+            service_id: ServiceId::from("SVC1"),
+            trip_id: TripId::from(trip_id.clone()),
+            trip_headsign: None,
+            trip_short_name: None,
+            direction_id: None,
+            block_id: None,
+            shape_id: None,
+            wheelchair_accessible: None,
+            bikes_allowed: None,
+        });
+
+        for sequence in 0..100 {
+            let stop_id = format!("S{}", sequence % 200);
+            feed.stop_times.push(StopTime {
+                trip_id: TripId::from(trip_id.clone()),
+                arrival_time: None,
+                departure_time: None,
+                stop_id: StopId::from(stop_id),
+                stop_sequence: sequence,
+                stop_headsign: None,
+                pickup_type: None,
+                drop_off_type: None,
+                continuous_pickup: None,
+                continuous_drop_off: None,
+                shape_dist_traveled: None,
+                timepoint: None,
+            });
+        }
+    }
+
+    feed
+}
+
+fn bench_integrity_index(c: &mut Criterion) {
+    let (_dir, zip_path) = create_valid_feed();
+    let source = FeedLoader::open(&zip_path).expect("open failed");
+    let (small_feed, _) = FeedLoader::load(&source);
+
+    c.bench_function("integrity/build_small", |b| {
+        b.iter(|| {
+            let index =
+                headway_core::integrity::IntegrityIndex::build_from_feed(black_box(&small_feed));
+            black_box(index);
+        });
+    });
+
+    let large_feed = create_large_feed();
+
+    c.bench_function("integrity/build_100k_stop_times", |b| {
+        b.iter(|| {
+            let index =
+                headway_core::integrity::IntegrityIndex::build_from_feed(black_box(&large_feed));
+            black_box(index);
+        });
+    });
+
+    let large_index = headway_core::integrity::IntegrityIndex::build_from_feed(&large_feed);
+
+    c.bench_function("integrity/find_dependents", |b| {
+        let route =
+            headway_core::integrity::EntityRef::Route(headway_core::models::RouteId::from("R0"));
+        b.iter(|| {
+            let dependents = large_index.find_dependents(black_box(&route));
+            black_box(dependents);
+        });
+    });
+
+    c.bench_function("integrity/find_dependents_recursive", |b| {
+        let route =
+            headway_core::integrity::EntityRef::Route(headway_core::models::RouteId::from("R0"));
+        b.iter(|| {
+            let dependents = large_index.find_dependents_recursive(black_box(&route));
+            black_box(dependents);
+        });
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_feed_loading,
+    bench_validation,
+    bench_integrity_index
+);
 criterion_main!(benches);

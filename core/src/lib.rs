@@ -28,3 +28,6 @@ pub mod parser;
 
 /// GTFS feed validation engine.
 pub mod validation;
+
+/// Referential integrity indexes.
+pub mod integrity;

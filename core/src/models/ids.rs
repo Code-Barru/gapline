@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 macro_rules! gtfs_id {
     ($name:ident) => {
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-        pub struct $name(pub String);
+        pub struct $name(pub Arc<str>);
 
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -13,13 +15,13 @@ macro_rules! gtfs_id {
 
         impl From<String> for $name {
             fn from(s: String) -> Self {
-                Self(s)
+                Self(Arc::from(s))
             }
         }
 
         impl From<&str> for $name {
             fn from(s: &str) -> Self {
-                Self(s.to_owned())
+                Self(Arc::from(s))
             }
         }
 
@@ -41,3 +43,4 @@ gtfs_id!(FareId);
 gtfs_id!(PathwayId);
 gtfs_id!(LevelId);
 gtfs_id!(FareMediaId);
+gtfs_id!(ZoneId);
