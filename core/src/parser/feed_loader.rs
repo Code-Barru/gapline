@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::path::Path;
 
@@ -184,7 +184,13 @@ impl FeedLoader {
         let mut attributions_r = attributions_r;
         let mut feed_info_r = feed_info_r;
 
+        let loaded_files: HashSet<String> = available
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect();
+
         let feed = GtfsFeed {
+            loaded_files,
             agencies: unpack!(agencies_r, all_errors),
             stops: unpack!(stops_r, all_errors),
             routes: unpack!(routes_r, all_errors),

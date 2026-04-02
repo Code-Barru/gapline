@@ -40,6 +40,7 @@ fn section_label(section: &str) -> &str {
         "1" => "File Structure",
         "2" => "CSV Formatting",
         "3" => "Field Type Validation",
+        "4" => "Field Definition Validation",
         _ => "Validation",
     }
 }
@@ -103,6 +104,7 @@ impl ValidationEngine {
             rules: Vec::new(),
         };
         crate::validation::field_type::register_rules(&mut engine);
+        crate::validation::field_definition::register_rules(&mut engine);
         engine
     }
 
