@@ -41,6 +41,7 @@ fn section_label(section: &str) -> &str {
         "2" => "CSV Formatting",
         "3" => "Field Type Validation",
         "4" => "Field Definition Validation",
+        "5" => "Foreign Key Validation",
         "6" => "Primary Key Uniqueness",
         _ => "Validation",
     }
@@ -107,6 +108,7 @@ impl ValidationEngine {
         crate::validation::field_type::register_rules(&mut engine);
         crate::validation::field_definition::register_rules(&mut engine);
         crate::validation::primary_key::register_rules(&mut engine);
+        crate::validation::foreign_key::register_rules(&mut engine);
         engine
     }
 
