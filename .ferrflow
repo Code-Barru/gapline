@@ -10,8 +10,7 @@
       "changelog": "CHANGELOG.md",
       "sharedPaths": ["core/src/", "cli/src/"],
       "versionedFiles": [
-        { "path": "core/Cargo.toml", "format": "toml" },
-        { "path": "cli/Cargo.toml", "format": "toml" }
+        { "path": "Cargo.toml", "format": "toml" }
       ]
     }
   ]
