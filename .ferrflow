@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ferrflow.com/schema/ferrflow.json",
+  "workspace": {
+    "tagTemplate": "v{version}"
+  },
+  "package": [
+    {
+      "name": "core",
+      "path": "core",
+      "changelog": "core/CHANGELOG.md",
+      "sharedPaths": ["core/src/"],
+      "versionedFiles": [
+        { "path": "core/Cargo.toml", "format": "toml" }
+      ]
+    },
+    {
+      "name": "cli",
+      "path": "cli",
+      "changelog": "cli/CHANGELOG.md",
+      "sharedPaths": ["cli/src/"],
+      "versionedFiles": [
+        { "path": "cli/Cargo.toml", "format": "toml" }
+      ]
+    }
+  ]
+}
