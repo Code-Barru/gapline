@@ -18,19 +18,23 @@ Transit data engineers and application developers face:
 
 ### Key Features
 
-**MVP Phase :**
+**Available now:**
 
-- **Complete validation**: engine targeting 200+ rules from the GTFS Schedule specification (sections 1–3 implemented)
+- **Comprehensive validation**: 6-section gated pipeline with 60+ rules covering file structure, CSV formatting, field types, field definitions, foreign keys, and primary key uniqueness
+- **17 GTFS file types parsed**: agency, stops, routes, trips, stop_times, calendar, calendar_dates, shapes, frequencies, transfers, pathways, levels, feed_info, fare_attributes, fare_rules, translations, attributions
+- **Multi-format output**: colored text (default) and JSON
+- **Performance**: parallel rule execution and file parsing via rayon
+- **Integrity protection**: bidirectional referential integrity index with recursive dependency tracking
+
+**Coming soon:**
+
 - **CRUD operations**: create, read, update, and delete on core GTFS files
 - **Batch processing**: `.hw` files to automate GTFS workflows
-- **Multi-format**: output in colored text, JSON, XML, or CSV
-- **Performance**: parallel rule execution, target ≥2x faster than MobilityData validator
-- **Integrity protection**: automatic referential constraint verification
-- **Configuration**: three-tier TOML configuration system (CLI > project > user > defaults)
+- **CSV and XML output formats**
+- **TOML configuration system**: three-tier config (project > user > defaults)
 
 **Future vision:**
 
-- Interactive TUI interface for feed exploration
 - GTFS feed merging
 - GTFS Fares v2, GTFS-Flex, and GTFS-Realtime support
 - Plugin ecosystem
@@ -58,33 +62,45 @@ cargo install headway
 
 ## Usage
 
-### Command Examples
+### Validate a GTFS feed
 
 ```bash
-# Validate a GTFS feed
-headway validate -f ./feed.zip --format json -o report.json
+# Validate with colored terminal output
+headway validate -f ./feed.zip
 
+# Validate and export as JSON
+headway validate -f ./feed.zip --format json -o report.json
+```
+
+### CRUD operations (coming soon)
+
+```bash
 # Read data
 headway read stops -f ./feed.zip --where "location_type=1"
+
+# Create data
+headway create stops -f ./feed.zip --set stop_id=S99 --set stop_name="New Stop"
 
 # Update data
 headway update stops -f ./feed.zip --where stop_id=S01 --set stop_name="New Station"
 
 # Delete data
 headway delete stop_times -f ./feed.zip --where "trip_id=OLD AND stop_sequence>10"
+```
 
-# Execute a batch file
+### Batch execution (coming soon)
+
+```bash
 headway run weekly-fix.hw
 ```
 
-### Development
+## Development
+
+### Run in development mode
 
 ```bash
-# Run in development mode
 cargo run
 ```
-
-## Development
 
 ### Run tests
 
@@ -98,18 +114,18 @@ cargo test
 cargo bench -p headway-core
 ```
 
-Les rapports HTML Criterion sont générés dans `target/criterion/`.
+Criterion HTML reports are generated in `target/criterion/`.
 
 ### Flamegraph
 
-Nécessite [`cargo-flamegraph`](https://github.com/flamegraph-rs/flamegraph) et `perf` (Linux) :
+Requires [`cargo-flamegraph`](https://github.com/flamegraph-rs/flamegraph) and `perf` (Linux):
 
 ```bash
 cargo install flamegraph
 cargo flamegraph --bench core_bench -p headway-core -- --bench
 ```
 
-Le flamegraph SVG est généré à la racine du projet (`flamegraph.svg`).
+The SVG flamegraph is generated at the project root (`flamegraph.svg`).
 
 ### Format code
 
@@ -122,10 +138,6 @@ cargo fmt
 ```bash
 cargo clippy
 ```
-
-## Current Status
-
-The project is still in incubation and the validation engine is being written.
 
 ## License
 

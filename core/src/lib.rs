@@ -1,6 +1,6 @@
 //! # headway-core
 //!
-//! Core business logic for headway — entirely CLI-agnostic, usable as a library.
+//! Core business logic for headway - entirely CLI-agnostic, usable as a library.
 //!
 //! ## Modules
 //!
