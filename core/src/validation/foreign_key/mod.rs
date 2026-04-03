@@ -1,10 +1,11 @@
 //! Section 5 — Foreign Key Validation.
 //!
-//! Detects orphan references between core GTFS files. Each rule checks that
+//! Detects orphan references between GTFS files. Each rule checks that
 //! foreign-key values in a source file point to existing primary keys in the
 //! target file. Violations produce `foreign_key_violation` errors with full
 //! context (file, line, field, orphan value).
 
+// Core FK rules (HW-017)
 pub mod calendar_dates_service;
 pub mod frequencies_trip;
 pub mod routes_agency;
@@ -16,10 +17,26 @@ pub mod trips_route;
 pub mod trips_service;
 pub mod trips_shape;
 
+// Extended FK rules (HW-018)
+pub mod attributions_refs;
+pub mod fare_attributes_agency;
+pub mod fare_rules_fare;
+pub mod fare_rules_route;
+pub mod fare_rules_zones;
+pub mod pathways_stops;
+pub mod transfers_from_route;
+pub mod transfers_from_stop;
+pub mod transfers_from_trip;
+pub mod transfers_to_route;
+pub mod transfers_to_stop;
+pub mod transfers_to_trip;
+pub mod translations_record;
+
 use crate::validation::engine::ValidationEngine;
 
 /// Registers all foreign-key validation rules with the engine.
 pub fn register_rules(engine: &mut ValidationEngine) {
+    // Core (HW-017)
     engine.register_rule(Box::new(routes_agency::RoutesAgencyFkRule));
     engine.register_rule(Box::new(trips_route::TripsRouteFkRule));
     engine.register_rule(Box::new(trips_service::TripsServiceFkRule));
@@ -30,4 +47,19 @@ pub fn register_rules(engine: &mut ValidationEngine) {
     engine.register_rule(Box::new(frequencies_trip::FrequenciesTripFkRule));
     engine.register_rule(Box::new(stops_parent_station::StopsParentStationFkRule));
     engine.register_rule(Box::new(stops_level::StopsLevelFkRule));
+
+    // Extended (HW-018)
+    engine.register_rule(Box::new(transfers_from_stop::TransfersFromStopFkRule));
+    engine.register_rule(Box::new(transfers_to_stop::TransfersToStopFkRule));
+    engine.register_rule(Box::new(transfers_from_trip::TransfersFromTripFkRule));
+    engine.register_rule(Box::new(transfers_to_trip::TransfersToTripFkRule));
+    engine.register_rule(Box::new(transfers_from_route::TransfersFromRouteFkRule));
+    engine.register_rule(Box::new(transfers_to_route::TransfersToRouteFkRule));
+    engine.register_rule(Box::new(pathways_stops::PathwaysStopsFkRule));
+    engine.register_rule(Box::new(fare_rules_fare::FareRulesFareFkRule));
+    engine.register_rule(Box::new(fare_rules_route::FareRulesRouteFkRule));
+    engine.register_rule(Box::new(fare_rules_zones::FareRulesZonesFkRule));
+    engine.register_rule(Box::new(fare_attributes_agency::FareAttributesAgencyFkRule));
+    engine.register_rule(Box::new(translations_record::TranslationsRecordFkRule));
+    engine.register_rule(Box::new(attributions_refs::AttributionsRefsFkRule));
 }

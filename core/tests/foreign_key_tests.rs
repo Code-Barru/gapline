@@ -12,6 +12,20 @@ use headway_core::validation::foreign_key::stops_parent_station::StopsParentStat
 use headway_core::validation::foreign_key::trips_route::TripsRouteFkRule;
 use headway_core::validation::foreign_key::trips_service::TripsServiceFkRule;
 use headway_core::validation::foreign_key::trips_shape::TripsShapeFkRule;
+// HW-018 extended FK rules
+use headway_core::validation::foreign_key::attributions_refs::AttributionsRefsFkRule;
+use headway_core::validation::foreign_key::fare_attributes_agency::FareAttributesAgencyFkRule;
+use headway_core::validation::foreign_key::fare_rules_fare::FareRulesFareFkRule;
+use headway_core::validation::foreign_key::fare_rules_route::FareRulesRouteFkRule;
+use headway_core::validation::foreign_key::fare_rules_zones::FareRulesZonesFkRule;
+use headway_core::validation::foreign_key::pathways_stops::PathwaysStopsFkRule;
+use headway_core::validation::foreign_key::transfers_from_route::TransfersFromRouteFkRule;
+use headway_core::validation::foreign_key::transfers_from_stop::TransfersFromStopFkRule;
+use headway_core::validation::foreign_key::transfers_from_trip::TransfersFromTripFkRule;
+use headway_core::validation::foreign_key::transfers_to_route::TransfersToRouteFkRule;
+use headway_core::validation::foreign_key::transfers_to_stop::TransfersToStopFkRule;
+use headway_core::validation::foreign_key::transfers_to_trip::TransfersToTripFkRule;
+use headway_core::validation::foreign_key::translations_record::TranslationsRecordFkRule;
 use headway_core::validation::{Severity, ValidationError, ValidationRule};
 
 // ---------------------------------------------------------------------------
@@ -560,4 +574,728 @@ fn error_includes_correct_line_number() {
     let errors = StopTimesTripFkRule.validate(&feed);
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].line_number, Some(4));
+}
+
+// ===========================================================================
+// HW-018 — Extended FK rules
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Additional helpers
+// ---------------------------------------------------------------------------
+
+fn make_transfer(
+    from_stop: Option<&str>,
+    to_stop: Option<&str>,
+    from_trip: Option<&str>,
+    to_trip: Option<&str>,
+    from_route: Option<&str>,
+    to_route: Option<&str>,
+) -> Transfer {
+    Transfer {
+        from_stop_id: from_stop.map(|s| StopId::from(s.to_string())),
+        to_stop_id: to_stop.map(|s| StopId::from(s.to_string())),
+        from_route_id: from_route.map(|s| RouteId::from(s.to_string())),
+        to_route_id: to_route.map(|s| RouteId::from(s.to_string())),
+        from_trip_id: from_trip.map(|s| TripId::from(s.to_string())),
+        to_trip_id: to_trip.map(|s| TripId::from(s.to_string())),
+        transfer_type: TransferType::Recommended,
+        min_transfer_time: None,
+    }
+}
+
+fn make_pathway(id: &str, from_stop: &str, to_stop: &str) -> Pathway {
+    Pathway {
+        pathway_id: PathwayId::from(id.to_string()),
+        from_stop_id: StopId::from(from_stop.to_string()),
+        to_stop_id: StopId::from(to_stop.to_string()),
+        pathway_mode: PathwayMode::Walkway,
+        is_bidirectional: IsBidirectional::Unidirectional,
+        length: None,
+        traversal_time: None,
+        stair_count: None,
+        max_slope: None,
+        min_width: None,
+        signposted_as: None,
+        reversed_signposted_as: None,
+    }
+}
+
+fn make_fare_attribute(fare_id: &str, agency_id: Option<&str>) -> FareAttribute {
+    FareAttribute {
+        fare_id: FareId::from(fare_id.to_string()),
+        price: 2.50,
+        currency_type: CurrencyCode::from("CAD".to_string()),
+        payment_method: 0,
+        transfers: Some(0),
+        agency_id: agency_id.map(|s| AgencyId::from(s.to_string())),
+        transfer_duration: None,
+    }
+}
+
+fn make_fare_rule(
+    fare_id: &str,
+    route_id: Option<&str>,
+    origin: Option<&str>,
+    dest: Option<&str>,
+    contains: Option<&str>,
+) -> FareRule {
+    FareRule {
+        fare_id: FareId::from(fare_id.to_string()),
+        route_id: route_id.map(|s| RouteId::from(s.to_string())),
+        origin_id: origin.map(|s| s.to_string()),
+        destination_id: dest.map(|s| s.to_string()),
+        contains_id: contains.map(|s| s.to_string()),
+    }
+}
+
+fn make_translation(
+    table_name: &str,
+    record_id: Option<&str>,
+    record_sub_id: Option<&str>,
+) -> Translation {
+    Translation {
+        table_name: table_name.to_string(),
+        field_name: "stop_name".to_string(),
+        language: LanguageCode::from("fr".to_string()),
+        translation: "Traduction".to_string(),
+        record_id: record_id.map(|s| s.to_string()),
+        record_sub_id: record_sub_id.map(|s| s.to_string()),
+        field_value: None,
+    }
+}
+
+fn make_attribution(
+    agency_id: Option<&str>,
+    route_id: Option<&str>,
+    trip_id: Option<&str>,
+) -> Attribution {
+    Attribution {
+        attribution_id: None,
+        agency_id: agency_id.map(|s| AgencyId::from(s.to_string())),
+        route_id: route_id.map(|s| RouteId::from(s.to_string())),
+        trip_id: trip_id.map(|s| TripId::from(s.to_string())),
+        organization_name: "Test Org".to_string(),
+        is_producer: None,
+        is_operator: None,
+        is_authority: None,
+        attribution_url: None,
+        attribution_email: None,
+        attribution_phone: None,
+    }
+}
+
+fn make_stop_with_zone(id: &str, zone_id: Option<&str>) -> Stop {
+    let mut stop = make_stop(id, Some("Stop"), Some(45.0), Some(-73.0), None, None);
+    stop.zone_id = zone_id.map(|s| s.to_string());
+    stop
+}
+
+/// Extended valid feed with all optional files populated.
+fn valid_feed_extended() -> GtfsFeed {
+    let mut feed = valid_feed();
+
+    // Stops with zone_id and special location types for pathways
+    feed.stops[0].zone_id = Some("Z1".to_string());
+    feed.stops.push(make_stop(
+        "ENT1",
+        Some("Entrance"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::EntranceExit),
+        None,
+    ));
+    feed.stops.push(make_stop(
+        "NODE1",
+        Some("Node"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::GenericNode),
+        None,
+    ));
+
+    // Transfers
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        Some("T1"),
+        None,
+        Some("R1"),
+        None,
+    ));
+
+    // Pathways
+    feed.pathways.push(make_pathway("PW1", "ENT1", "NODE1"));
+
+    // Fare attributes + rules
+    feed.fare_attributes
+        .push(make_fare_attribute("F1", Some("A1")));
+    feed.fare_rules
+        .push(make_fare_rule("F1", Some("R1"), Some("Z1"), None, None));
+
+    // Translations
+    feed.translations
+        .push(make_translation("stops", Some("S1"), None));
+
+    // Attributions
+    feed.attributions
+        .push(make_attribution(Some("A1"), Some("R1"), Some("T1")));
+
+    feed
+}
+
+// ---------------------------------------------------------------------------
+// All extended rules — valid feed (Cas #1)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn valid_feed_extended_no_fk_errors() {
+    let feed = valid_feed_extended();
+    let rules: Vec<Box<dyn ValidationRule>> = vec![
+        Box::new(TransfersFromStopFkRule),
+        Box::new(TransfersToStopFkRule),
+        Box::new(TransfersFromTripFkRule),
+        Box::new(TransfersToTripFkRule),
+        Box::new(TransfersFromRouteFkRule),
+        Box::new(TransfersToRouteFkRule),
+        Box::new(PathwaysStopsFkRule),
+        Box::new(FareRulesFareFkRule),
+        Box::new(FareRulesRouteFkRule),
+        Box::new(FareRulesZonesFkRule),
+        Box::new(FareAttributesAgencyFkRule),
+        Box::new(TranslationsRecordFkRule),
+        Box::new(AttributionsRefsFkRule),
+    ];
+    let all_errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
+    assert!(
+        all_errors.is_empty(),
+        "Expected 0 errors, got: {all_errors:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// transfers.from_stop_id / to_stop_id → stops (CA1, Cas #2)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn transfer_from_stop_orphan() {
+    let mut feed = valid_feed();
+    feed.transfers.push(make_transfer(
+        Some("S99"),
+        Some("S1"),
+        None,
+        None,
+        None,
+        None,
+    ));
+
+    let errors = TransfersFromStopFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].file_name.as_deref(), Some("transfers.txt"));
+    assert_eq!(errors[0].field_name.as_deref(), Some("from_stop_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("S99"));
+    assert_eq!(errors[0].rule_id, "foreign_key_violation");
+    assert_eq!(errors[0].section, "5");
+}
+
+#[test]
+fn transfer_to_stop_orphan() {
+    let mut feed = valid_feed();
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S99"),
+        None,
+        None,
+        None,
+        None,
+    ));
+
+    let errors = TransfersToStopFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("to_stop_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("S99"));
+}
+
+// ---------------------------------------------------------------------------
+// transfers.from_trip_id / to_trip_id → trips (CA2, Cas #3, #4)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn transfer_from_trip_orphan() {
+    let mut feed = valid_feed();
+    feed.transfers
+        .push(make_transfer(None, None, Some("T99"), None, None, None));
+
+    let errors = TransfersFromTripFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("from_trip_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("T99"));
+}
+
+#[test]
+fn transfer_from_trip_empty_no_error() {
+    let mut feed = valid_feed();
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        None,
+        None,
+        None,
+        None,
+    ));
+
+    let errors = TransfersFromTripFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// transfers.from_route_id / to_route_id → routes (CA3)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn transfer_from_route_orphan() {
+    let mut feed = valid_feed();
+    feed.transfers
+        .push(make_transfer(None, None, None, None, Some("R99"), None));
+
+    let errors = TransfersFromRouteFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("from_route_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("R99"));
+}
+
+#[test]
+fn transfer_to_route_orphan() {
+    let mut feed = valid_feed();
+    feed.transfers
+        .push(make_transfer(None, None, None, None, None, Some("R99")));
+
+    let errors = TransfersToRouteFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("to_route_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("R99"));
+}
+
+// ---------------------------------------------------------------------------
+// pathways.from_stop_id / to_stop_id → stops with location_type (CA4, Cas #5, #6)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pathway_stop_wrong_type() {
+    let mut feed = valid_feed();
+    // S1 has location_type=None (StopOrPlatform=0), not valid for pathways
+    feed.pathways.push(make_pathway("PW1", "S1", "S2"));
+
+    let errors = PathwaysStopsFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 2); // both endpoints wrong type
+    assert!(errors[0].message.contains("location_type 2, 3, or 4"));
+}
+
+#[test]
+fn pathway_stop_nonexistent() {
+    let mut feed = valid_feed();
+    feed.pathways.push(make_pathway("PW1", "S99", "S98"));
+
+    let errors = PathwaysStopsFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 2);
+    assert!(errors[0].message.contains("non-existent"));
+}
+
+#[test]
+fn pathway_stop_valid_type2() {
+    let mut feed = valid_feed();
+    feed.stops.push(make_stop(
+        "ENT1",
+        Some("Entrance"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::EntranceExit),
+        None,
+    ));
+    feed.stops.push(make_stop(
+        "NODE1",
+        Some("Node"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::GenericNode),
+        None,
+    ));
+    feed.pathways.push(make_pathway("PW1", "ENT1", "NODE1"));
+
+    let errors = PathwaysStopsFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn pathway_stop_valid_type4() {
+    let mut feed = valid_feed();
+    feed.stops.push(make_stop(
+        "BA1",
+        Some("Boarding Area"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::BoardingArea),
+        None,
+    ));
+    feed.stops.push(make_stop(
+        "ENT1",
+        Some("Entrance"),
+        Some(45.0),
+        Some(-73.0),
+        Some(LocationType::EntranceExit),
+        None,
+    ));
+    feed.pathways.push(make_pathway("PW1", "BA1", "ENT1"));
+
+    let errors = PathwaysStopsFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// fare_rules.fare_id → fare_attributes (CA5, Cas #7)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fare_rule_fare_orphan() {
+    let mut feed = valid_feed();
+    feed.fare_rules
+        .push(make_fare_rule("F99", None, None, None, None));
+
+    let errors = FareRulesFareFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("fare_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("F99"));
+    assert_eq!(errors[0].file_name.as_deref(), Some("fare_rules.txt"));
+}
+
+#[test]
+fn fare_rule_fare_valid() {
+    let mut feed = valid_feed();
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+    feed.fare_rules
+        .push(make_fare_rule("F1", None, None, None, None));
+
+    let errors = FareRulesFareFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// fare_rules.route_id → routes (CA6)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fare_rule_route_orphan() {
+    let mut feed = valid_feed();
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+    feed.fare_rules
+        .push(make_fare_rule("F1", Some("R99"), None, None, None));
+
+    let errors = FareRulesRouteFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("route_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("R99"));
+}
+
+// ---------------------------------------------------------------------------
+// fare_rules.origin_id / destination_id / contains_id → stops.zone_id (CA7, Cas #8, #9)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fare_rule_zone_orphan() {
+    let mut feed = valid_feed();
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+    feed.fare_rules
+        .push(make_fare_rule("F1", None, Some("Z99"), None, None));
+
+    let errors = FareRulesZonesFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("origin_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("Z99"));
+}
+
+#[test]
+fn fare_rule_zone_valid() {
+    let mut feed = valid_feed();
+    feed.stops.push(make_stop_with_zone("S3", Some("Z1")));
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+    feed.fare_rules
+        .push(make_fare_rule("F1", None, Some("Z1"), None, None));
+
+    let errors = FareRulesZonesFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn fare_rule_zone_multiple_fields_orphan() {
+    let mut feed = valid_feed();
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+    feed.fare_rules.push(make_fare_rule(
+        "F1",
+        None,
+        Some("Z99"),
+        Some("Z98"),
+        Some("Z97"),
+    ));
+
+    let errors = FareRulesZonesFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 3);
+}
+
+// ---------------------------------------------------------------------------
+// fare_attributes.agency_id → agency
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fare_attributes_agency_orphan() {
+    let mut feed = valid_feed();
+    feed.fare_attributes
+        .push(make_fare_attribute("F1", Some("AG99")));
+
+    let errors = FareAttributesAgencyFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("agency_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("AG99"));
+    assert_eq!(errors[0].file_name.as_deref(), Some("fare_attributes.txt"));
+}
+
+#[test]
+fn fare_attributes_agency_valid() {
+    let mut feed = valid_feed();
+    feed.fare_attributes
+        .push(make_fare_attribute("F1", Some("A1")));
+
+    let errors = FareAttributesAgencyFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn fare_attributes_agency_empty_no_error() {
+    let mut feed = valid_feed();
+    feed.fare_attributes.push(make_fare_attribute("F1", None));
+
+    let errors = FareAttributesAgencyFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// translations.record_id → target table (CA8, Cas #10, #11)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn translation_record_orphan() {
+    let mut feed = valid_feed();
+    feed.translations
+        .push(make_translation("stops", Some("S99"), None));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("record_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("S99"));
+    assert_eq!(errors[0].file_name.as_deref(), Some("translations.txt"));
+}
+
+#[test]
+fn translation_record_valid() {
+    let mut feed = valid_feed();
+    feed.translations
+        .push(make_translation("stops", Some("S1"), None));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn translation_record_id_empty_no_error() {
+    let mut feed = valid_feed();
+    feed.translations
+        .push(make_translation("stops", None, None));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn translation_record_routes() {
+    let mut feed = valid_feed();
+    feed.translations
+        .push(make_translation("routes", Some("R99"), None));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].value.as_deref(), Some("R99"));
+}
+
+#[test]
+fn translation_record_sub_id_stop_times_valid() {
+    let mut feed = valid_feed();
+    // feed has stop_time (T1, seq=1)
+    feed.translations
+        .push(make_translation("stop_times", Some("T1"), Some("1")));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn translation_record_sub_id_stop_times_orphan() {
+    let mut feed = valid_feed();
+    // feed has stop_time (T1, seq=1, seq=2) but not seq=99
+    feed.translations
+        .push(make_translation("stop_times", Some("T1"), Some("99")));
+
+    let errors = TranslationsRecordFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("record_sub_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("99"));
+}
+
+// ---------------------------------------------------------------------------
+// attributions.agency_id / route_id / trip_id (CA9, Cas #12)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn attribution_agency_orphan() {
+    let mut feed = valid_feed();
+    feed.attributions
+        .push(make_attribution(Some("AG99"), None, None));
+
+    let errors = AttributionsRefsFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("agency_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("AG99"));
+    assert_eq!(errors[0].file_name.as_deref(), Some("attributions.txt"));
+}
+
+#[test]
+fn attribution_route_orphan() {
+    let mut feed = valid_feed();
+    feed.attributions
+        .push(make_attribution(None, Some("R99"), None));
+
+    let errors = AttributionsRefsFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("route_id"));
+}
+
+#[test]
+fn attribution_trip_orphan() {
+    let mut feed = valid_feed();
+    feed.attributions
+        .push(make_attribution(None, None, Some("T99")));
+
+    let errors = AttributionsRefsFkRule.validate(&feed);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
+    assert_eq!(errors[0].field_name.as_deref(), Some("trip_id"));
+}
+
+#[test]
+fn attribution_all_valid() {
+    let mut feed = valid_feed();
+    feed.attributions
+        .push(make_attribution(Some("A1"), Some("R1"), Some("T1")));
+
+    let errors = AttributionsRefsFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+#[test]
+fn attribution_all_empty_no_error() {
+    let mut feed = valid_feed();
+    feed.attributions.push(make_attribution(None, None, None));
+
+    let errors = AttributionsRefsFkRule.validate(&feed);
+    assert!(errors.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Absent files generate no errors (CA11, Cas #13)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn absent_files_no_errors() {
+    let feed = valid_feed(); // no transfers, pathways, fare_rules, etc.
+    let rules: Vec<Box<dyn ValidationRule>> = vec![
+        Box::new(TransfersFromStopFkRule),
+        Box::new(TransfersToStopFkRule),
+        Box::new(TransfersFromTripFkRule),
+        Box::new(TransfersToTripFkRule),
+        Box::new(TransfersFromRouteFkRule),
+        Box::new(TransfersToRouteFkRule),
+        Box::new(PathwaysStopsFkRule),
+        Box::new(FareRulesFareFkRule),
+        Box::new(FareRulesRouteFkRule),
+        Box::new(FareRulesZonesFkRule),
+        Box::new(FareAttributesAgencyFkRule),
+        Box::new(TranslationsRecordFkRule),
+        Box::new(AttributionsRefsFkRule),
+    ];
+    let all_errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
+    assert!(
+        all_errors.is_empty(),
+        "Empty optional files should produce no errors, got: {all_errors:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Cumul multi-fichiers (Cas #14)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn multi_file_cumul_errors() {
+    let mut feed = valid_feed();
+    // Transfer orphan
+    feed.transfers
+        .push(make_transfer(Some("S99"), None, None, None, None, None));
+    // Fare rule orphan
+    feed.fare_rules
+        .push(make_fare_rule("F99", None, None, None, None));
+    // Pathway orphan (nonexistent stops)
+    feed.pathways.push(make_pathway("PW1", "S99", "S98"));
+
+    let transfer_errors = TransfersFromStopFkRule.validate(&feed);
+    let fare_errors = FareRulesFareFkRule.validate(&feed);
+    let pathway_errors = PathwaysStopsFkRule.validate(&feed);
+
+    assert_eq!(transfer_errors.len(), 1);
+    assert_eq!(fare_errors.len(), 1);
+    assert_eq!(pathway_errors.len(), 2); // 2 endpoints
+
+    // All are section 5
+    for e in transfer_errors
+        .iter()
+        .chain(&fare_errors)
+        .chain(&pathway_errors)
+    {
+        assert_eq!(e.section, "5");
+        assert_eq!(e.rule_id, "foreign_key_violation");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Error metadata (CA12)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn extended_error_includes_correct_metadata() {
+    let mut feed = valid_feed();
+    // Add a valid transfer first, then an orphan at index 1 → line 3
+    feed.transfers.push(make_transfer(
+        Some("S1"),
+        Some("S2"),
+        None,
+        None,
+        None,
+        None,
+    ));
+    feed.transfers
+        .push(make_transfer(Some("S99"), None, None, None, None, None));
+
+    let errors = TransfersFromStopFkRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].rule_id, "foreign_key_violation");
+    assert_eq!(errors[0].section, "5");
+    assert_eq!(errors[0].file_name.as_deref(), Some("transfers.txt"));
+    assert_eq!(errors[0].line_number, Some(3));
+    assert_eq!(errors[0].field_name.as_deref(), Some("from_stop_id"));
+    assert_eq!(errors[0].value.as_deref(), Some("S99"));
 }

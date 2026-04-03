@@ -191,36 +191,67 @@ impl ValidationEngine {
         ValidationReport::from(all_errors)
     }
 
+    /// Groups the registered post-parsing rules by their section identifier.
+    fn group_post_rules_by_section(&self) -> HashMap<String, Vec<&dyn ValidationRule>> {
+        let mut map: HashMap<String, Vec<&dyn ValidationRule>> = HashMap::new();
+        for rule in &self.rules {
+            map.entry(rule.section().to_string())
+                .or_default()
+                .push(rule.as_ref());
+        }
+        map
+    }
+
     /// Runs post-parsing validation rules against a loaded `GtfsFeed`.
     ///
     /// Also converts any `ParseError`s into `ValidationError`s with
     /// appropriate rule IDs from section 3.
+    ///
+    /// All sections run in parallel since every rule operates on the
+    /// immutable `&GtfsFeed`. Each section gets its own progress bar.
     #[must_use]
     pub fn validate_feed(&self, feed: &GtfsFeed, parse_errors: &[ParseError]) -> ValidationReport {
         let mut all_errors: Vec<ValidationError> = parse_error_converter::convert(parse_errors);
+
+        let grouped = self.group_post_rules_by_section();
+        let mut sections: Vec<&String> = grouped.keys().collect();
+        sections.sort();
 
         let multi = MultiProgress::new();
         if self.config.quiet || !std::io::stderr().is_terminal() {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
-        let label = section_label("3");
-        let pb = multi.add(ProgressBar::new(self.rules.len() as u64));
-        pb.set_style(BAR_STYLE.clone());
-        pb.set_message(label.to_string());
+        // Create all progress bars up-front so they display together.
+        let section_bars: Vec<(&String, &Vec<&dyn ValidationRule>, ProgressBar)> = sections
+            .iter()
+            .map(|&key| {
+                let rules = &grouped[key];
+                let pb = multi.add(ProgressBar::new(rules.len() as u64));
+                pb.set_style(BAR_STYLE.clone());
+                pb.set_message(section_label(key).to_string());
+                (key, rules, pb)
+            })
+            .collect();
 
-        let rule_errors: Vec<ValidationError> = self
-            .rules
+        // Run all sections in parallel via rayon.
+        let rule_errors: Vec<ValidationError> = section_bars
             .par_iter()
-            .flat_map(|rule| {
-                let errors = rule.validate(feed);
-                pb.inc(1);
+            .flat_map(|(_, rules, pb)| {
+                let errors: Vec<ValidationError> = rules
+                    .par_iter()
+                    .flat_map(|rule| {
+                        let errors = rule.validate(feed);
+                        pb.inc(1);
+                        errors
+                    })
+                    .collect();
+                pb.finish();
                 errors
             })
             .collect();
 
         all_errors.extend(rule_errors);
-        pb.finish();
 
         ValidationReport::from(all_errors)
     }
