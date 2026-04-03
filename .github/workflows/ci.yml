@@ -2,21 +2,23 @@ name: Rust CI/CD
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'core/**'
       - 'cli/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/**'
+      - '.ferrflow'
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - 'core/**'
       - 'cli/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/**'
+      - '.ferrflow'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -52,12 +54,11 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    needs: [fmt, clippy]
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --all
+      - run: cargo test --release --all
       - run: cargo test --release -- --ignored
 
   build:
@@ -77,13 +78,7 @@ jobs:
     concurrency:
       group: release-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: false
-    if: |
-      always() &&
-      needs.build.result == 'success' &&
-      (
-        (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
-        github.event_name == 'workflow_dispatch'
-      )
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
@@ -91,10 +86,8 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.FERRFLOW_TOKEN }}
-      - name: Configure git
-        run: git remote set-url origin https://x-access-token:${{ secrets.FERRFLOW_TOKEN }}@github.com/${{ github.repository }}
       - uses: FerrFlow-Org/ferrflow@v2
         with:
           dry_run: ${{ inputs.dry_run }}
         env:
-          GITHUB_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+          FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}

@@ -1,7 +1,9 @@
 {
   "$schema": "https://ferrflow.com/schema/ferrflow.json",
   "workspace": {
-    "tagTemplate": "v{version}"
+    "tagTemplate": "{name}@v{version}",
+    "branch": "main",
+    "recoverMissedReleases": true
   },
   "package": [
     {
