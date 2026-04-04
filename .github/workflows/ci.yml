@@ -190,7 +190,9 @@ jobs:
           for dir in artifacts/headway-*; do
             file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
             if [ -n "$file" ]; then
-              sha256sum "$file" | sed 's|.*/||' >> "$checksums_file"
+              hash=$(sha256sum "$file" | cut -d ' ' -f 1)
+              name=$(basename "$file")
+              echo "$hash  $name" >> "$checksums_file"
             fi
           done
 
