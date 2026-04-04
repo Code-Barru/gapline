@@ -13,7 +13,10 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rayon::prelude::*;
 
 static BAR_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
-    ProgressStyle::with_template("{msg} [{bar:30.cyan/dim}] {pos}/{len}")
+    // Pad the message to the width of the longest label
+    // ("Field Definition Validation" = 27 chars) so every bar starts at the
+    // same column.
+    ProgressStyle::with_template("{msg:27} [{bar:30.cyan/dim}] {pos}/{len}")
         .expect("hard-coded progress template is valid")
         .progress_chars("█░░")
 });
@@ -35,8 +38,8 @@ use crate::validation::{
     StructuralValidationRule, ValidationError, ValidationReport, ValidationRule,
 };
 
-fn section_label(section: &str) -> &str {
-    match section {
+fn progress_label(group: &str) -> &str {
+    match group {
         "1" => "File Structure",
         "2" => "CSV Formatting",
         "3" => "Field Type Validation",
@@ -44,6 +47,7 @@ fn section_label(section: &str) -> &str {
         "5" => "Foreign Key Validation",
         "6" => "Primary Key Uniqueness",
         "7" => "Temporal Consistency",
+        "7-geo" => "Shape Geometry",
         _ => "Validation",
     }
 }
@@ -78,6 +82,11 @@ impl ValidationEngine {
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.max_rows;
         let max_trip_duration_hours = config.max_trip_duration_hours;
+        let distance_thresholds = crate::validation::schedule_time_validation::DistanceThresholds {
+            max_stop_to_shape_distance_m: config.max_stop_to_shape_distance_m,
+            min_shape_point_distance_m: config.min_shape_point_distance_m,
+            shape_dist_incoherence_ratio: config.shape_dist_incoherence_ratio,
+        };
 
         // Rules that remain as individual StructuralValidationRule instances.
         // The 6 content-scanning rules (encoding, delimiter, quoting, content,
@@ -114,6 +123,7 @@ impl ValidationEngine {
         crate::validation::schedule_time_validation::register_rules(
             &mut engine,
             max_trip_duration_hours,
+            distance_thresholds,
         );
         engine
     }
@@ -160,7 +170,7 @@ impl ValidationEngine {
 
         for section_key in sections {
             let rules = &grouped[section_key];
-            let label = section_label(section_key);
+            let label = progress_label(section_key);
 
             let pb = multi.add(ProgressBar::new(rules.len() as u64));
             pb.set_style(BAR_STYLE.clone());
@@ -197,11 +207,13 @@ impl ValidationEngine {
         ValidationReport::from(all_errors)
     }
 
-    /// Groups the registered post-parsing rules by their section identifier.
+    /// Groups the registered post-parsing rules by their progress-bar group.
+    /// Rules can override `progress_group()` to split themselves out of the
+    /// default section-based bucket (e.g. geometric rules of section 7).
     fn group_post_rules_by_section(&self) -> HashMap<String, Vec<&dyn ValidationRule>> {
         let mut map: HashMap<String, Vec<&dyn ValidationRule>> = HashMap::new();
         for rule in &self.rules {
-            map.entry(rule.section().to_string())
+            map.entry(rule.progress_group().to_string())
                 .or_default()
                 .push(rule.as_ref());
         }
@@ -235,7 +247,7 @@ impl ValidationEngine {
                 let rules = &grouped[key];
                 let pb = multi.add(ProgressBar::new(rules.len() as u64));
                 pb.set_style(BAR_STYLE.clone());
-                pb.set_message(section_label(key).to_string());
+                pb.set_message(progress_label(key).to_string());
                 (key, rules, pb)
             })
             .collect();

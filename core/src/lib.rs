@@ -31,3 +31,6 @@ pub mod validation;
 
 /// Referential integrity indexes.
 pub mod integrity;
+
+/// Geodesic distance helpers.
+pub mod geo;
