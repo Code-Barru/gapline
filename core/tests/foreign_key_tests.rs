@@ -643,9 +643,9 @@ fn make_fare_rule(
     FareRule {
         fare_id: FareId::from(fare_id.to_string()),
         route_id: route_id.map(|s| RouteId::from(s.to_string())),
-        origin_id: origin.map(|s| s.to_string()),
-        destination_id: dest.map(|s| s.to_string()),
-        contains_id: contains.map(|s| s.to_string()),
+        origin_id: origin.map(ToString::to_string),
+        destination_id: dest.map(ToString::to_string),
+        contains_id: contains.map(ToString::to_string),
     }
 }
 
@@ -659,8 +659,8 @@ fn make_translation(
         field_name: "stop_name".to_string(),
         language: LanguageCode::from("fr".to_string()),
         translation: "Traduction".to_string(),
-        record_id: record_id.map(|s| s.to_string()),
-        record_sub_id: record_sub_id.map(|s| s.to_string()),
+        record_id: record_id.map(ToString::to_string),
+        record_sub_id: record_sub_id.map(ToString::to_string),
         field_value: None,
     }
 }
@@ -687,7 +687,7 @@ fn make_attribution(
 
 fn make_stop_with_zone(id: &str, zone_id: Option<&str>) -> Stop {
     let mut stop = make_stop(id, Some("Stop"), Some(45.0), Some(-73.0), None, None);
-    stop.zone_id = zone_id.map(|s| s.to_string());
+    stop.zone_id = zone_id.map(ToString::to_string);
     stop
 }
 
