@@ -19,7 +19,7 @@
       "name": "cli",
       "path": "cli",
       "changelog": "cli/CHANGELOG.md",
-      "sharedPaths": ["cli/src/"],
+      "sharedPaths": ["cli/src/", "core/src/"],
       "versionedFiles": [
         { "path": "cli/Cargo.toml", "format": "toml" }
       ]
