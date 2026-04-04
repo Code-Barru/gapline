@@ -8,7 +8,6 @@ on:
       - 'cli/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - '.github/workflows/**'
       - '.ferrflow'
   pull_request:
     branches: [main]
@@ -131,7 +130,7 @@ jobs:
           Compress-Archive -Path "$staging/*" -DestinationPath "$staging.zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: headway-${{ matrix.target }}
           path: |
@@ -178,8 +177,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
         run: |
-          tag=$(gh release list --limit 10 --json tagName,createdAt \
-                --jq '[.[] | select(.tagName | startswith("cli@"))] | sort_by(.createdAt) | last | .tagName')
+          tag=$(gh release list --limit 10 --json tagName \
+                --jq 'first(.[] | select(.tagName | startswith("cli@"))) | .tagName')
           if [ -z "$tag" ]; then
             echo "No cli release tag found, skipping asset upload"
             exit 0
