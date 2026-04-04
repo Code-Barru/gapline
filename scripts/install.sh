@@ -5,12 +5,11 @@ set -eu
 
 REPO="Code-Barru/headway"
 BINARY_NAME="headway"
-DEFAULT_INSTALL_DIR="$HOME/.headway/bin"
 GITHUB_API="https://api.github.com/repos/${REPO}/releases"
 GITHUB_DOWNLOAD="https://github.com/${REPO}/releases/download"
 
 # --- Defaults ---
-INSTALL_DIR="${HEADWAY_INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
+INSTALL_DIR="${HEADWAY_INSTALL_DIR:-/usr/local/bin}"
 VERSION="${HEADWAY_VERSION:-}"
 YES="false"
 
@@ -63,7 +62,7 @@ Usage:
 Options:
     -y, --yes           Non-interactive mode (accept all defaults)
     -v, --version VER   Install a specific version (e.g. 0.3.0)
-    -d, --dir DIR       Custom install directory (default: ~/.headway/bin)
+    -d, --dir DIR       Custom install directory (default: /usr/local/bin)
     -h, --help          Show this help message
 
 Environment variables:
@@ -73,7 +72,7 @@ Environment variables:
 Examples:
     curl -fsSL .../install.sh | sh
     curl -fsSL .../install.sh | sh -s -- --version 0.3.0
-    curl -fsSL .../install.sh | sh -s -- --dir /usr/local/bin
+    curl -fsSL .../install.sh | sh -s -- --dir ~/.local/bin
 EOF
     exit 0
 }
@@ -213,67 +212,33 @@ verify_checksum() {
     fi
 }
 
-# --- PATH configuration ---
-configure_path() {
-    case ":${PATH}:" in
-        *":${INSTALL_DIR}:"*)
-            return 0
-            ;;
-    esac
-
-    shell_name=$(basename "${SHELL:-/bin/sh}")
-
-    case "$shell_name" in
-        bash)
-            if [ "$OS" = "macos" ]; then
-                rc_file="$HOME/.bash_profile"
-            else
-                rc_file="$HOME/.bashrc"
-            fi
-            path_line="export PATH=\"${INSTALL_DIR}:\$PATH\""
-            ;;
-        zsh)
-            rc_file="$HOME/.zshrc"
-            path_line="export PATH=\"${INSTALL_DIR}:\$PATH\""
-            ;;
-        fish)
-            rc_file="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
-            path_line="fish_add_path \"${INSTALL_DIR}\""
-            ;;
-        *)
-            rc_file=""
-            path_line=""
-            ;;
-    esac
-
-    if [ -z "$rc_file" ]; then
-        warn "Could not detect your shell configuration file."
-        warn "Manually add ${INSTALL_DIR} to your PATH."
-        return 0
-    fi
-
-    if [ -f "$rc_file" ] && grep -qF "$INSTALL_DIR" "$rc_file" 2>/dev/null; then
-        return 0
-    fi
-
-    if [ "$YES" = "true" ]; then
-        add_path="y"
+# --- Sudo helper ---
+elevate() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    elif command -v doas >/dev/null 2>&1; then
+        doas "$@"
     else
-        printf "Add %s to PATH in %s? [Y/n] " "$INSTALL_DIR" "$rc_file"
-        read -r add_path </dev/tty || add_path="y"
+        die "Cannot write to ${INSTALL_DIR}. Run as root or use --dir to pick a writable location."
     fi
+}
 
-    case "$add_path" in
-        [nN]*)
-            warn "Skipping PATH configuration. Add it manually:"
-            warn "  ${path_line}"
-            ;;
-        *)
-            printf '\n# Headway CLI\n%s\n' "$path_line" >> "$rc_file"
-            success "Added ${INSTALL_DIR} to PATH in ${rc_file}"
-            info "Restart your shell or run: source ${rc_file}"
-            ;;
-    esac
+# --- Install binary ---
+install_binary() {
+    src="${tmpdir}/${BINARY_NAME}-${TARGET}/${BINARY_NAME}"
+
+    if [ -w "$INSTALL_DIR" ] || { [ -w "$(dirname "$INSTALL_DIR")" ] && [ ! -e "$INSTALL_DIR" ]; }; then
+        mkdir -p "$INSTALL_DIR"
+        cp "$src" "${INSTALL_DIR}/${BINARY_NAME}"
+        chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    else
+        info "Elevated privileges required to install to ${INSTALL_DIR}"
+        elevate mkdir -p "$INSTALL_DIR"
+        elevate cp "$src" "${INSTALL_DIR}/${BINARY_NAME}"
+        elevate chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    fi
 }
 
 # --- Main ---
@@ -289,6 +254,7 @@ main() {
 
     info "Platform: ${OS} (${ARCH})"
     info "Target: ${TARGET}"
+    info "Install directory: ${INSTALL_DIR}"
 
     # Create temp directory with cleanup trap
     tmpdir=$(mktemp -d)
@@ -307,9 +273,7 @@ main() {
     tar xzf "${tmpdir}/${archive_name}" -C "$tmpdir"
 
     # Install
-    mkdir -p "$INSTALL_DIR"
-    cp "${tmpdir}/${BINARY_NAME}-${TARGET}/${BINARY_NAME}" "${INSTALL_DIR}/${BINARY_NAME}"
-    chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+    install_binary
 
     # Verify
     if "${INSTALL_DIR}/${BINARY_NAME}" --version >/dev/null 2>&1; then
@@ -318,9 +282,6 @@ main() {
     else
         success "Installed headway v${VERSION} to ${INSTALL_DIR}/${BINARY_NAME}"
     fi
-
-    # Configure PATH
-    configure_path
 
     printf "\nRun '${BOLD}headway --help${RESET}' to get started.\n"
 }
