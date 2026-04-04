@@ -43,6 +43,7 @@ fn section_label(section: &str) -> &str {
         "4" => "Field Definition Validation",
         "5" => "Foreign Key Validation",
         "6" => "Primary Key Uniqueness",
+        "7" => "Temporal Consistency",
         _ => "Validation",
     }
 }
@@ -76,6 +77,7 @@ impl ValidationEngine {
     #[must_use]
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.max_rows;
+        let max_trip_duration_hours = config.max_trip_duration_hours;
 
         // Rules that remain as individual StructuralValidationRule instances.
         // The 6 content-scanning rules (encoding, delimiter, quoting, content,
@@ -109,6 +111,10 @@ impl ValidationEngine {
         crate::validation::field_definition::register_rules(&mut engine);
         crate::validation::primary_key::register_rules(&mut engine);
         crate::validation::foreign_key::register_rules(&mut engine);
+        crate::validation::schedule_time_validation::register_rules(
+            &mut engine,
+            max_trip_duration_hours,
+        );
         engine
     }
 

@@ -25,6 +25,7 @@ pub mod foreign_key;
 pub mod primary_key;
 mod report;
 mod rules;
+pub mod schedule_time_validation;
 mod structural_rule;
 pub(crate) mod utils;
 mod validate;
