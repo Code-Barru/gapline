@@ -4,6 +4,18 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-04-04
+
+### Features
+
+- feat: updated report rendering message
+
+### Bug Fixes
+
+- fix(ci): changed macOs identifier
+- fix: tests weren't updated with severity changes
+- fix: some rules had bad severity + clippy warnings
+
 ## [0.2.0] - 2026-04-03
 
 ### Features
