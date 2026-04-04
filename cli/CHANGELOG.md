@@ -4,6 +4,19 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] - 2026-04-04
+
+### Features
+
+- feat: schedule time validation
+- feat: install script
+
+### Bug Fixes
+
+- fix: windows ps1 file now uses anonymous block
+- fix: updated headway path installation
+- fix: updated clippy errors + clippy fails on warning
+
 ## [0.3.0] - 2026-04-04
 
 ### Features
