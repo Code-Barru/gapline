@@ -4,6 +4,17 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-04-04
+
+### Features
+
+- feat: updated report rendering message
+
+### Bug Fixes
+
+- fix: updated clippy errors + clippy fails on warning
+- fix(ci): changed macOs identifier
+
 ## [0.2.1] - 2026-04-04
 
 ### Bug Fixes
