@@ -60,9 +60,10 @@ jobs:
       - run: cargo test --release --all
       - run: cargo test --release -- --ignored
 
-  build:
-    name: Build Release (${{ matrix.target }})
+  build-check:
+    name: Build Check (${{ matrix.target }})
     needs: [fmt, clippy, test]
+    if: github.event_name == 'pull_request'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -88,6 +89,105 @@ jobs:
             archive: zip
     steps:
       - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        shell: bash
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --target ${{ matrix.target }} -p headway
+
+  release:
+    name: Release
+    needs: [fmt, clippy, test]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: false
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    outputs:
+      new_ref: ${{ steps.ref.outputs.sha }}
+      cli_tag: ${{ steps.ref.outputs.cli_tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.FERRFLOW_TOKEN }}
+      - uses: FerrFlow-Org/ferrflow@v2
+        with:
+          dry_run: ${{ inputs.dry_run }}
+        env:
+          FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+
+      - id: ref
+        name: Capture ferrflow commit and cli tag
+        env:
+          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+        run: |
+          git fetch --tags origin
+          git pull --ff-only origin main || true
+          sha=$(git rev-parse HEAD)
+          cli_tag=$(git tag --points-at "$sha" | grep '^cli@' | head -n1 || true)
+          if [ -z "$cli_tag" ]; then
+            cli_tag=$(gh release list --limit 10 --json tagName \
+                      --jq 'first(.[] | select(.tagName | startswith("cli@"))) | .tagName')
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "cli_tag=$cli_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure latest CLI release is marked as latest
+        if: steps.ref.outputs.cli_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+        run: gh release edit "${{ steps.ref.outputs.cli_tag }}" --latest
+
+  build-release:
+    name: Build Release Artifact (${{ matrix.target }})
+    needs: [release]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.release.outputs.new_ref }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -138,47 +238,17 @@ jobs:
             headway-${{ matrix.target }}.zip
           if-no-files-found: error
 
-  release:
-    name: Release
-    needs: build
-    runs-on: ubuntu-latest
-    concurrency:
-      group: release-${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: false
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.FERRFLOW_TOKEN }}
-      - uses: FerrFlow-Org/ferrflow@v2
-        with:
-          dry_run: ${{ inputs.dry_run }}
-        env:
-          FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
-
-      - name: Ensure latest CLI release is marked as latest
-        env:
-          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
-        run: |
-          cli_tag=$(gh release list --limit 10 --json tagName \
-                    --jq 'first(.[] | select(.tagName | startswith("cli@"))) | .tagName')
-          if [ -n "$cli_tag" ]; then
-            echo "Marking $cli_tag as latest"
-            gh release edit "$cli_tag" --latest
-          fi
-
   attach-assets:
     name: Attach Release Assets
-    needs: [build, release]
+    needs: [build-release, release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.release.outputs.cli_tag != ''
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.release.outputs.new_ref }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -200,12 +270,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
         run: |
-          tag=$(gh release list --limit 10 --json tagName \
-                --jq 'first(.[] | select(.tagName | startswith("cli@"))) | .tagName')
-          if [ -z "$tag" ]; then
-            echo "No cli release tag found, skipping asset upload"
-            exit 0
-          fi
+          tag="${{ needs.release.outputs.cli_tag }}"
           echo "Uploading assets to release: $tag"
           for dir in artifacts/headway-*; do
             file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
