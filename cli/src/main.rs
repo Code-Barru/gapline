@@ -32,7 +32,7 @@ fn main() {
 
             let fmt = format.unwrap_or(OutputFormat::Text);
             if let Err(e) = render_report(&report, fmt, output.as_deref()) {
-                eprintln!("{e}");
+                eprintln!("Error while rendering report: {e}");
                 process::exit(1);
             }
 
