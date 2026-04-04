@@ -14,7 +14,7 @@ const RULE_ID: &str = "foreign_key_violation";
 /// primary key in the table indicated by `table_name`.
 ///
 /// If `record_sub_id` is non-empty and `table_name` is `stop_times`, the combination
-/// of `record_id` (trip_id) + `record_sub_id` (stop_sequence) must exist.
+/// of `record_id` (`trip_id`) + `record_sub_id` (`stop_sequence`) must exist.
 pub struct TranslationsRecordFkRule;
 
 impl ValidationRule for TranslationsRecordFkRule {
@@ -70,53 +70,42 @@ impl ValidationRule for TranslationsRecordFkRule {
                 "agency" => Some(&agency_ids),
                 "stops" => Some(&stop_ids),
                 "routes" => Some(&route_ids),
-                "trips" => Some(&trip_ids),
-                "stop_times" => Some(&trip_ids), // record_id is trip_id for stop_times
+                "trips" | "stop_times" => Some(&trip_ids),
+                // record_id is trip_id for stop_times
                 "pathways" => Some(&pathway_ids),
                 "levels" => Some(&level_ids),
                 "attributions" => Some(&attribution_ids),
-                "feed_info" => None, // single-row table, no PK to check
+                // single-row table, no PK to check
                 _ => None,
             };
 
-            if let Some(set) = pk_set {
-                if !set.contains(record_id) {
-                    errors.push(
-                        ValidationError::new(RULE_ID, SECTION, Severity::Error)
-                            .message(format!(
-                                "record_id '{record_id}' in translations.txt line {line} references non-existent record in {}.txt",
-                                tr.table_name
-                            ))
-                            .file(FILE)
-                            .line(line)
-                            .field("record_id")
-                            .value(record_id),
-                    );
-                    continue; // no point checking sub_id if main id is bad
-                }
+            if let Some(set) = pk_set
+                && !set.contains(record_id)
+            {
+                errors.push(
+                    ValidationError::new(RULE_ID, SECTION, Severity::Error)
+                        .message(format!(
+                            "record_id '{record_id}' in translations.txt line {line} references non-existent record in {}.txt",
+                            tr.table_name
+                        ))
+                        .file(FILE)
+                        .line(line)
+                        .field("record_id")
+                        .value(record_id),
+                );
+                continue; // no point checking sub_id if main id is bad
             }
 
             // Validate record_sub_id for stop_times.
-            if tr.table_name == "stop_times" {
-                if let Some(sub_id) = tr.record_sub_id.as_deref() {
-                    if let Ok(seq) = sub_id.parse::<u32>() {
-                        if !stop_time_keys.contains(&(record_id, seq)) {
-                            errors.push(
-                                ValidationError::new(RULE_ID, SECTION, Severity::Error)
-                                    .message(format!(
-                                        "record_sub_id '{sub_id}' in translations.txt line {line} references non-existent stop_sequence for trip '{record_id}' in stop_times.txt"
-                                    ))
-                                    .file(FILE)
-                                    .line(line)
-                                    .field("record_sub_id")
-                                    .value(sub_id),
-                            );
-                        }
-                    } else {
+            if tr.table_name == "stop_times"
+                && let Some(sub_id) = tr.record_sub_id.as_deref()
+            {
+                if let Ok(seq) = sub_id.parse::<u32>() {
+                    if !stop_time_keys.contains(&(record_id, seq)) {
                         errors.push(
                             ValidationError::new(RULE_ID, SECTION, Severity::Error)
                                 .message(format!(
-                                    "record_sub_id '{sub_id}' in translations.txt line {line} is not a valid stop_sequence integer"
+                                    "record_sub_id '{sub_id}' in translations.txt line {line} references non-existent stop_sequence for trip '{record_id}' in stop_times.txt"
                                 ))
                                 .file(FILE)
                                 .line(line)
@@ -124,6 +113,17 @@ impl ValidationRule for TranslationsRecordFkRule {
                                 .value(sub_id),
                         );
                     }
+                } else {
+                    errors.push(
+                        ValidationError::new(RULE_ID, SECTION, Severity::Error)
+                            .message(format!(
+                                "record_sub_id '{sub_id}' in translations.txt line {line} is not a valid stop_sequence integer"
+                            ))
+                            .file(FILE)
+                            .line(line)
+                            .field("record_sub_id")
+                            .value(sub_id),
+                    );
                 }
             }
         }

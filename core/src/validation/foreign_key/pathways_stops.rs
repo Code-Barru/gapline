@@ -58,9 +58,11 @@ impl ValidationRule for PathwaysStopsFkRule {
                     Some(loc_type)
                         if !matches!(
                             loc_type,
-                            Some(LocationType::EntranceExit)
-                                | Some(LocationType::GenericNode)
-                                | Some(LocationType::BoardingArea)
+                            Some(
+                                LocationType::EntranceExit
+                                    | LocationType::GenericNode
+                                    | LocationType::BoardingArea
+                            )
                         ) =>
                     {
                         errors.push(

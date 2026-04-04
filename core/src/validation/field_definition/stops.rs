@@ -12,7 +12,7 @@ const RULE_ID: &str = "field_definition_stops";
 ///
 /// - `stop_name`, `stop_lat`, `stop_lon` required for `location_type` 0 (Stop) and 1 (Station).
 /// - `parent_station` required for `location_type` 2, 3, 4.
-/// - `parent_station` forbidden (WARNING) for `location_type` 1.
+/// - `parent_station` forbidden (ERROR) for `location_type` 1.
 pub struct StopsFieldDefinitionRule;
 
 impl ValidationRule for StopsFieldDefinitionRule {
@@ -92,7 +92,7 @@ impl ValidationRule for StopsFieldDefinitionRule {
                 LocationType::Station => {
                     if stop.parent_station.is_some() {
                         errors.push(
-                            ValidationError::new(RULE_ID, SECTION, Severity::Warning)
+                            ValidationError::new(RULE_ID, SECTION, Severity::Error)
                                 .message("parent_station should not be set for location_type 1 (Station)")
                                 .file(FILE)
                                 .line(line)

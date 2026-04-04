@@ -41,49 +41,49 @@ impl ValidationRule for AttributionsRefsFkRule {
         for (i, attr) in feed.attributions.iter().enumerate() {
             let line = i + 2;
 
-            if let Some(id) = attr.agency_id.as_ref() {
-                if !agency_ids.contains(id.as_ref()) {
-                    errors.push(
-                        ValidationError::new(RULE_ID, SECTION, Severity::Error)
-                            .message(format!(
-                                "agency_id '{id}' in attributions.txt line {line} references non-existent agency in agency.txt"
-                            ))
-                            .file(FILE)
-                            .line(line)
-                            .field("agency_id")
-                            .value(id.as_ref()),
-                    );
-                }
+            if let Some(id) = attr.agency_id.as_ref()
+                && !agency_ids.contains(id.as_ref())
+            {
+                errors.push(
+                    ValidationError::new(RULE_ID, SECTION, Severity::Error)
+                        .message(format!(
+                            "agency_id '{id}' in attributions.txt line {line} references non-existent agency in agency.txt"
+                        ))
+                        .file(FILE)
+                        .line(line)
+                        .field("agency_id")
+                        .value(id.as_ref()),
+                );
             }
 
-            if let Some(id) = attr.route_id.as_ref() {
-                if !route_ids.contains(id.as_ref()) {
-                    errors.push(
-                        ValidationError::new(RULE_ID, SECTION, Severity::Error)
-                            .message(format!(
-                                "route_id '{id}' in attributions.txt line {line} references non-existent route in routes.txt"
-                            ))
-                            .file(FILE)
-                            .line(line)
-                            .field("route_id")
-                            .value(id.as_ref()),
-                    );
-                }
+            if let Some(id) = attr.route_id.as_ref()
+                && !route_ids.contains(id.as_ref())
+            {
+                errors.push(
+                    ValidationError::new(RULE_ID, SECTION, Severity::Error)
+                        .message(format!(
+                            "route_id '{id}' in attributions.txt line {line} references non-existent route in routes.txt"
+                        ))
+                        .file(FILE)
+                        .line(line)
+                        .field("route_id")
+                        .value(id.as_ref()),
+                );
             }
 
-            if let Some(id) = attr.trip_id.as_ref() {
-                if !trip_ids.contains(id.as_ref()) {
-                    errors.push(
-                        ValidationError::new(RULE_ID, SECTION, Severity::Error)
-                            .message(format!(
-                                "trip_id '{id}' in attributions.txt line {line} references non-existent trip in trips.txt"
-                            ))
-                            .file(FILE)
-                            .line(line)
-                            .field("trip_id")
-                            .value(id.as_ref()),
-                    );
-                }
+            if let Some(id) = attr.trip_id.as_ref()
+                && !trip_ids.contains(id.as_ref())
+            {
+                errors.push(
+                    ValidationError::new(RULE_ID, SECTION, Severity::Error)
+                        .message(format!(
+                            "trip_id '{id}' in attributions.txt line {line} references non-existent trip in trips.txt"
+                        ))
+                        .file(FILE)
+                        .line(line)
+                        .field("trip_id")
+                        .value(id.as_ref()),
+                );
             }
         }
 

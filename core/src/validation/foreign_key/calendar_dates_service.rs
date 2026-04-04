@@ -1,4 +1,4 @@
-//! FK rule: `calendar_dates.service_id` → `calendar.service_id` (WARNING).
+//! FK rule: `calendar_dates.service_id` → `calendar.service_id` (ERROR).
 
 use std::collections::HashSet;
 
@@ -10,8 +10,8 @@ const SECTION: &str = "5";
 const RULE_ID: &str = "foreign_key_violation";
 
 /// If calendar.txt exists, a `service_id` in `calendar_dates.txt` that does
-/// not appear in calendar.txt produces a **warning** (not an error) because
-/// `calendar_dates.txt` can legitimately define services on its own.
+/// not appear in calendar.txt produces an **error** because every foreign key
+/// violation is an ERROR per the GTFS specification (section 5).
 pub struct CalendarDatesServiceFkRule;
 
 impl ValidationRule for CalendarDatesServiceFkRule {
@@ -24,7 +24,7 @@ impl ValidationRule for CalendarDatesServiceFkRule {
     }
 
     fn severity(&self) -> Severity {
-        Severity::Warning
+        Severity::Error
     }
 
     fn validate(&self, feed: &GtfsFeed) -> Vec<ValidationError> {
@@ -44,7 +44,7 @@ impl ValidationRule for CalendarDatesServiceFkRule {
             .filter(|(_, cd)| !calendar_ids.contains(cd.service_id.as_ref()))
             .map(|(i, cd)| {
                 let line = i + 2;
-                ValidationError::new(RULE_ID, SECTION, Severity::Warning)
+                ValidationError::new(RULE_ID, SECTION, Severity::Error)
                     .message(format!(
                         "service_id '{}' in calendar_dates.txt line {} is not defined in calendar.txt",
                         cd.service_id, line

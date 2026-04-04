@@ -9,7 +9,7 @@ const FILE: &str = "fare_rules.txt";
 const SECTION: &str = "5";
 const RULE_ID: &str = "foreign_key_violation";
 
-/// `fare_id` in fare_rules.txt must exist in fare_attributes.txt.
+/// `fare_id` in `fare_rules.txt` must exist in `fare_attributes.txt`.
 pub struct FareRulesFareFkRule;
 
 impl ValidationRule for FareRulesFareFkRule {

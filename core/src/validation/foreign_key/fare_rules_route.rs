@@ -9,7 +9,7 @@ const FILE: &str = "fare_rules.txt";
 const SECTION: &str = "5";
 const RULE_ID: &str = "foreign_key_violation";
 
-/// If `route_id` is non-empty in fare_rules.txt, it must exist in routes.txt.
+/// If `route_id` is non-empty in `fare_rules.txt`, it must exist in `routes.txt`.
 pub struct FareRulesRouteFkRule;
 
 impl ValidationRule for FareRulesRouteFkRule {

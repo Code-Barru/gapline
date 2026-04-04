@@ -9,7 +9,7 @@ const FILE: &str = "fare_attributes.txt";
 const SECTION: &str = "5";
 const RULE_ID: &str = "foreign_key_violation";
 
-/// If `agency_id` is non-empty in fare_attributes.txt, it must exist in agency.txt.
+/// If `agency_id` is non-empty in `fare_attributes.txt`, it must exist in agency.txt.
 pub struct FareAttributesAgencyFkRule;
 
 impl ValidationRule for FareAttributesAgencyFkRule {
