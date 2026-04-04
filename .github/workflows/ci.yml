@@ -159,6 +159,17 @@ jobs:
         env:
           FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
 
+      - name: Ensure latest CLI release is marked as latest
+        env:
+          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+        run: |
+          cli_tag=$(gh release list --limit 10 --json tagName \
+                    --jq 'first(.[] | select(.tagName | startswith("cli@"))) | .tagName')
+          if [ -n "$cli_tag" ]; then
+            echo "Marking $cli_tag as latest"
+            gh release edit "$cli_tag" --latest
+          fi
+
   attach-assets:
     name: Attach Release Assets
     needs: [build, release]
@@ -172,6 +183,16 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: Generate checksums
+        run: |
+          checksums_file="checksums.sha256"
+          for dir in artifacts/headway-*; do
+            file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
+            if [ -n "$file" ]; then
+              sha256sum "$file" | sed 's|.*/||' >> "$checksums_file"
+            fi
+          done
 
       - name: Attach binaries to release
         env:
@@ -190,3 +211,6 @@ jobs:
               gh release upload "$tag" "$file" --clobber
             fi
           done
+          if [ -f checksums.sha256 ]; then
+            gh release upload "$tag" checksums.sha256 --clobber
+          fi

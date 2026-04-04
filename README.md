@@ -41,24 +41,39 @@ Transit data engineers and application developers face:
 
 ## Installation
 
-### Prerequisites
+### Quick Install (recommended)
 
-- Rust 1.70 or higher
-- Cargo
+**Linux / macOS:**
 
-### Build
+```bash
+curl -fsSL https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.ps1 | iex
+```
+
+### Install a Specific Version
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.sh | sh -s -- --version 0.3.0
+
+# Windows (PowerShell)
+$env:HEADWAY_VERSION="0.3.0"; irm https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.ps1 | iex
+```
+
+### Build from Source
+
+**Prerequisites:** Rust 1.70 or higher
 
 ```bash
 cargo build --release
 ```
 
 The binary will be available at `target/release/headway`.
-
-### Install via Cargo (coming soon)
-
-```bash
-cargo install headway
-```
 
 ## Usage
 
