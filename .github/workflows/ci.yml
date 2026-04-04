@@ -62,14 +62,82 @@ jobs:
       - run: cargo test --release -- --ignored
 
   build:
-    name: Build Release
-    runs-on: ubuntu-latest
+    name: Build Release (${{ matrix.target }})
     needs: [fmt, clippy, test]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
     steps:
       - uses: actions/checkout@v5
+
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        shell: bash
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --target ${{ matrix.target }} -p headway
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          staging="headway-${{ matrix.target }}"
+          mkdir "$staging"
+          cp target/${{ matrix.target }}/release/headway "$staging/"
+          cp LICENSE README.md "$staging/"
+          tar czf "$staging.tar.gz" "$staging"
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $staging = "headway-${{ matrix.target }}"
+          New-Item -ItemType Directory -Path $staging
+          Copy-Item "target/${{ matrix.target }}/release/headway.exe" "$staging/"
+          Copy-Item LICENSE, README.md "$staging/"
+          Compress-Archive -Path "$staging/*" -DestinationPath "$staging.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: headway-${{ matrix.target }}
+          path: |
+            headway-${{ matrix.target }}.tar.gz
+            headway-${{ matrix.target }}.zip
+          if-no-files-found: error
 
   release:
     name: Release
@@ -91,3 +159,35 @@ jobs:
           dry_run: ${{ inputs.dry_run }}
         env:
           FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+
+  attach-assets:
+    name: Attach Release Assets
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Attach binaries to release
+        env:
+          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+        run: |
+          tag=$(gh release list --limit 10 --json tagName,createdAt \
+                --jq '[.[] | select(.tagName | startswith("cli@"))] | sort_by(.createdAt) | last | .tagName')
+          if [ -z "$tag" ]; then
+            echo "No cli release tag found, skipping asset upload"
+            exit 0
+          fi
+          echo "Uploading assets to release: $tag"
+          for dir in artifacts/headway-*; do
+            file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
+            if [ -n "$file" ]; then
+              gh release upload "$tag" "$file" --clobber
+            fi
+          done
