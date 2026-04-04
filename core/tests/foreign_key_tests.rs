@@ -517,9 +517,9 @@ fn calendar_dates_service_warning_when_calendar_present() {
     feed.calendar_dates.push(make_calendar_date("SVC_UNKNOWN"));
 
     let errors = CalendarDatesServiceFkRule.validate(&feed);
-    assert_eq!(count_errors(&errors, Severity::Warning), 1);
+    assert_eq!(count_errors(&errors, Severity::Error), 1);
     assert_eq!(errors[0].value.as_deref(), Some("SVC_UNKNOWN"));
-    assert_eq!(errors[0].severity, Severity::Warning);
+    assert_eq!(errors[0].severity, Severity::Error);
 }
 
 #[test]

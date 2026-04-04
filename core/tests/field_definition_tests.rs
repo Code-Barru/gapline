@@ -400,7 +400,7 @@ fn parent_station_forbidden_type_1() {
     let errors = StopsFieldDefinitionRule.validate(&feed);
     let ps_errors = errors_for_field(&errors, "parent_station");
     assert_eq!(ps_errors.len(), 1);
-    assert_eq!(ps_errors[0].severity, Severity::Warning);
+    assert_eq!(ps_errors[0].severity, Severity::Error);
 }
 
 // ---------------------------------------------------------------------------
