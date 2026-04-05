@@ -48,6 +48,7 @@ fn progress_label(group: &str) -> &str {
         "6" => "Primary Key Uniqueness",
         "7" => "Temporal Consistency",
         "7-geo" => "Shape Geometry",
+        "7-cal" => "Calendar Validation",
         _ => "Validation",
     }
 }
@@ -87,6 +88,12 @@ impl ValidationEngine {
             min_shape_point_distance_m: config.min_shape_point_distance_m,
             shape_dist_incoherence_ratio: config.shape_dist_incoherence_ratio,
         };
+        let calendar_thresholds = crate::validation::schedule_time_validation::CalendarThresholds {
+            min_feed_coverage_days: config.min_feed_coverage_days,
+            feed_expiration_warning_days: config.feed_expiration_warning_days,
+            min_trip_activity_days: config.min_trip_activity_days,
+            reference_date: config.reference_date,
+        };
 
         // Rules that remain as individual StructuralValidationRule instances.
         // The 6 content-scanning rules (encoding, delimiter, quoting, content,
@@ -124,6 +131,7 @@ impl ValidationEngine {
             &mut engine,
             max_trip_duration_hours,
             distance_thresholds,
+            calendar_thresholds,
         );
         engine
     }

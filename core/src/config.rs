@@ -3,6 +3,8 @@
 //! Provides a minimal configuration struct that will be extended as features
 //! are added (TOML loading, per-rule overrides, etc.).
 
+use crate::models::GtfsDate;
+
 /// Global configuration for headway.
 ///
 /// Currently holds only the optional row-count limit used by
@@ -32,6 +34,21 @@ pub struct Config {
     /// Haversine increment (scaled by the shape's global declared/Haversine
     /// ratio) by more than this relative amount. Defaults to `0.5` (50 %).
     pub shape_dist_incoherence_ratio: f64,
+    /// Minimum expected feed coverage in days (max date − min date + 1).
+    /// Feeds with shorter ranges produce a `short_feed_coverage` warning.
+    /// Defaults to `30`.
+    pub min_feed_coverage_days: u32,
+    /// Number of days before `feed_end_date` to warn about imminent
+    /// expiration. A feed expiring within this window produces a
+    /// `feed_expiring_soon` warning. Defaults to `7`.
+    pub feed_expiration_warning_days: i64,
+    /// Minimum active days a trip's service must have. Trips whose service
+    /// yields fewer active days produce a `low_trip_activity` warning.
+    /// Defaults to `7`.
+    pub min_trip_activity_days: u32,
+    /// Date used as "today" for expiration checks. `None` uses the system
+    /// clock at validation time. Set this for deterministic tests.
+    pub reference_date: Option<GtfsDate>,
 }
 
 impl Default for Config {
@@ -43,6 +60,10 @@ impl Default for Config {
             max_stop_to_shape_distance_m: 100.0,
             min_shape_point_distance_m: 1.11,
             shape_dist_incoherence_ratio: 0.5,
+            min_feed_coverage_days: 30,
+            feed_expiration_warning_days: 7,
+            min_trip_activity_days: 7,
+            reference_date: None,
         }
     }
 }
