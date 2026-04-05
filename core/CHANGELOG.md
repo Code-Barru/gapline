@@ -4,6 +4,16 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] - 2026-04-05
+
+### Features
+
+- feat: calendar & date logic
+
+### Bug Fixes
+
+- fix(ci): ferrflow bumps version BEFORE building releases
+
 ## [0.5.0] - 2026-04-04
 
 ### Features
