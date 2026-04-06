@@ -33,12 +33,6 @@ Transit data engineers and application developers face:
 - **CSV and XML output formats**
 - **TOML configuration system**: three-tier config (project > user > defaults)
 
-**Future vision:**
-
-- GTFS feed merging
-- GTFS Fares v2, GTFS-Flex, and GTFS-Realtime support
-- Plugin ecosystem
-
 ## Installation
 
 ### Quick Install (recommended)
