@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.1] - 2026-04-06
+
+### Bug Fixes
+
+- fix: FK_VIOLATION in calendar_dates now as WARNING
+
 ## [0.8.0] - 2026-04-06
 
 ### Features
