@@ -100,6 +100,18 @@ impl ValidationEngine {
             min_trip_activity_days: config.min_trip_activity_days,
             reference_date: config.reference_date,
         };
+        let transfer_thresholds = crate::validation::schedule_time_validation::TransferThresholds {
+            max_transfer_distance_m: config.max_transfer_distance_m,
+            transfer_distance_warning_m: config.transfer_distance_warning_m,
+        };
+        let speed_thresholds = crate::validation::schedule_time_validation::SpeedThresholds {
+            tram_kmh: config.speed_limit_tram_kmh,
+            subway_kmh: config.speed_limit_subway_kmh,
+            rail_kmh: config.speed_limit_rail_kmh,
+            bus_kmh: config.speed_limit_bus_kmh,
+            ferry_kmh: config.speed_limit_ferry_kmh,
+            default_kmh: config.speed_limit_default_kmh,
+        };
 
         // Rules that remain as individual StructuralValidationRule instances.
         // The 6 content-scanning rules (encoding, delimiter, quoting, content,
@@ -138,6 +150,8 @@ impl ValidationEngine {
             max_trip_duration_hours,
             distance_thresholds,
             calendar_thresholds,
+            transfer_thresholds,
+            speed_thresholds,
         );
         engine
     }

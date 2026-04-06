@@ -49,6 +49,27 @@ pub struct Config {
     /// Date used as "today" for expiration checks. `None` uses the system
     /// clock at validation time. Set this for deterministic tests.
     pub reference_date: Option<GtfsDate>,
+    /// Maximum allowed distance in meters between `from_stop_id` and
+    /// `to_stop_id` in a transfer. Transfers exceeding this produce a
+    /// `transfer_distance_too_large` error. Defaults to `10_000.0`.
+    pub max_transfer_distance_m: f64,
+    /// Distance threshold in meters for suspicious transfers. Transfers
+    /// between this value and `max_transfer_distance_m` produce a
+    /// `transfer_distance_suspicious` warning. Defaults to `2_000.0`.
+    pub transfer_distance_warning_m: f64,
+    /// Maximum speed in km/h for Tram (`route_type=0`). Defaults to `150.0`.
+    pub speed_limit_tram_kmh: f64,
+    /// Maximum speed in km/h for Subway/Metro (`route_type=1`). Defaults to `150.0`.
+    pub speed_limit_subway_kmh: f64,
+    /// Maximum speed in km/h for Rail/Train (`route_type=2`). Defaults to `500.0`.
+    pub speed_limit_rail_kmh: f64,
+    /// Maximum speed in km/h for Bus (`route_type=3`). Defaults to `150.0`.
+    pub speed_limit_bus_kmh: f64,
+    /// Maximum speed in km/h for Ferry (`route_type=4`). Defaults to `150.0`.
+    pub speed_limit_ferry_kmh: f64,
+    /// Default maximum speed in km/h for route types without a specific
+    /// limit. Defaults to `150.0`.
+    pub speed_limit_default_kmh: f64,
 }
 
 impl Default for Config {
@@ -64,6 +85,14 @@ impl Default for Config {
             feed_expiration_warning_days: 7,
             min_trip_activity_days: 7,
             reference_date: None,
+            max_transfer_distance_m: 10_000.0,
+            transfer_distance_warning_m: 2_000.0,
+            speed_limit_tram_kmh: 150.0,
+            speed_limit_subway_kmh: 150.0,
+            speed_limit_rail_kmh: 500.0,
+            speed_limit_bus_kmh: 150.0,
+            speed_limit_ferry_kmh: 150.0,
+            speed_limit_default_kmh: 150.0,
         }
     }
 }
