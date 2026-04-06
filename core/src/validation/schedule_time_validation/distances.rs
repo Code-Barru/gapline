@@ -38,10 +38,6 @@ impl ValidationRule for StopToShapeDistanceRule {
         Severity::Warning
     }
 
-    fn progress_group(&self) -> &'static str {
-        "7-geo"
-    }
-
     fn validate(&self, feed: &GtfsFeed) -> Vec<ValidationError> {
         // Group shape points by shape_id, sorted by sequence. Points with no
         // coords cannot occur (lat/lon are required in shapes.txt).

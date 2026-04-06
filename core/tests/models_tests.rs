@@ -98,8 +98,11 @@ fn route_type_hvt() {
 }
 
 #[test]
-fn route_type_invalid() {
-    assert_eq!(RouteType::from_i32(1800), None);
+fn route_type_unknown() {
+    assert_eq!(RouteType::from_i32(1800), Some(RouteType::Unknown(1800)));
+    assert_eq!(RouteType::from_i32(99), Some(RouteType::Unknown(99)));
+    assert_eq!(RouteType::from_i32(-1), Some(RouteType::Unknown(-1)));
+    assert_eq!(RouteType::from_i32(9999), Some(RouteType::Unknown(9999)));
 }
 
 #[test]

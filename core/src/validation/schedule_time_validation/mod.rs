@@ -10,7 +10,9 @@ pub mod calendar_ranges;
 pub mod distances;
 pub mod feed_coverage;
 pub mod frequencies;
+pub mod route_type_semantics;
 pub mod shapes;
+pub mod stop_hierarchy;
 pub mod stop_times;
 pub mod trip_activity;
 
@@ -63,4 +65,8 @@ pub fn register_rules(
     engine.register_rule(Box::new(trip_activity::TripActivityRule::new(
         calendar.min_trip_activity_days,
     )));
+    engine.register_rule(Box::new(stop_hierarchy::InvalidParentTypeRule));
+    engine.register_rule(Box::new(stop_hierarchy::UnusedStationRule));
+    engine.register_rule(Box::new(stop_hierarchy::UnusedStopRule));
+    engine.register_rule(Box::new(route_type_semantics::RouteTypeSemanticsRule));
 }

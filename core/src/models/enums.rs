@@ -36,6 +36,7 @@ pub enum RouteType {
     Trolleybus,
     Monorail,
     Hvt(u16),
+    Unknown(i32),
 }
 
 impl RouteType {
@@ -57,7 +58,26 @@ impl RouteType {
                 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                 Some(Self::Hvt(val as u16))
             }
-            _ => None,
+            _ => Some(Self::Unknown(val)),
+        }
+    }
+
+    /// Returns the numeric value of this route type.
+    #[must_use]
+    pub const fn to_i32(&self) -> i32 {
+        match self {
+            Self::Tram => 0,
+            Self::Subway => 1,
+            Self::Rail => 2,
+            Self::Bus => 3,
+            Self::Ferry => 4,
+            Self::CableTram => 5,
+            Self::AerialLift => 6,
+            Self::Funicular => 7,
+            Self::Trolleybus => 11,
+            Self::Monorail => 12,
+            Self::Hvt(v) => *v as i32,
+            Self::Unknown(v) => *v,
         }
     }
 }

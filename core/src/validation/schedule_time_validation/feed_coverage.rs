@@ -54,10 +54,6 @@ impl ValidationRule for FeedCoverageRule {
         Severity::Warning
     }
 
-    fn progress_group(&self) -> &'static str {
-        "7-cal"
-    }
-
     fn validate(&self, feed: &GtfsFeed) -> Vec<ValidationError> {
         let mut errors = Vec::new();
 

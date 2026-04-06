@@ -403,21 +403,21 @@ fn parent_station_orphan() {
 }
 
 #[test]
-fn parent_station_wrong_type() {
+fn parent_station_wrong_type_not_checked_by_fk_rule() {
     let mut feed = valid_feed();
     // S1 has location_type=None (defaults to StopOrPlatform=0)
+    // FK rule only checks existence, not parent type (type checks are in section 7).
     feed.stops.push(make_stop(
         "S3",
         Some("Stop 3"),
         Some(45.2),
         Some(-73.2),
         None,
-        Some("S1"), // S1 is not a Station
+        Some("S1"), // S1 is not a Station, but FK rule doesn't check type
     ));
 
     let errors = StopsParentStationFkRule.validate(&feed);
-    assert_eq!(count_errors(&errors, Severity::Error), 1);
-    assert!(errors[0].message.contains("location_type=1"));
+    assert_eq!(count_errors(&errors, Severity::Error), 0);
 }
 
 #[test]

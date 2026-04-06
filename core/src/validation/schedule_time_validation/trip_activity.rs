@@ -41,10 +41,6 @@ impl ValidationRule for TripActivityRule {
         Severity::Warning
     }
 
-    fn progress_group(&self) -> &'static str {
-        "7-cal"
-    }
-
     fn validate(&self, feed: &GtfsFeed) -> Vec<ValidationError> {
         let active_days = compute_active_days(feed);
         let min_active = self.min_active_days as usize;

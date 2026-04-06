@@ -42,14 +42,20 @@ fn progress_label(group: &str) -> &str {
     match group {
         "1" => "File Structure",
         "2" => "CSV Formatting",
-        "3" => "Field Type Validation",
-        "4" => "Field Definition Validation",
-        "5" => "Foreign Key Validation",
-        "6" => "Primary Key Uniqueness",
-        "7" => "Temporal Consistency",
-        "7-geo" => "Shape Geometry",
-        "7-cal" => "Calendar Validation",
+        "3" => "Field Validation",
+        "5" => "Key & Reference Validation",
+        "7" => "Semantic & Logic",
         _ => "Validation",
+    }
+}
+
+/// Maps a rule's `progress_group()` to a display group so that related
+/// sections share one progress bar without touching each rule struct.
+fn display_group(progress_group: &str) -> &str {
+    match progress_group {
+        "4" => "3", // Field Definition → merged with Field Type
+        "6" => "5", // Primary Key → merged with Foreign Key
+        g => g,
     }
 }
 
@@ -221,7 +227,7 @@ impl ValidationEngine {
     fn group_post_rules_by_section(&self) -> HashMap<String, Vec<&dyn ValidationRule>> {
         let mut map: HashMap<String, Vec<&dyn ValidationRule>> = HashMap::new();
         for rule in &self.rules {
-            map.entry(rule.progress_group().to_string())
+            map.entry(display_group(rule.progress_group()).to_string())
                 .or_default()
                 .push(rule.as_ref());
         }
