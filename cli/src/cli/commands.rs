@@ -38,13 +38,17 @@ pub fn run_read(
     format: Option<OutputFormat>,
     output: Option<&Path>,
 ) {
-    let source = match FeedLoader::open(feed) {
+    let mut source = match FeedLoader::open(feed) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
             process::exit(1);
         }
     };
+    if let Err(e) = source.preload() {
+        eprintln!("{e}");
+        process::exit(1);
+    }
     let (feed_data, _parse_errors) = FeedLoader::load(&source);
 
     let query = match where_query {

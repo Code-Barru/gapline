@@ -20,10 +20,6 @@ use crate::models::{
 };
 use crate::parser::feed_source::GtfsFiles;
 
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
-
 /// A parsed `field=value` pair from `--set`.
 #[derive(Debug, Clone)]
 pub struct FieldAssignment {
@@ -107,10 +103,6 @@ pub enum CreatedRecord {
     Translation(Translation),
     Attribution(Attribution),
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 /// Parses raw `"field=value"` strings into [`FieldAssignment`]s.
 ///
@@ -227,10 +219,6 @@ pub fn required_files(target: GtfsTarget) -> Vec<GtfsFiles> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: field map
-// ---------------------------------------------------------------------------
-
 type Fields<'a> = HashMap<&'a str, &'a str>;
 
 fn to_field_map(
@@ -277,10 +265,6 @@ fn valid_fields_for(target: GtfsTarget) -> &'static [&'static str] {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: required field checks
-// ---------------------------------------------------------------------------
-
 fn check_required(fields: &Fields, required: &[&str]) -> Result<(), CreateError> {
     for &name in required {
         if !fields.contains_key(name) {
@@ -317,10 +301,8 @@ fn check_required_for(
         GtfsTarget::Attributions => GtfsFiles::Attributions,
     };
 
-    // Unconditional required fields
     check_required(fields, gtfs_file.required_columns())?;
 
-    // Conditional requirements
     match target {
         GtfsTarget::Stops => check_stops_conditional(fields)?,
         GtfsTarget::Trips => check_trips_conditional(feed, fields)?,
@@ -349,7 +331,6 @@ fn check_stops_conditional(fields: &Fields) -> Result<(), CreateError> {
         }
     }
 
-    // parent_station forbidden for Station
     if loc == LocationType::Station && fields.contains_key("parent_station") {
         return Err(CreateError::ForbiddenField {
             field: "parent_station".to_string(),
@@ -380,12 +361,8 @@ fn check_stop_times_conditional(fields: &Fields) -> Result<(), CreateError> {
     Ok(())
 }
 
-// ---------------------------------------------------------------------------
-// Internal: HashSet-based lookup index for O(1) PK/FK validation
-// ---------------------------------------------------------------------------
-
-/// Pre-built lookup sets for the target being created and its FK dependencies.
-/// Only the sets needed for the given target are populated.
+/// Pre-built lookup sets for PK/FK validation.
+/// Only the sets relevant to the target being created are populated.
 struct FeedIndex<'a> {
     // Simple PK sets (used for both PK uniqueness and FK lookups)
     agency_ids: HashSet<&'a str>,
@@ -554,10 +531,6 @@ impl<'a> FeedIndex<'a> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: primary key validation (O(1) lookups)
-// ---------------------------------------------------------------------------
-
 fn validate_primary_key(
     idx: &FeedIndex,
     target: GtfsTarget,
@@ -666,10 +639,6 @@ fn pk_err(field: &str, value: &str, file: &str) -> CreateError {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: foreign key validation (O(1) lookups)
-// ---------------------------------------------------------------------------
-
 fn validate_foreign_keys(
     idx: &FeedIndex,
     target: GtfsTarget,
@@ -752,10 +721,6 @@ fn fk_check(
     Ok(())
 }
 
-// ---------------------------------------------------------------------------
-// Internal: record builders
-// ---------------------------------------------------------------------------
-
 fn build_record(target: GtfsTarget, fields: &Fields) -> Result<CreatedRecord, CreateError> {
     match target {
         GtfsTarget::Agency => build_agency(fields).map(CreatedRecord::Agency),
@@ -779,10 +744,6 @@ fn build_record(target: GtfsTarget, fields: &Fields) -> Result<CreatedRecord, Cr
         GtfsTarget::Attributions => build_attribution(fields).map(CreatedRecord::Attribution),
     }
 }
-
-// ---------------------------------------------------------------------------
-// Parsing helpers
-// ---------------------------------------------------------------------------
 
 fn req_str(fields: &Fields, name: &str) -> String {
     fields.get(name).unwrap_or(&"").to_string()
@@ -883,10 +844,6 @@ fn opt_enum<T>(
 fn req_bool(fields: &Fields, name: &str) -> bool {
     fields.get(name).is_some_and(|v| *v == "1")
 }
-
-// ---------------------------------------------------------------------------
-// 17 record builders
-// ---------------------------------------------------------------------------
 
 #[allow(clippy::unnecessary_wraps)]
 fn build_agency(f: &Fields) -> Result<Agency, CreateError> {

@@ -18,9 +18,6 @@ pub trait Filterable {
     fn valid_fields() -> &'static [&'static str];
 }
 
-// ---------------------------------------------------------------------------
-// Helper: convert Option<T: Display> to Option<String>
-// ---------------------------------------------------------------------------
 fn opt_display<T: std::fmt::Display>(opt: Option<&T>) -> Option<String> {
     opt.map(std::string::ToString::to_string)
 }
@@ -29,18 +26,13 @@ fn bool_str(val: bool) -> String {
     if val { "1".into() } else { "0".into() }
 }
 
-// ---------------------------------------------------------------------------
-// Macro for enum → i32 → String conversion on Option<Enum>
-// ---------------------------------------------------------------------------
 macro_rules! opt_enum_i32 {
     ($opt:expr) => {
         $opt.as_ref().map(|e| (*e as i32).to_string())
     };
 }
 
-// ===========================================================================
 // Agency
-// ===========================================================================
 impl Filterable for Agency {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -70,9 +62,7 @@ impl Filterable for Agency {
     }
 }
 
-// ===========================================================================
 // Stop
-// ===========================================================================
 impl Filterable for Stop {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -116,9 +106,7 @@ impl Filterable for Stop {
     }
 }
 
-// ===========================================================================
 // Route
-// ===========================================================================
 impl Filterable for Route {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -158,9 +146,7 @@ impl Filterable for Route {
     }
 }
 
-// ===========================================================================
 // Trip
-// ===========================================================================
 impl Filterable for Trip {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -194,9 +180,7 @@ impl Filterable for Trip {
     }
 }
 
-// ===========================================================================
 // StopTime
-// ===========================================================================
 impl Filterable for StopTime {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -234,9 +218,7 @@ impl Filterable for StopTime {
     }
 }
 
-// ===========================================================================
 // Calendar
-// ===========================================================================
 impl Filterable for Calendar {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -270,9 +252,7 @@ impl Filterable for Calendar {
     }
 }
 
-// ===========================================================================
 // CalendarDate
-// ===========================================================================
 impl Filterable for CalendarDate {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -288,9 +268,7 @@ impl Filterable for CalendarDate {
     }
 }
 
-// ===========================================================================
 // Shape
-// ===========================================================================
 impl Filterable for Shape {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -314,9 +292,7 @@ impl Filterable for Shape {
     }
 }
 
-// ===========================================================================
 // Frequency
-// ===========================================================================
 impl Filterable for Frequency {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -340,9 +316,7 @@ impl Filterable for Frequency {
     }
 }
 
-// ===========================================================================
 // Transfer
-// ===========================================================================
 impl Filterable for Transfer {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -372,9 +346,7 @@ impl Filterable for Transfer {
     }
 }
 
-// ===========================================================================
 // Pathway
-// ===========================================================================
 impl Filterable for Pathway {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -412,9 +384,7 @@ impl Filterable for Pathway {
     }
 }
 
-// ===========================================================================
 // Level
-// ===========================================================================
 impl Filterable for Level {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -430,9 +400,7 @@ impl Filterable for Level {
     }
 }
 
-// ===========================================================================
 // FeedInfo
-// ===========================================================================
 impl Filterable for FeedInfo {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -464,9 +432,7 @@ impl Filterable for FeedInfo {
     }
 }
 
-// ===========================================================================
 // FareAttribute
-// ===========================================================================
 impl Filterable for FareAttribute {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -494,9 +460,7 @@ impl Filterable for FareAttribute {
     }
 }
 
-// ===========================================================================
 // FareRule
-// ===========================================================================
 impl Filterable for FareRule {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -520,9 +484,7 @@ impl Filterable for FareRule {
     }
 }
 
-// ===========================================================================
 // Translation
-// ===========================================================================
 impl Filterable for Translation {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {
@@ -550,9 +512,7 @@ impl Filterable for Translation {
     }
 }
 
-// ===========================================================================
 // Attribution
-// ===========================================================================
 impl Filterable for Attribution {
     fn field_value(&self, field: &str) -> Option<String> {
         match field {

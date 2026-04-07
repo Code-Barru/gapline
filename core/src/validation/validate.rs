@@ -32,7 +32,8 @@ static SPINNER_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 ///
 /// Returns [`ParserError`] if the feed cannot be opened.
 pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, ParserError> {
-    let source = FeedLoader::open(path)?;
+    let mut source = FeedLoader::open(path)?;
+    source.preload()?;
     let quiet = config.quiet;
     let engine = ValidationEngine::new(config);
 

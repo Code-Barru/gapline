@@ -13,39 +13,39 @@ use headway_core::validation::file_structure::{
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Builds a `FeedSource::Zip` with the given known GTFS files.
+/// Builds a `FeedSource::InMemory` with the given known GTFS files.
 /// Each file gets dummy content so `read_file` works.
 fn zip_source(files: &[GtfsFiles]) -> FeedSource {
     let map: HashMap<GtfsFiles, Vec<u8>> = files
         .iter()
         .map(|f| (*f, b"header\ndata".to_vec()))
         .collect();
-    FeedSource::Zip {
+    FeedSource::InMemory {
         files: map,
         raw_entry_names: files.iter().map(std::string::ToString::to_string).collect(),
     }
 }
 
-/// Builds a `FeedSource::Zip` with explicit content per file.
+/// Builds a `FeedSource::InMemory` with explicit content per file.
 fn zip_source_with_content(entries: &[(GtfsFiles, &[u8])]) -> FeedSource {
     let map: HashMap<GtfsFiles, Vec<u8>> = entries
         .iter()
         .map(|(f, content)| (*f, content.to_vec()))
         .collect();
     let raw: Vec<String> = entries.iter().map(|(f, _)| f.to_string()).collect();
-    FeedSource::Zip {
+    FeedSource::InMemory {
         files: map,
         raw_entry_names: raw,
     }
 }
 
-/// Builds a `FeedSource::Zip` with explicit content AND custom raw entry names.
+/// Builds a `FeedSource::InMemory` with explicit content AND custom raw entry names.
 fn zip_source_with_raw(entries: &[(GtfsFiles, &[u8])], raw_entry_names: Vec<String>) -> FeedSource {
     let map: HashMap<GtfsFiles, Vec<u8>> = entries
         .iter()
         .map(|(f, content)| (*f, content.to_vec()))
         .collect();
-    FeedSource::Zip {
+    FeedSource::InMemory {
         files: map,
         raw_entry_names,
     }

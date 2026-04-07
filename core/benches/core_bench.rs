@@ -67,10 +67,6 @@ fn create_valid_feed() -> (tempfile::TempDir, PathBuf) {
     (dir, zip_path)
 }
 
-// ---------------------------------------------------------------------------
-// Benchmarks
-// ---------------------------------------------------------------------------
-
 fn bench_feed_loading(c: &mut Criterion) {
     let (_dir, zip_path) = create_valid_feed();
 

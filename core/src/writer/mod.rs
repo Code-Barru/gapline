@@ -97,12 +97,7 @@ pub fn write_feed(feed: &GtfsFeed, path: &Path) -> Result<(), WriteError> {
     Ok(())
 }
 
-/// Writes a modified feed, re-serializing only the changed target file.
-///
-/// - **ZIP source**: copies all unmodified files from the source as raw bytes,
-///   then writes the modified target from the in-memory feed. O(copy) instead of
-///   O(parse + serialize) for unchanged files.
-/// - **Directory source**: writes only the modified `.txt` file into the directory.
+/// Writes a modified feed back to disk, re-serializing only the changed target.
 ///
 /// # Errors
 ///
@@ -125,36 +120,45 @@ pub fn write_modified(
             let file_path = dir.join(target.file_name());
             write_target_to_file(feed, target, &file_path)
         }
-        FeedSource::Zip { files, .. } => {
+        FeedSource::InMemory { .. } => write_feed(feed, output),
+        FeedSource::Zip { path: src_path, .. } => {
             let changed_gtfs = target_to_gtfs_file(target);
-            let out = File::create(output)?;
+
+            // When overwriting the source ZIP, write to a temp file first then
+            // rename atomically. Otherwise File::create would truncate the
+            // source before copy_zip_entries_except can read from it.
+            let same_file = output == src_path;
+            let actual_output = if same_file {
+                let mut tmp = output.to_path_buf();
+                tmp.set_extension("zip.tmp");
+                tmp
+            } else {
+                output.to_path_buf()
+            };
+
+            let out = File::create(&actual_output)?;
             let mut zip = ZipWriter::new(out);
             let opts = SimpleFileOptions::default();
 
-            // Copy unmodified files as raw bytes (fast — no re-parsing)
-            for (&gtfs_file, bytes) in files {
-                if gtfs_file == changed_gtfs {
-                    continue;
-                }
-                let name = gtfs_file.to_string();
-                zip.start_file(&name, opts)?;
-                zip.write_all(bytes)?;
-            }
+            // Copy unmodified files from the source ZIP (decompresses on demand)
+            source
+                .copy_zip_entries_except(changed_gtfs, &mut zip, opts)
+                .map_err(|e| WriteError::Io(std::io::Error::other(e.to_string())))?;
 
             // Write the modified target from the in-memory feed
             write_target_to_zip(feed, target, &mut zip, opts)?;
 
             zip.finish()?;
+
+            if same_file {
+                std::fs::rename(&actual_output, output)?;
+            }
+
             Ok(())
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: write a single target's records
-// ---------------------------------------------------------------------------
-
-/// Writes one target file to a standalone `.txt` file on disk.
 fn write_target_to_file(
     feed: &GtfsFeed,
     target: GtfsTarget,
@@ -189,7 +193,6 @@ fn write_target_to_file(
     }
 }
 
-/// Writes one target file into an open ZIP archive.
 fn write_target_to_zip(
     feed: &GtfsFeed,
     target: GtfsTarget,
@@ -225,20 +228,12 @@ fn write_target_to_zip(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal: generic CSV serialization
-// ---------------------------------------------------------------------------
-
-/// Serializes records as CSV into any writer (ZIP entry, file, buffer).
 fn serialize_records<T: Filterable>(records: &[T], w: &mut impl Write) -> Result<(), WriteError> {
     let headers = T::valid_fields();
-
-    // Header
     let header_line = headers.join(",");
     w.write_all(header_line.as_bytes())?;
     w.write_all(b"\n")?;
 
-    // Rows
     for record in records {
         let mut first = true;
         for h in headers {
@@ -261,8 +256,6 @@ fn serialize_records<T: Filterable>(records: &[T], w: &mut impl Write) -> Result
     Ok(())
 }
 
-/// Writes a single GTFS file (header + rows) into the ZIP archive.
-/// Used by [`write_feed`] for full-feed writes.
 fn write_records_to_zip<T: Filterable>(
     records: &[T],
     file_name: &str,

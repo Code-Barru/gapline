@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::io::Read;
 use std::path::Path;
 
 use crate::models::GtfsFeed;
@@ -318,6 +317,11 @@ impl FeedLoader {
         (feed, all_errors)
     }
 
+    /// Opens a ZIP file and indexes its entries without decompressing any content.
+    ///
+    /// The resulting [`FeedSource::Zip`] stores only the file path and an index
+    /// mapping each recognized [`GtfsFiles`] variant to its entry name inside the
+    /// archive. Actual decompression happens lazily via [`FeedSource::read_file`].
     fn open_zip(path: &Path) -> Result<FeedSource, ParserError> {
         let has_zip_extension = path
             .extension()
@@ -328,44 +332,34 @@ impl FeedLoader {
         }
 
         let file = std::fs::File::open(path)?;
-        let mut archive = zip::ZipArchive::new(file)?;
+        let archive = zip::ZipArchive::new(file)?;
 
         let raw_names: Vec<String> = (0..archive.len())
             .filter_map(|i| {
-                let entry = archive.by_index(i).ok()?;
-                if entry.is_dir() {
+                let name = archive.name_for_index(i)?;
+                // Skip directory entries
+                if name.ends_with('/') {
                     None
                 } else {
-                    Some(entry.name().to_owned())
+                    Some(name.to_owned())
                 }
             })
             .collect();
 
         let prefix = Self::detect_common_prefix(&raw_names);
 
-        let mut files = HashMap::new();
-        for i in 0..archive.len() {
-            let mut entry = archive.by_index(i)?;
-            if entry.is_dir() {
-                continue;
+        // Build index: GtfsFiles → entry name (no decompression)
+        let mut index = HashMap::new();
+        for raw_name in &raw_names {
+            let normalized = raw_name.strip_prefix(&prefix).unwrap_or(raw_name);
+            if let Ok(gtfs_file) = GtfsFiles::try_from(normalized) {
+                index.insert(gtfs_file, raw_name.clone());
             }
-
-            let raw_name = entry.name().to_owned();
-            let normalized = raw_name.strip_prefix(&prefix).unwrap_or(&raw_name);
-
-            let Ok(gtfs_file) = GtfsFiles::try_from(normalized) else {
-                continue;
-            };
-
-            let capacity = usize::try_from(entry.size()).unwrap_or(0);
-            let mut buf = Vec::with_capacity(capacity);
-            entry.read_to_end(&mut buf)?;
-
-            files.insert(gtfs_file, buf);
         }
 
         Ok(FeedSource::Zip {
-            files,
+            path: path.to_path_buf(),
+            index,
             raw_entry_names: raw_names,
         })
     }

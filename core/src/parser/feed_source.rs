@@ -1,8 +1,12 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
-use std::io::{BufRead, BufReader, Cursor, Read};
-use std::path::PathBuf;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Cursor, Read, Write};
+use std::path::{Path, PathBuf};
+
+use zip::ZipWriter;
+use zip::write::SimpleFileOptions;
 
 use crate::parser::error::ParserError;
 
@@ -16,14 +20,28 @@ use crate::parser::error::ParserError;
 /// However, **all** original entry names (including unknown files and subdirectory
 /// prefixes) are preserved in `raw_entry_names` for structural validation rules
 /// (e.g. `unknown_file`, `invalid_input_files_in_subfolder`).
+///
+/// The `Zip` variant stores only metadata (file path + entry index). File contents
+/// are decompressed on demand via [`read_file`](Self::read_file), so opening a ZIP
+/// is nearly instant regardless of its size.
 #[derive(Debug)]
 pub enum FeedSource {
-    /// A feed loaded from a ZIP archive. All file contents are held in memory.
+    /// A feed backed by a ZIP archive on disk. Contents are read on demand.
     Zip {
-        /// Map from GTFS file type to raw bytes.
-        files: HashMap<GtfsFiles, Vec<u8>>,
+        /// Path to the `.zip` file.
+        path: PathBuf,
+        /// Maps each recognized GTFS file to its entry name inside the archive.
+        index: HashMap<GtfsFiles, String>,
         /// Original entry names from the archive (before prefix normalization,
         /// including unknown files, excluding directory entries).
+        raw_entry_names: Vec<String>,
+    },
+    /// An in-memory feed for testing. Behaves like a ZIP but needs no file on disk.
+    #[doc(hidden)]
+    InMemory {
+        /// File contents keyed by GTFS file type.
+        files: HashMap<GtfsFiles, Vec<u8>>,
+        /// Raw entry names for structural validation.
         raw_entry_names: Vec<String>,
     },
     /// A feed loaded from a directory on disk.
@@ -46,7 +64,8 @@ impl FeedSource {
     #[must_use]
     pub fn file_names(&self) -> Vec<GtfsFiles> {
         match self {
-            FeedSource::Zip { files, .. } => files.keys().copied().collect(),
+            FeedSource::Zip { index, .. } => index.keys().copied().collect(),
+            FeedSource::InMemory { files, .. } => files.keys().copied().collect(),
             FeedSource::Directory { file_names, .. } => file_names.clone(),
         }
     }
@@ -66,6 +85,9 @@ impl FeedSource {
             FeedSource::Zip {
                 raw_entry_names, ..
             }
+            | FeedSource::InMemory {
+                raw_entry_names, ..
+            }
             | FeedSource::Directory {
                 raw_entry_names, ..
             } => raw_entry_names,
@@ -74,17 +96,24 @@ impl FeedSource {
 
     /// Returns a buffered reader for the given GTFS file within the feed.
     ///
+    /// For ZIP feeds the entry is decompressed on demand — only the requested
+    /// file is read from the archive.
+    ///
     /// # Errors
     ///
     /// Returns [`ParserError::GtfsFileNotFound`] if the file is not present in the feed.
-    /// Returns [`ParserError::Io`] if the file cannot be read from disk (directory feeds).
+    /// Returns [`ParserError::Io`] if the file cannot be read from disk.
     pub fn read_file(&self, name: GtfsFiles) -> Result<Box<dyn BufRead + '_>, ParserError> {
         match self {
-            FeedSource::Zip { files, .. } => {
+            FeedSource::Zip { path, index, .. } => {
+                let bytes = read_zip_entry(path, index, name)?;
+                Ok(Box::new(BufReader::new(Cursor::new(bytes))))
+            }
+            FeedSource::InMemory { files, .. } => {
                 let bytes = files
                     .get(&name)
                     .ok_or(ParserError::GtfsFileNotFound(name))?;
-                Ok(Box::new(BufReader::new(Cursor::new(bytes))))
+                Ok(Box::new(BufReader::new(Cursor::new(bytes.clone()))))
             }
             FeedSource::Directory {
                 path, file_names, ..
@@ -92,7 +121,7 @@ impl FeedSource {
                 if !file_names.contains(&name) {
                     return Err(ParserError::GtfsFileNotFound(name));
                 }
-                let file = std::fs::File::open(path.join(name.to_string()))?;
+                let file = File::open(path.join(name.to_string()))?;
                 Ok(Box::new(BufReader::new(file)))
             }
         }
@@ -100,16 +129,17 @@ impl FeedSource {
 
     /// Returns the raw bytes for the given GTFS file.
     ///
-    /// For ZIP feeds this is zero-copy (`Cow::Borrowed`).
-    /// For directory feeds the file is read into memory (`Cow::Owned`).
-    ///
     /// # Errors
     ///
     /// Returns [`ParserError::GtfsFileNotFound`] if the file is not present.
     /// Returns [`ParserError::Io`] if the file cannot be read from disk.
     pub fn read_file_bytes(&self, name: GtfsFiles) -> Result<Cow<'_, [u8]>, ParserError> {
         match self {
-            FeedSource::Zip { files, .. } => {
+            FeedSource::Zip { path, index, .. } => {
+                let bytes = read_zip_entry(path, index, name)?;
+                Ok(Cow::Owned(bytes))
+            }
+            FeedSource::InMemory { files, .. } => {
                 let bytes = files
                     .get(&name)
                     .ok_or(ParserError::GtfsFileNotFound(name))?;
@@ -122,11 +152,113 @@ impl FeedSource {
                     return Err(ParserError::GtfsFileNotFound(name));
                 }
                 let mut buf = Vec::new();
-                std::fs::File::open(path.join(name.to_string()))?.read_to_end(&mut buf)?;
+                File::open(path.join(name.to_string()))?.read_to_end(&mut buf)?;
                 Ok(Cow::Owned(buf))
             }
         }
     }
+
+    /// Copies all ZIP entries except `exclude` into the given ZIP writer.
+    ///
+    /// Unmodified files are decompressed from the source archive and written
+    /// into the output archive. This avoids re-serializing records that haven't
+    /// changed.
+    ///
+    /// No-op for directory sources.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParserError`] on I/O or ZIP failures.
+    pub fn copy_zip_entries_except(
+        &self,
+        exclude: GtfsFiles,
+        writer: &mut ZipWriter<File>,
+        opts: SimpleFileOptions,
+    ) -> Result<(), ParserError> {
+        let FeedSource::Zip { path, index, .. } = self else {
+            return Ok(());
+        };
+
+        let file = File::open(path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+
+        for (&gtfs_file, entry_name) in index {
+            if gtfs_file == exclude {
+                continue;
+            }
+            let mut entry = archive.by_name(entry_name)?;
+            let capacity = usize::try_from(entry.size()).unwrap_or(0);
+            let mut buf = Vec::with_capacity(capacity);
+            entry.read_to_end(&mut buf)?;
+
+            writer.start_file(gtfs_file.to_string(), opts)?;
+            writer.write_all(&buf)?;
+        }
+
+        Ok(())
+    }
+
+    /// Loads all ZIP entries into memory in a single pass.
+    ///
+    /// Converts a `Zip` source into `InMemory` so that subsequent parallel
+    /// `read_file` calls don't each re-open the archive. This is the fast path
+    /// for commands that need every file (e.g. `validate`, `read`).
+    ///
+    /// No-op for `Directory` and `InMemory` variants.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParserError`] on I/O or ZIP failures.
+    pub fn preload(&mut self) -> Result<(), ParserError> {
+        // Only act on Zip; Directory and InMemory are already efficient.
+        let FeedSource::Zip {
+            path,
+            index,
+            raw_entry_names,
+        } = self
+        else {
+            return Ok(());
+        };
+
+        let file = File::open(&*path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+
+        let mut files = HashMap::with_capacity(index.len());
+        for (&gtfs_file, entry_name) in index.iter() {
+            let mut entry = archive.by_name(entry_name)?;
+            let capacity = usize::try_from(entry.size()).unwrap_or(0);
+            let mut buf = Vec::with_capacity(capacity);
+            entry.read_to_end(&mut buf)?;
+            files.insert(gtfs_file, buf);
+        }
+
+        *self = FeedSource::InMemory {
+            files,
+            raw_entry_names: std::mem::take(raw_entry_names),
+        };
+
+        Ok(())
+    }
+}
+
+/// Decompresses a single entry from a ZIP archive.
+fn read_zip_entry(
+    path: &Path,
+    index: &HashMap<GtfsFiles, String>,
+    name: GtfsFiles,
+) -> Result<Vec<u8>, ParserError> {
+    let entry_name = index
+        .get(&name)
+        .ok_or(ParserError::GtfsFileNotFound(name))?;
+
+    let file = File::open(path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut entry = archive.by_name(entry_name)?;
+
+    let capacity = usize::try_from(entry.size()).unwrap_or(0);
+    let mut buf = Vec::with_capacity(capacity);
+    entry.read_to_end(&mut buf)?;
+    Ok(buf)
 }
 
 /// Known GTFS Schedule file types.

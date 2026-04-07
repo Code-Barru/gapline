@@ -17,7 +17,7 @@ use headway_core::validation::{Severity, StructuralValidationRule};
 
 fn zip_source(files: HashMap<GtfsFiles, Vec<u8>>) -> FeedSource {
     let raw_entry_names = files.keys().map(std::string::ToString::to_string).collect();
-    FeedSource::Zip {
+    FeedSource::InMemory {
         files,
         raw_entry_names,
     }
@@ -27,7 +27,7 @@ fn zip_source_with_raw(
     files: HashMap<GtfsFiles, Vec<u8>>,
     raw_entry_names: Vec<String>,
 ) -> FeedSource {
-    FeedSource::Zip {
+    FeedSource::InMemory {
         files,
         raw_entry_names,
     }
