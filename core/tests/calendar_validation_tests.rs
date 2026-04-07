@@ -1,5 +1,7 @@
 //! Tests for section 7 calendar validation rules (7.5 and 7.6).
 
+use std::sync::Arc;
+
 use chrono::NaiveDate;
 
 use headway_core::models::*;
@@ -7,6 +9,7 @@ use headway_core::validation::ValidationRule;
 use headway_core::validation::schedule_time_validation::calendar_dates_coherence::CalendarDatesCoherenceRule;
 use headway_core::validation::schedule_time_validation::calendar_ranges::CalendarRangesRule;
 use headway_core::validation::schedule_time_validation::feed_coverage::FeedCoverageRule;
+use headway_core::validation::schedule_time_validation::service_dates::ServiceDateCache;
 use headway_core::validation::schedule_time_validation::trip_activity::TripActivityRule;
 
 // ---------------------------------------------------------------------------
@@ -400,7 +403,7 @@ fn test_14_low_trip_activity() {
         trips: vec![make_trip("T1", "S1")],
         ..Default::default()
     };
-    let rule = TripActivityRule::new(7);
+    let rule = TripActivityRule::new(7, Arc::new(ServiceDateCache::new()));
     let errors = rule.validate(&feed);
     assert_eq!(
         errors
@@ -492,7 +495,7 @@ fn trip_activity_includes_exception_additions() {
         trips: vec![make_trip("T1", "S1")],
         ..Default::default()
     };
-    let rule = TripActivityRule::new(7);
+    let rule = TripActivityRule::new(7, Arc::new(ServiceDateCache::new()));
     let errors = rule.validate(&feed);
     assert!(errors.iter().all(|e| e.rule_id != "low_trip_activity"));
 }
@@ -515,7 +518,7 @@ fn trip_activity_respects_exception_removals() {
         trips: vec![make_trip("T1", "S1")],
         ..Default::default()
     };
-    let rule = TripActivityRule::new(7);
+    let rule = TripActivityRule::new(7, Arc::new(ServiceDateCache::new()));
     let errors = rule.validate(&feed);
     assert_eq!(
         errors

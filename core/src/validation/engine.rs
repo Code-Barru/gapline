@@ -93,6 +93,8 @@ impl ValidationEngine {
             max_stop_to_shape_distance_m: config.max_stop_to_shape_distance_m,
             min_shape_point_distance_m: config.min_shape_point_distance_m,
             shape_dist_incoherence_ratio: config.shape_dist_incoherence_ratio,
+            min_distance_from_origin_m: config.min_distance_from_origin_m,
+            min_distance_from_poles_m: config.min_distance_from_poles_m,
         };
         let calendar_thresholds = crate::validation::schedule_time_validation::CalendarThresholds {
             min_feed_coverage_days: config.min_feed_coverage_days,
@@ -112,6 +114,9 @@ impl ValidationEngine {
             ferry_kmh: config.speed_limit_ferry_kmh,
             default_kmh: config.speed_limit_default_kmh,
         };
+        let service_cache = Arc::new(
+            crate::validation::schedule_time_validation::service_dates::ServiceDateCache::new(),
+        );
 
         // Rules that remain as individual StructuralValidationRule instances.
         // The 6 content-scanning rules (encoding, delimiter, quoting, content,
@@ -152,6 +157,7 @@ impl ValidationEngine {
             calendar_thresholds,
             transfer_thresholds,
             speed_thresholds,
+            service_cache,
         );
         engine
     }

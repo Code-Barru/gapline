@@ -70,6 +70,13 @@ pub struct Config {
     /// Default maximum speed in km/h for route types without a specific
     /// limit. Defaults to `150.0`.
     pub speed_limit_default_kmh: f64,
+    /// Minimum distance in meters from the geographic origin (0, 0) for a
+    /// stop to avoid a `coordinates_near_origin` warning. Defaults to `1000.0`.
+    pub min_distance_from_origin_m: f64,
+    /// Minimum distance in meters from the geographic poles (latitude ±90°)
+    /// for a stop to avoid a `coordinates_near_pole` warning. Defaults to
+    /// `1000.0`.
+    pub min_distance_from_poles_m: f64,
 }
 
 impl Default for Config {
@@ -93,6 +100,8 @@ impl Default for Config {
             speed_limit_bus_kmh: 150.0,
             speed_limit_ferry_kmh: 150.0,
             speed_limit_default_kmh: 150.0,
+            min_distance_from_origin_m: 1000.0,
+            min_distance_from_poles_m: 1000.0,
         }
     }
 }

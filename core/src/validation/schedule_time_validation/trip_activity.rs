@@ -1,16 +1,16 @@
 //! Trip activity validation (section 7.6).
 //!
-//! Computes the number of active days for each service (combining
-//! `calendar.txt` weekday patterns within the date range with
-//! `calendar_dates.txt` exceptions) and flags trips whose service yields
-//! fewer active days than the configured threshold with `low_trip_activity`.
+//! Flags trips whose service yields fewer active days than the configured
+//! threshold with `low_trip_activity`. Active-day computation is delegated
+//! to the shared [`ServiceDateCache`].
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
+use std::sync::Arc;
 
-use chrono::{Datelike, Duration, Weekday};
-
-use crate::models::{Calendar, ExceptionType, GtfsDate, GtfsFeed};
+use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
+
+use super::service_dates::ServiceDateCache;
 
 const FILE: &str = "trips.txt";
 const SECTION: &str = "7";
@@ -19,12 +19,16 @@ const SECTION: &str = "7";
 /// active days.
 pub struct TripActivityRule {
     min_active_days: u32,
+    cache: Arc<ServiceDateCache>,
 }
 
 impl TripActivityRule {
     #[must_use]
-    pub const fn new(min_active_days: u32) -> Self {
-        Self { min_active_days }
+    pub fn new(min_active_days: u32, cache: Arc<ServiceDateCache>) -> Self {
+        Self {
+            min_active_days,
+            cache,
+        }
     }
 }
 
@@ -42,14 +46,14 @@ impl ValidationRule for TripActivityRule {
     }
 
     fn validate(&self, feed: &GtfsFeed) -> Vec<ValidationError> {
-        let active_days = compute_active_days(feed);
+        let active_dates = self.cache.get(feed);
         let min_active = self.min_active_days as usize;
         let mut errors = Vec::new();
 
         for (i, trip) in feed.trips.iter().enumerate() {
             let line = i + 2;
-            let sid = trip.service_id.as_ref();
-            let days = active_days.get(sid).copied().unwrap_or(0);
+            let sid = trip.service_id.to_string();
+            let days = active_dates.get(&sid).map_or(0, HashSet::len);
 
             if days < min_active {
                 errors.push(
@@ -68,57 +72,5 @@ impl ValidationRule for TripActivityRule {
         }
 
         errors
-    }
-}
-
-/// Computes the number of active days per `service_id`, combining
-/// `calendar.txt` weekday patterns with `calendar_dates.txt` exceptions.
-fn compute_active_days(feed: &GtfsFeed) -> HashMap<&str, usize> {
-    let mut per_service: HashMap<&str, HashSet<GtfsDate>> = HashMap::new();
-
-    for cal in &feed.calendars {
-        let sid = cal.service_id.as_ref();
-        let set = per_service.entry(sid).or_default();
-        // Guard against inverted ranges (already flagged by CalendarRangesRule).
-        if cal.start_date > cal.end_date {
-            continue;
-        }
-        let mut current = cal.start_date.0;
-        while current <= cal.end_date.0 {
-            if weekday_active(cal, current.weekday()) {
-                set.insert(GtfsDate(current));
-            }
-            current += Duration::days(1);
-        }
-    }
-
-    for cd in &feed.calendar_dates {
-        let sid = cd.service_id.as_ref();
-        let set = per_service.entry(sid).or_default();
-        match cd.exception_type {
-            ExceptionType::Added => {
-                set.insert(cd.date);
-            }
-            ExceptionType::Removed => {
-                set.remove(&cd.date);
-            }
-        }
-    }
-
-    per_service
-        .into_iter()
-        .map(|(sid, set)| (sid, set.len()))
-        .collect()
-}
-
-fn weekday_active(cal: &Calendar, wd: Weekday) -> bool {
-    match wd {
-        Weekday::Mon => cal.monday,
-        Weekday::Tue => cal.tuesday,
-        Weekday::Wed => cal.wednesday,
-        Weekday::Thu => cal.thursday,
-        Weekday::Fri => cal.friday,
-        Weekday::Sat => cal.saturday,
-        Weekday::Sun => cal.sunday,
     }
 }
