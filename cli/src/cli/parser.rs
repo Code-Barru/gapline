@@ -159,20 +159,67 @@ pub enum OutputFormat {
 }
 
 /// GTFS files that support CRUD operations.
-///
-/// The MVP covers 5 core files. Post-MVP will extend to all 14+ GTFS Schedule
-/// files (`routes`, `agency`, `shapes`, `frequencies`, `transfers`, `pathways`, `levels`,
-/// `feed_info`, `translations`, `attributions`, `fare_attributes`, `fare_rules`).
 #[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum CrudTarget {
-    /// `trips.txt` -- Trip definitions.
-    Trips,
+    /// `agency.txt` -- Transit agencies.
+    Agency,
     /// `stops.txt` -- Stop/station locations.
     Stops,
+    /// `routes.txt` -- Route definitions.
+    Routes,
+    /// `trips.txt` -- Trip definitions.
+    Trips,
     /// `stop_times.txt` -- Arrival/departure times at stops.
     StopTimes,
     /// `calendar.txt` -- Weekly service schedules.
     Calendar,
     /// `calendar_dates.txt` -- Service exceptions by date.
     CalendarDates,
+    /// `shapes.txt` -- Geographic shape points.
+    Shapes,
+    /// `frequencies.txt` -- Headway-based service.
+    Frequencies,
+    /// `transfers.txt` -- Transfer rules between stops.
+    Transfers,
+    /// `pathways.txt` -- Station pathways.
+    Pathways,
+    /// `levels.txt` -- Station levels.
+    Levels,
+    /// `feed_info.txt` -- Feed metadata.
+    FeedInfo,
+    /// `fare_attributes.txt` -- Fare definitions.
+    FareAttributes,
+    /// `fare_rules.txt` -- Fare assignment rules.
+    FareRules,
+    /// `translations.txt` -- Translated field values.
+    Translations,
+    /// `attributions.txt` -- Dataset attributions.
+    Attributions,
+}
+
+impl CrudTarget {
+    /// Converts this CLI target to the core [`GtfsTarget`](headway_core::crud::read::GtfsTarget).
+    #[must_use]
+    pub fn to_target(self) -> headway_core::crud::read::GtfsTarget {
+        use headway_core::crud::read::GtfsTarget;
+        match self {
+            Self::Agency => GtfsTarget::Agency,
+            Self::Stops => GtfsTarget::Stops,
+            Self::Routes => GtfsTarget::Routes,
+            Self::Trips => GtfsTarget::Trips,
+            Self::StopTimes => GtfsTarget::StopTimes,
+            Self::Calendar => GtfsTarget::Calendar,
+            Self::CalendarDates => GtfsTarget::CalendarDates,
+            Self::Shapes => GtfsTarget::Shapes,
+            Self::Frequencies => GtfsTarget::Frequencies,
+            Self::Transfers => GtfsTarget::Transfers,
+            Self::Pathways => GtfsTarget::Pathways,
+            Self::Levels => GtfsTarget::Levels,
+            Self::FeedInfo => GtfsTarget::FeedInfo,
+            Self::FareAttributes => GtfsTarget::FareAttributes,
+            Self::FareRules => GtfsTarget::FareRules,
+            Self::Translations => GtfsTarget::Translations,
+            Self::Attributions => GtfsTarget::Attributions,
+        }
+    }
 }

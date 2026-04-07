@@ -1,9 +1,11 @@
 use colored::{Color, Colorize};
-use serde_json::{json, to_string_pretty};
+use comfy_table::{ContentArrangement, Table};
+use serde_json::{Value, json, to_string_pretty};
 use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::Path;
 
 use crate::cli::OutputFormat;
+use headway_core::crud::read::ReadResult;
 use headway_core::validation::{Severity, ValidationReport};
 
 /// Maps a [`Severity`] to its terminal display color.
@@ -30,61 +32,10 @@ fn create_output_file(path: &Path) -> Result<std::fs::File, std::io::Error> {
 
 /// Renders a validation report in the specified output format.
 ///
-/// This function formats a [`ValidationReport`] for display or export. It supports
-/// multiple output formats (text, JSON) and can write to stdout or a file.
-///
-/// # Text Format
-///
-/// - Groups errors alphabetically by file name for easier navigation
-/// - Displays colored output when writing to a TTY (terminal)
-/// - Shows severity labels (`[ERROR]`, `[WARNING]`, `[INFO]`) with appropriate colors
-/// - Includes file location (`file.txt:42`) and field context when available
-/// - Prints a summary with error/warning/info counts and PASS/FAIL status
-///
-/// # JSON Format
-///
-/// - Produces valid, pretty-printed JSON
-/// - Contains an `errors` array with all validation findings
-/// - Includes a `summary` object with counts and `passed` boolean
-/// - Field values serialize as `null` when not present
-///
-/// # Arguments
-///
-/// * `report` - The validation report to render
-/// * `format` - Output format (Text, Json, Csv, or Xml)
-/// * `output_dest` - Optional file path. If `None`, writes to stdout
-///
-/// # Examples
-///
-/// ```no_run
-/// use headway::cli::{render_report, OutputFormat};
-/// use headway_core::validation::{ValidationReport, ValidationError, Severity};
-///
-/// let errors = vec![
-///     ValidationError::new("e1", "1", Severity::Error)
-///         .message("Invalid latitude")
-///         .file("stops.txt")
-///         .line(42),
-/// ];
-/// let report = ValidationReport::from(errors);
-///
-/// // Print to stdout with colors
-/// render_report(&report, OutputFormat::Text, None).unwrap();
-///
-/// // Write JSON to file
-/// let path = std::path::Path::new("/tmp/report.json");
-/// render_report(&report, OutputFormat::Json, Some(path)).unwrap();
-/// ```
-///
 /// # Errors
 ///
-/// Returns an error if:
-/// - The output file cannot be created (e.g., nonexistent directory, permission denied)
-/// - Writing to the output destination fails
-/// - An unsupported format (Csv or Xml) is requested
-///
-/// Error messages for file creation failures include the full path and underlying
-/// system error for easier debugging.
+/// Returns an error if the output file cannot be created, writing fails,
+/// or an unsupported format (Csv, Xml) is requested.
 pub fn render_report(
     report: &ValidationReport,
     format: OutputFormat,
@@ -225,4 +176,99 @@ fn render_json(
     writeln!(writer, "{}", to_string_pretty(&json)?)?;
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Read results rendering
+// ---------------------------------------------------------------------------
+
+/// Renders read results in the specified output format.
+///
+/// # Errors
+///
+/// Returns an error if writing to the output destination fails.
+pub fn render_read_results(
+    result: &ReadResult,
+    format: OutputFormat,
+    output_dest: Option<&Path>,
+) -> Result<(), std::io::Error> {
+    match format {
+        OutputFormat::Text => render_read_text(result, output_dest),
+        OutputFormat::Json => render_read_json(result, output_dest),
+        OutputFormat::Csv | OutputFormat::Xml => {
+            let name = match format {
+                OutputFormat::Csv => "csv",
+                _ => "xml",
+            };
+            eprintln!("Format '{name}' not yet available. Supported formats: text, json");
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unsupported format",
+            ))
+        }
+    }
+}
+
+fn render_read_text(result: &ReadResult, output_dest: Option<&Path>) -> Result<(), std::io::Error> {
+    let mut writer: Box<dyn Write> = if let Some(path) = output_dest {
+        Box::new(BufWriter::new(create_output_file(path)?))
+    } else {
+        Box::new(BufWriter::new(io::stdout()))
+    };
+
+    let count = result.rows.len();
+
+    if count == 0 {
+        writeln!(writer, "0 records found")?;
+        return writer.flush();
+    }
+
+    let mut table = Table::new();
+    table.set_content_arrangement(ContentArrangement::Dynamic);
+    table.set_header(&result.headers);
+
+    for row in &result.rows {
+        let cells: Vec<&str> = row
+            .iter()
+            .map(|cell| cell.as_deref().unwrap_or(""))
+            .collect();
+        table.add_row(cells);
+    }
+
+    writeln!(writer, "{table}")?;
+    writeln!(writer, "Found {count} records in {}", result.file_name)?;
+
+    writer.flush()
+}
+
+fn render_read_json(result: &ReadResult, output_dest: Option<&Path>) -> Result<(), std::io::Error> {
+    let records: Vec<Value> = result
+        .rows
+        .iter()
+        .map(|row| {
+            let obj: serde_json::Map<String, Value> = result
+                .headers
+                .iter()
+                .zip(row.iter())
+                .map(|(header, cell)| {
+                    let value = match cell {
+                        Some(v) => Value::String(v.clone()),
+                        None => Value::Null,
+                    };
+                    ((*header).to_owned(), value)
+                })
+                .collect();
+            Value::Object(obj)
+        })
+        .collect();
+
+    let mut writer: Box<dyn Write> = if let Some(path) = output_dest {
+        Box::new(BufWriter::new(create_output_file(path)?))
+    } else {
+        Box::new(BufWriter::new(io::stdout()))
+    };
+
+    writeln!(writer, "{}", to_string_pretty(&records)?)?;
+
+    writer.flush()
 }

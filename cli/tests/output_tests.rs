@@ -1,4 +1,5 @@
-use headway::cli::{OutputFormat, render_report};
+use headway::cli::{OutputFormat, render_read_results, render_report};
+use headway_core::crud::read::ReadResult;
 use headway_core::validation::{Severity, ValidationError, ValidationReport};
 use std::fs;
 use tempfile::NamedTempFile;
@@ -288,4 +289,101 @@ fn test_grouping_by_file() {
             "stops.txt errors should come after trips.txt errors (alphabetical)"
         );
     }
+}
+
+// ===========================================================================
+// Read results rendering
+// ===========================================================================
+
+fn sample_read_result() -> ReadResult {
+    ReadResult {
+        headers: vec!["stop_id", "stop_name", "stop_lat"],
+        rows: vec![
+            vec![
+                Some("S1".into()),
+                Some("Gare A".into()),
+                Some("48.85".into()),
+            ],
+            vec![Some("S2".into()), None, Some("48.86".into())],
+        ],
+        file_name: "stops.txt",
+    }
+}
+
+#[test]
+fn read_text_table_output() {
+    let result = sample_read_result();
+    let temp = NamedTempFile::new().unwrap();
+
+    render_read_results(&result, OutputFormat::Text, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+
+    assert!(content.contains("stop_id"));
+    assert!(content.contains("stop_name"));
+    assert!(content.contains("Gare A"));
+    assert!(content.contains("S2"));
+    assert!(content.contains("Found 2 records in stops.txt"));
+}
+
+#[test]
+fn read_text_zero_records() {
+    let result = ReadResult {
+        headers: vec!["stop_id"],
+        rows: vec![],
+        file_name: "stops.txt",
+    };
+    let temp = NamedTempFile::new().unwrap();
+
+    render_read_results(&result, OutputFormat::Text, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+
+    assert!(content.contains("0 records found"));
+    assert!(!content.contains("Found"));
+}
+
+#[test]
+fn read_json_valid_array() {
+    let result = sample_read_result();
+    let temp = NamedTempFile::new().unwrap();
+
+    render_read_results(&result, OutputFormat::Json, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+    let arr = json.as_array().unwrap();
+    assert_eq!(arr.len(), 2);
+
+    assert_eq!(arr[0]["stop_id"], "S1");
+    assert_eq!(arr[0]["stop_name"], "Gare A");
+    assert_eq!(arr[1]["stop_name"], serde_json::Value::Null);
+}
+
+#[test]
+fn read_json_empty_array() {
+    let result = ReadResult {
+        headers: vec!["stop_id"],
+        rows: vec![],
+        file_name: "stops.txt",
+    };
+    let temp = NamedTempFile::new().unwrap();
+
+    render_read_results(&result, OutputFormat::Json, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&content).unwrap();
+
+    assert_eq!(json.as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn read_file_output() {
+    let result = sample_read_result();
+    let temp = NamedTempFile::new().unwrap();
+    let path = temp.path().to_path_buf();
+
+    render_read_results(&result, OutputFormat::Json, Some(&path)).unwrap();
+
+    assert!(path.exists());
+    let content = fs::read_to_string(&path).unwrap();
+    assert!(!content.is_empty());
+    serde_json::from_str::<serde_json::Value>(&content).unwrap();
 }
