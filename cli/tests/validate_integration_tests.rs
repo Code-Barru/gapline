@@ -35,12 +35,12 @@ fn create_valid_feed() -> NamedTempFile {
         .unwrap();
 
     zip.start_file("stops.txt", opts).unwrap();
-    zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\nST1,Stop One,40.0,-74.0\n")
+    zip.write_all(b"stop_id,stop_name,stop_lat,stop_lon\nST1,Stop One,40.0,-74.0\nST2,Stop Two,40.01,-74.01\n")
         .unwrap();
 
     zip.start_file("stop_times.txt", opts).unwrap();
     zip.write_all(
-        b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,08:00:00,08:00:00,ST1,1\n",
+        b"trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,08:00:00,08:00:00,ST1,1\nT1,08:05:00,08:05:00,ST2,2\n",
     )
     .unwrap();
 

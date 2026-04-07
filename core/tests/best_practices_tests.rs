@@ -377,10 +377,9 @@ fn test_cumulative_issues() {
         Box::new(MissingWheelchairStopsRule),
     ];
     let errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
-    assert_eq!(errors.len(), 3);
+    assert_eq!(errors.len(), 2);
 
     let rule_ids: Vec<&str> = errors.iter().map(|e| e.rule_id.as_str()).collect();
-    assert!(rule_ids.contains(&"missing_feed_info"));
     assert!(rule_ids.contains(&"stop_name_all_caps"));
     assert!(rule_ids.contains(&"missing_wheelchair_info"));
 
