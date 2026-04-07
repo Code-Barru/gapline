@@ -46,6 +46,7 @@ fn progress_label(group: &str) -> &str {
         "5" => "Key & Reference Validation",
         "7" => "Semantic & Logic",
         "8" => "Best Practices",
+        "13" => "Third-Party Validators",
         _ => "Validation",
     }
 }
@@ -165,6 +166,7 @@ impl ValidationEngine {
             max_route_short_name_length,
         };
         crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
+        crate::validation::third_party::register_rules(&mut engine);
         engine
     }
 

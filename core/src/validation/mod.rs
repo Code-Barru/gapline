@@ -28,6 +28,7 @@ mod report;
 mod rules;
 pub mod schedule_time_validation;
 mod structural_rule;
+pub mod third_party;
 pub(crate) mod utils;
 mod validate;
 
