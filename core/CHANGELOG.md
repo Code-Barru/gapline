@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] - 2026-04-07
+
+### Features
+
+- feat: block id, coordinates & unused entities
+
 ## [0.8.1] - 2026-04-06
 
 ### Bug Fixes
