@@ -79,8 +79,8 @@ pub enum Commands {
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
         feed: PathBuf,
         /// Field values to set on the new record (e.g. `stop_id=NEW_01`).
-        #[arg(short, long, help = "Fields to set (e.g. stop_id=NEW_01)")]
-        set: Option<String>,
+        #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
+        set: Vec<String>,
         /// Which GTFS file to insert into.
         #[arg(
             help = "GTFS file (e.g. calendar, calendar-dates, stops, stop-times)",
@@ -90,6 +90,9 @@ pub enum Commands {
         /// Skip the interactive confirmation prompt.
         #[arg(long, help = "Skip confirm prompt")]
         confirm: bool,
+        /// Write the modified feed to this path instead of overwriting the original.
+        #[arg(short, long, value_name = "PATH", help = "Output path")]
+        output: Option<PathBuf>,
     },
     /// Update existing records in a GTFS file.
     #[command(about = "Update GTFS field in a feed")]
@@ -101,8 +104,8 @@ pub enum Commands {
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
         where_query: Option<String>,
         /// Field values to set on matched records.
-        #[arg(short, long, help = "Fields to set (e.g. stop_id=NEW_01)")]
-        set: Option<String>,
+        #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
+        set: Vec<String>,
         /// Which GTFS file to update.
         #[arg(
             help = "GTFS file (e.g. calendar, calendar-dates, stops, stop-times)",
@@ -170,10 +173,12 @@ pub enum CrudTarget {
     /// `trips.txt` -- Trip definitions.
     Trips,
     /// `stop_times.txt` -- Arrival/departure times at stops.
+    #[value(alias = "stop_times")]
     StopTimes,
     /// `calendar.txt` -- Weekly service schedules.
     Calendar,
     /// `calendar_dates.txt` -- Service exceptions by date.
+    #[value(alias = "calendar_dates")]
     CalendarDates,
     /// `shapes.txt` -- Geographic shape points.
     Shapes,
@@ -186,10 +191,13 @@ pub enum CrudTarget {
     /// `levels.txt` -- Station levels.
     Levels,
     /// `feed_info.txt` -- Feed metadata.
+    #[value(alias = "feed_info")]
     FeedInfo,
     /// `fare_attributes.txt` -- Fare definitions.
+    #[value(alias = "fare_attributes")]
     FareAttributes,
     /// `fare_rules.txt` -- Fare assignment rules.
+    #[value(alias = "fare_rules")]
     FareRules,
     /// `translations.txt` -- Translated field values.
     Translations,

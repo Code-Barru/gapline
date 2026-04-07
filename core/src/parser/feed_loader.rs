@@ -215,6 +215,109 @@ impl FeedLoader {
         (feed, all_errors)
     }
 
+    /// Loads only the specified GTFS files from a feed source.
+    ///
+    /// `loaded_files` is populated from all files present in the source (not just
+    /// the ones parsed), so that `feed.has_file("shapes.txt")` returns the correct
+    /// answer for conditional field checks.
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
+    pub fn load_only(
+        source: &FeedSource,
+        files: &HashSet<GtfsFiles>,
+    ) -> (GtfsFeed, Vec<ParseError>) {
+        let available = source.file_names();
+        let want = |f: GtfsFiles| available.contains(&f) && files.contains(&f);
+
+        macro_rules! parse_vec {
+            ($file:expr, $parser:path) => {
+                if want($file) {
+                    match source.read_file($file) {
+                        Ok(r) => $parser(r),
+                        Err(_) => (vec![], vec![]),
+                    }
+                } else {
+                    (vec![], vec![])
+                }
+            };
+        }
+
+        let agencies_r = parse_vec!(GtfsFiles::Agency, file_parsers::agency::parse);
+        let stops_r = parse_vec!(GtfsFiles::Stops, file_parsers::stops::parse);
+        let routes_r = parse_vec!(GtfsFiles::Routes, file_parsers::routes::parse);
+        let trips_r = parse_vec!(GtfsFiles::Trips, file_parsers::trips::parse);
+        let stop_times_r = parse_vec!(GtfsFiles::StopTimes, file_parsers::stop_times::parse);
+        let calendars_r = parse_vec!(GtfsFiles::Calendar, file_parsers::calendar::parse);
+        let cal_dates_r = parse_vec!(
+            GtfsFiles::CalendarDates,
+            file_parsers::calendar_dates::parse
+        );
+        let shapes_r = parse_vec!(GtfsFiles::Shapes, file_parsers::shapes::parse);
+        let freqs_r = parse_vec!(GtfsFiles::Frequencies, file_parsers::frequencies::parse);
+        let transfers_r = parse_vec!(GtfsFiles::Transfers, file_parsers::transfers::parse);
+        let pathways_r = parse_vec!(GtfsFiles::Pathways, file_parsers::pathways::parse);
+        let levels_r = parse_vec!(GtfsFiles::Levels, file_parsers::levels::parse);
+        let fare_attr_r = parse_vec!(
+            GtfsFiles::FareAttributes,
+            file_parsers::fare_attributes::parse
+        );
+        let fare_rules_r = parse_vec!(GtfsFiles::FareRules, file_parsers::fare_rules::parse);
+        let translations_r = parse_vec!(GtfsFiles::Translations, file_parsers::translations::parse);
+        let attributions_r = parse_vec!(GtfsFiles::Attributions, file_parsers::attributions::parse);
+
+        let feed_info_r = if want(GtfsFiles::FeedInfo) {
+            match source.read_file(GtfsFiles::FeedInfo) {
+                Ok(r) => file_parsers::feed_info::parse(r),
+                Err(_) => (None, 0, vec![]),
+            }
+        } else {
+            (None, 0, vec![])
+        };
+
+        let mut all_errors = Vec::new();
+
+        macro_rules! unpack {
+            ($result:expr, $errors:expr) => {{
+                let mut r = $result;
+                $errors.append(&mut r.1);
+                r.0
+            }};
+        }
+
+        let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
+        all_errors.append(&mut feed_info_errors);
+
+        // loaded_files reflects ALL files in the source, not just parsed ones
+        let loaded_files: HashSet<String> = available
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect();
+
+        let feed = GtfsFeed {
+            loaded_files,
+            agencies: unpack!(agencies_r, all_errors),
+            stops: unpack!(stops_r, all_errors),
+            routes: unpack!(routes_r, all_errors),
+            trips: unpack!(trips_r, all_errors),
+            stop_times: unpack!(stop_times_r, all_errors),
+            calendars: unpack!(calendars_r, all_errors),
+            calendar_dates: unpack!(cal_dates_r, all_errors),
+            shapes: unpack!(shapes_r, all_errors),
+            frequencies: unpack!(freqs_r, all_errors),
+            transfers: unpack!(transfers_r, all_errors),
+            pathways: unpack!(pathways_r, all_errors),
+            levels: unpack!(levels_r, all_errors),
+            feed_info,
+            feed_info_line_count,
+            fare_attributes: unpack!(fare_attr_r, all_errors),
+            fare_rules: unpack!(fare_rules_r, all_errors),
+            translations: unpack!(translations_r, all_errors),
+            attributions: unpack!(attributions_r, all_errors),
+        };
+
+        (feed, all_errors)
+    }
+
     fn open_zip(path: &Path) -> Result<FeedSource, ParserError> {
         let has_zip_extension = path
             .extension()

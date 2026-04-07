@@ -12,6 +12,7 @@
 //! - `OutputFormat` -- Supported output formats (JSON, CSV, XML, text).
 //! - `CrudTarget` -- GTFS files that support CRUD operations.
 
+pub mod commands;
 mod output;
 mod parser;
 

@@ -37,3 +37,6 @@ pub mod geo;
 
 /// CRUD operations on GTFS feeds.
 pub mod crud;
+
+/// Feed writer — serialize a [`models::GtfsFeed`] to a GTFS ZIP archive.
+pub mod writer;
