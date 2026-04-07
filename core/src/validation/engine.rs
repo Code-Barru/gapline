@@ -45,6 +45,7 @@ fn progress_label(group: &str) -> &str {
         "3" => "Field Validation",
         "5" => "Key & Reference Validation",
         "7" => "Semantic & Logic",
+        "8" => "Best Practices",
         _ => "Validation",
     }
 }
@@ -89,6 +90,7 @@ impl ValidationEngine {
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.max_rows;
         let max_trip_duration_hours = config.max_trip_duration_hours;
+        let max_route_short_name_length = config.max_route_short_name_length;
         let distance_thresholds = crate::validation::schedule_time_validation::DistanceThresholds {
             max_stop_to_shape_distance_m: config.max_stop_to_shape_distance_m,
             min_shape_point_distance_m: config.min_shape_point_distance_m,
@@ -159,6 +161,10 @@ impl ValidationEngine {
             speed_thresholds,
             service_cache,
         );
+        let naming_thresholds = crate::validation::best_practices::NamingThresholds {
+            max_route_short_name_length,
+        };
+        crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
         engine
     }
 

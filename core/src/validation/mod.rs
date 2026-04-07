@@ -15,6 +15,7 @@
 //! - `StructuralValidationRule` -- Trait for pre-parsing rules (sections 1 & 2).
 //! - `GtfsFeed` -- In-memory GTFS feed data model (see [`crate::models::GtfsFeed`]).
 
+pub mod best_practices;
 pub mod csv_formatting;
 pub mod engine;
 mod error;

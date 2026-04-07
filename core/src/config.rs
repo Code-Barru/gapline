@@ -77,6 +77,9 @@ pub struct Config {
     /// for a stop to avoid a `coordinates_near_pole` warning. Defaults to
     /// `1000.0`.
     pub min_distance_from_poles_m: f64,
+    /// Maximum allowed length for `route_short_name`. Names exceeding this
+    /// threshold produce a `route_short_name_too_long` warning. Defaults to `12`.
+    pub max_route_short_name_length: usize,
 }
 
 impl Default for Config {
@@ -102,6 +105,7 @@ impl Default for Config {
             speed_limit_default_kmh: 150.0,
             min_distance_from_origin_m: 1000.0,
             min_distance_from_poles_m: 1000.0,
+            max_route_short_name_length: 12,
         }
     }
 }
