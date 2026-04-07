@@ -34,3 +34,6 @@ pub mod integrity;
 
 /// Geodesic distance helpers.
 pub mod geo;
+
+/// CRUD operations on GTFS feeds.
+pub mod crud;
