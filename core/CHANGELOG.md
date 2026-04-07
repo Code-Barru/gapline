@@ -4,6 +4,17 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.10.0] - 2026-04-07
+
+### Features
+
+- feat: third party validation rules
+- feat: best practices validation
+
+### Bug Fixes
+
+- fix(tests): now correctly handle changes in codebase
+
 ## [0.9.0] - 2026-04-07
 
 ### Features
