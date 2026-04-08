@@ -53,7 +53,20 @@ fn main() {
             *cascade,
             output.as_deref(),
         ),
-        _ => {
+        Commands::Delete {
+            feed,
+            where_query,
+            target,
+            confirm,
+            output,
+        } => commands::run_delete(
+            feed,
+            where_query.as_ref(),
+            *target,
+            *confirm,
+            output.as_deref(),
+        ),
+        Commands::Run { .. } => {
             println!("Not implemented yet");
         }
     }

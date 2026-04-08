@@ -123,7 +123,7 @@ pub enum Commands {
         output: Option<PathBuf>,
     },
     /// Delete records from a GTFS file.
-    #[command(about = "Delete GTFS field in a feed")]
+    #[command(about = "Delete GTFS records from a feed")]
     Delete {
         /// Path to the GTFS feed.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
@@ -140,6 +140,9 @@ pub enum Commands {
         /// Skip the interactive confirmation prompt.
         #[arg(long, help = "Skip confirm prompt")]
         confirm: bool,
+        /// Write the modified feed to this path instead of overwriting the original.
+        #[arg(short, long, value_name = "PATH", help = "Output path")]
+        output: Option<PathBuf>,
     },
     /// Execute a sequence of headway commands from a `.hw` batch file.
     #[command(about = "Execute headway commands from a .hw file")]

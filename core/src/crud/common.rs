@@ -5,7 +5,9 @@ use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
 use crate::crud::query::Filterable;
+use crate::crud::query::Query;
 use crate::crud::read::GtfsTarget;
+use crate::integrity::EntityRef;
 use crate::models::{
     Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
     GtfsDate, GtfsFeed, GtfsTime, Level, Pathway, Route, Shape, Stop, StopTime, Transfer,
@@ -424,6 +426,64 @@ pub fn pk_err(field: &str, value: &str, file: &str) -> CrudError {
         field: field.to_string(),
         value: value.to_string(),
         file: file.to_string(),
+    }
+}
+
+/// A group of FK references in a single dependent file affected by a cascade.
+#[derive(Debug)]
+pub struct CascadeEntry {
+    pub dependent: GtfsTarget,
+    pub fk_fields: Vec<&'static str>,
+    pub count: usize,
+}
+
+pub fn find_matching_indices<T: Filterable>(records: &[T], query: &Query) -> Vec<usize> {
+    records
+        .iter()
+        .enumerate()
+        .filter(|(_, r)| query.matches(*r))
+        .map(|(i, _)| i)
+        .collect()
+}
+
+/// Builds an [`EntityRef`] from a simple (single-field) primary key value.
+///
+/// Returns `None` for composite-PK or PK-less targets.
+#[must_use]
+pub fn make_entity_ref(target: GtfsTarget, pk_value: &str) -> Option<EntityRef> {
+    match target {
+        GtfsTarget::Agency => Some(EntityRef::Agency(pk_value.into())),
+        GtfsTarget::Stops => Some(EntityRef::Stop(pk_value.into())),
+        GtfsTarget::Routes => Some(EntityRef::Route(pk_value.into())),
+        GtfsTarget::Trips => Some(EntityRef::Trip(pk_value.into())),
+        GtfsTarget::Calendar | GtfsTarget::CalendarDates => {
+            Some(EntityRef::Service(pk_value.into()))
+        }
+        GtfsTarget::Pathways => Some(EntityRef::Pathway(pk_value.into())),
+        GtfsTarget::Levels => Some(EntityRef::Level(pk_value.into())),
+        GtfsTarget::FareAttributes => Some(EntityRef::Fare(pk_value.into())),
+        _ => None,
+    }
+}
+
+/// Extracts the simple primary key value of a record by its index in the feed.
+///
+/// Returns `None` for composite-PK or PK-less targets.
+#[must_use]
+pub fn get_pk_value(feed: &GtfsFeed, target: GtfsTarget, idx: usize) -> Option<String> {
+    match target {
+        GtfsTarget::Agency => feed.agencies[idx]
+            .agency_id
+            .as_ref()
+            .map(|id| id.as_ref().to_string()),
+        GtfsTarget::Stops => Some(feed.stops[idx].stop_id.as_ref().to_string()),
+        GtfsTarget::Routes => Some(feed.routes[idx].route_id.as_ref().to_string()),
+        GtfsTarget::Trips => Some(feed.trips[idx].trip_id.as_ref().to_string()),
+        GtfsTarget::Calendar => Some(feed.calendars[idx].service_id.as_ref().to_string()),
+        GtfsTarget::Pathways => Some(feed.pathways[idx].pathway_id.as_ref().to_string()),
+        GtfsTarget::Levels => Some(feed.levels[idx].level_id.as_ref().to_string()),
+        GtfsTarget::FareAttributes => Some(feed.fare_attributes[idx].fare_id.as_ref().to_string()),
+        _ => None,
     }
 }
 

@@ -8,8 +8,8 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 use crate::crud::common::{
-    CrudError, FeedIndex, FieldAssignment, parse_assignments, primary_key_fields, to_field_map,
-    validate_foreign_keys,
+    CascadeEntry, CrudError, FeedIndex, FieldAssignment, find_matching_indices, get_pk_value,
+    make_entity_ref, parse_assignments, primary_key_fields, to_field_map, validate_foreign_keys,
 };
 use crate::crud::query::Filterable;
 use crate::crud::query::{Query, QueryError};
@@ -131,14 +131,6 @@ pub struct CascadePlan {
     pub entries: Vec<CascadeEntry>,
 }
 
-/// A group of FK references in a single dependent file that will be updated.
-#[derive(Debug)]
-pub struct CascadeEntry {
-    pub dependent: GtfsTarget,
-    pub fk_fields: Vec<&'static str>,
-    pub count: usize,
-}
-
 /// Result of applying an update (possibly with cascade).
 #[derive(Debug)]
 pub struct UpdateResult {
@@ -210,23 +202,6 @@ pub fn required_files(target: GtfsTarget, include_dependents: bool) -> Vec<GtfsF
     result
 }
 
-fn make_entity_ref(target: GtfsTarget, pk_value: &str) -> Option<EntityRef> {
-    match target {
-        GtfsTarget::Agency => Some(EntityRef::Agency(pk_value.into())),
-        GtfsTarget::Stops => Some(EntityRef::Stop(pk_value.into())),
-        GtfsTarget::Routes => Some(EntityRef::Route(pk_value.into())),
-        GtfsTarget::Trips => Some(EntityRef::Trip(pk_value.into())),
-        GtfsTarget::Calendar | GtfsTarget::CalendarDates => {
-            Some(EntityRef::Service(pk_value.into()))
-        }
-        GtfsTarget::Pathways => Some(EntityRef::Pathway(pk_value.into())),
-        GtfsTarget::Levels => Some(EntityRef::Level(pk_value.into())),
-        GtfsTarget::FareAttributes => Some(EntityRef::Fare(pk_value.into())),
-        // Composite or no PK — not supported for cascade
-        _ => None,
-    }
-}
-
 fn build_cascade_from_index(integrity: &IntegrityIndex, entity: &EntityRef) -> Vec<CascadeEntry> {
     let dependents = integrity.find_dependents(entity);
     if dependents.is_empty() {
@@ -258,15 +233,6 @@ fn build_cascade_from_index(integrity: &IntegrityIndex, entity: &EntityRef) -> V
             fk_fields,
             count,
         })
-        .collect()
-}
-
-fn find_matching_indices<T: Filterable>(records: &[T], query: &Query) -> Vec<usize> {
-    records
-        .iter()
-        .enumerate()
-        .filter(|(_, r)| query.matches(*r))
-        .map(|(i, _)| i)
         .collect()
 }
 
@@ -409,7 +375,7 @@ fn check_pk_constraints(
     let new_value = pk_assignments.first().map_or("", |a| a.value.as_str());
 
     for &idx in matched_indices {
-        let Some(old_pk) = get_old_pk_value(feed, target, idx) else {
+        let Some(old_pk) = get_pk_value(feed, target, idx) else {
             continue;
         };
         let Some(entity) = make_entity_ref(target, &old_pk) else {
@@ -441,24 +407,6 @@ fn check_pk_constraints(
     }
 
     Ok(None)
-}
-
-fn get_old_pk_value(feed: &GtfsFeed, target: GtfsTarget, idx: usize) -> Option<String> {
-    match target {
-        GtfsTarget::Agency => feed.agencies[idx]
-            .agency_id
-            .as_ref()
-            .map(|id| id.as_ref().to_string()),
-        GtfsTarget::Stops => Some(feed.stops[idx].stop_id.as_ref().to_string()),
-        GtfsTarget::Routes => Some(feed.routes[idx].route_id.as_ref().to_string()),
-        GtfsTarget::Trips => Some(feed.trips[idx].trip_id.as_ref().to_string()),
-        GtfsTarget::Calendar => Some(feed.calendars[idx].service_id.as_ref().to_string()),
-        GtfsTarget::Pathways => Some(feed.pathways[idx].pathway_id.as_ref().to_string()),
-        GtfsTarget::Levels => Some(feed.levels[idx].level_id.as_ref().to_string()),
-        GtfsTarget::FareAttributes => Some(feed.fare_attributes[idx].fare_id.as_ref().to_string()),
-        // Composite or no PK — not handled here
-        _ => None,
-    }
 }
 
 fn check_new_pk_unique(

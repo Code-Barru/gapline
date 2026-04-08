@@ -4,6 +4,9 @@ pub mod common;
 /// Record creation for GTFS feeds.
 pub mod create;
 
+/// Record deletion for GTFS feeds.
+pub mod delete;
+
 /// Mini query language for filtering GTFS records.
 pub mod query;
 
