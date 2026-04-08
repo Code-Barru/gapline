@@ -4,6 +4,20 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.11.0] - 2026-04-08
+
+### Features
+
+- feat: delete command
+- feat: update command
+- feat: create command
+- feat: read command
+- feat: query language parser
+
+### Bug Fixes
+
+- fix: create command processing time improve
+
 ## [0.10.0] - 2026-04-07
 
 ### Features
