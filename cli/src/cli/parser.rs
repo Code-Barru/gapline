@@ -100,11 +100,11 @@ pub enum Commands {
         /// Path to the GTFS feed.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
         feed: PathBuf,
-        /// Filter expression to select records to update.
+        /// Filter expression to select records to update (required).
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
-        where_query: Option<String>,
-        /// Field values to set on matched records.
-        #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
+        where_query: String,
+        /// Field values to set on matched records (required).
+        #[arg(short, long, num_args = 1.., required = true, help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
         set: Vec<String>,
         /// Which GTFS file to update.
         #[arg(
@@ -115,6 +115,12 @@ pub enum Commands {
         /// Skip the interactive confirmation prompt.
         #[arg(long, help = "Skip confirm prompt")]
         confirm: bool,
+        /// Cascade PK changes to referencing records in dependent files.
+        #[arg(long, help = "Cascade PK changes to dependent records")]
+        cascade: bool,
+        /// Write the modified feed to this path instead of overwriting the original.
+        #[arg(short, long, value_name = "PATH", help = "Output path")]
+        output: Option<PathBuf>,
     },
     /// Delete records from a GTFS file.
     #[command(about = "Delete GTFS field in a feed")]

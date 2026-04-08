@@ -4,7 +4,7 @@ use crate::crud::query::{Filterable, Query, QueryError};
 use crate::models::GtfsFeed;
 
 /// Identifies which GTFS file to read from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GtfsTarget {
     Agency,
     Stops,

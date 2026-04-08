@@ -3,11 +3,11 @@
 //! Provides a two-phase API: [`validate_create`] validates field assignments and
 //! builds a [`CreatePlan`], then [`apply_create`] mutates the feed.
 
-use std::collections::{HashMap, HashSet};
-
 use thiserror::Error;
 
-use crate::crud::query::Filterable;
+use crate::crud::common::{
+    self, CrudError, FeedIndex, Fields, parse_assignments, to_field_map, validate_foreign_keys,
+};
 use crate::crud::read::GtfsTarget;
 use crate::models::{
     Agency, AgencyId, Attribution, BikesAllowed, Calendar, CalendarDate, Color, ContinuousDropOff,
@@ -20,12 +20,8 @@ use crate::models::{
 };
 use crate::parser::feed_source::GtfsFiles;
 
-/// A parsed `field=value` pair from `--set`.
-#[derive(Debug, Clone)]
-pub struct FieldAssignment {
-    pub field: String,
-    pub value: String,
-}
+// Re-export so that existing callers (`use headway_core::crud::create::FieldAssignment`) keep working.
+pub use crate::crud::common::FieldAssignment;
 
 /// Errors that can occur during record creation.
 #[derive(Debug, Error)]
@@ -73,6 +69,38 @@ pub enum CreateError {
     FeedInfoAlreadyExists,
 }
 
+impl From<CrudError> for CreateError {
+    fn from(e: CrudError) -> Self {
+        match e {
+            CrudError::InvalidAssignment(s) => Self::InvalidAssignment(s),
+            CrudError::DuplicateAssignment(s) => Self::DuplicateAssignment(s),
+            CrudError::UnknownField { field, valid } => Self::UnknownField { field, valid },
+            CrudError::InvalidFieldValue {
+                field,
+                value,
+                expected,
+            } => Self::InvalidFieldValue {
+                field,
+                value,
+                expected,
+            },
+            CrudError::DuplicatePrimaryKey { field, value, file } => {
+                Self::DuplicatePrimaryKey { field, value, file }
+            }
+            CrudError::ForeignKeyViolation {
+                field,
+                value,
+                referenced_file,
+            } => Self::ForeignKeyViolation {
+                field,
+                value,
+                referenced_file,
+            },
+            CrudError::EmptyAssignments => Self::EmptyAssignments,
+        }
+    }
+}
+
 /// The validated plan ready to be applied to the feed.
 #[derive(Debug)]
 pub struct CreatePlan {
@@ -102,32 +130,6 @@ pub enum CreatedRecord {
     FareRule(FareRule),
     Translation(Translation),
     Attribution(Attribution),
-}
-
-/// Parses raw `"field=value"` strings into [`FieldAssignment`]s.
-///
-/// # Errors
-///
-/// Returns [`CreateError::InvalidAssignment`] if a string has no `=`.
-pub fn parse_assignments(raw: &[String]) -> Result<Vec<FieldAssignment>, CreateError> {
-    if raw.is_empty() {
-        return Err(CreateError::EmptyAssignments);
-    }
-
-    raw.iter()
-        .map(|s| {
-            let (field, value) = s
-                .split_once('=')
-                .ok_or_else(|| CreateError::InvalidAssignment(s.clone()))?;
-            if field.is_empty() {
-                return Err(CreateError::InvalidAssignment(s.clone()));
-            }
-            Ok(FieldAssignment {
-                field: field.to_string(),
-                value: value.to_string(),
-            })
-        })
-        .collect()
 }
 
 /// Validates field assignments and builds a [`CreatePlan`] without mutating the feed.
@@ -216,52 +218,6 @@ pub fn required_files(target: GtfsTarget) -> Vec<GtfsFiles> {
         GtfsTarget::FareRules => vec![F::FareAttributes, F::Routes],
         GtfsTarget::Translations => vec![F::Translations],
         GtfsTarget::Attributions => vec![F::Agency, F::Routes, F::Trips],
-    }
-}
-
-type Fields<'a> = HashMap<&'a str, &'a str>;
-
-fn to_field_map(
-    assignments: &[FieldAssignment],
-    target: GtfsTarget,
-) -> Result<Fields<'_>, CreateError> {
-    let valid = valid_fields_for(target);
-    let mut map = HashMap::new();
-
-    for a in assignments {
-        if !valid.contains(&a.field.as_str()) {
-            return Err(CreateError::UnknownField {
-                field: a.field.clone(),
-                valid: valid.join(", "),
-            });
-        }
-        if map.insert(a.field.as_str(), a.value.as_str()).is_some() {
-            return Err(CreateError::DuplicateAssignment(a.field.clone()));
-        }
-    }
-
-    Ok(map)
-}
-
-fn valid_fields_for(target: GtfsTarget) -> &'static [&'static str] {
-    match target {
-        GtfsTarget::Agency => Agency::valid_fields(),
-        GtfsTarget::Stops => Stop::valid_fields(),
-        GtfsTarget::Routes => Route::valid_fields(),
-        GtfsTarget::Trips => Trip::valid_fields(),
-        GtfsTarget::StopTimes => StopTime::valid_fields(),
-        GtfsTarget::Calendar => Calendar::valid_fields(),
-        GtfsTarget::CalendarDates => CalendarDate::valid_fields(),
-        GtfsTarget::Shapes => Shape::valid_fields(),
-        GtfsTarget::Frequencies => Frequency::valid_fields(),
-        GtfsTarget::Transfers => Transfer::valid_fields(),
-        GtfsTarget::Pathways => Pathway::valid_fields(),
-        GtfsTarget::Levels => Level::valid_fields(),
-        GtfsTarget::FeedInfo => FeedInfo::valid_fields(),
-        GtfsTarget::FareAttributes => FareAttribute::valid_fields(),
-        GtfsTarget::FareRules => FareRule::valid_fields(),
-        GtfsTarget::Translations => Translation::valid_fields(),
-        GtfsTarget::Attributions => Attribution::valid_fields(),
     }
 }
 
@@ -361,176 +317,6 @@ fn check_stop_times_conditional(fields: &Fields) -> Result<(), CreateError> {
     Ok(())
 }
 
-/// Pre-built lookup sets for PK/FK validation.
-/// Only the sets relevant to the target being created are populated.
-struct FeedIndex<'a> {
-    // Simple PK sets (used for both PK uniqueness and FK lookups)
-    agency_ids: HashSet<&'a str>,
-    stop_ids: HashSet<&'a str>,
-    route_ids: HashSet<&'a str>,
-    trip_ids: HashSet<&'a str>,
-    service_ids: HashSet<&'a str>, // union of calendar + calendar_dates
-    pathway_ids: HashSet<&'a str>,
-    level_ids: HashSet<&'a str>,
-    fare_ids: HashSet<&'a str>,
-    // Composite PK sets
-    stop_time_pks: HashSet<(&'a str, u32)>,
-    calendar_date_pks: HashSet<(&'a str, GtfsDate)>,
-    shape_pks: HashSet<(&'a str, u32)>,
-    frequency_pks: HashSet<(&'a str, GtfsTime)>,
-    // Special
-    has_feed_info: bool,
-}
-
-impl<'a> FeedIndex<'a> {
-    /// Builds only the index sets required for the given `target`.
-    #[allow(clippy::too_many_lines)]
-    fn build(feed: &'a GtfsFeed, target: GtfsTarget) -> Self {
-        let mut idx = Self {
-            agency_ids: HashSet::new(),
-            stop_ids: HashSet::new(),
-            route_ids: HashSet::new(),
-            trip_ids: HashSet::new(),
-            service_ids: HashSet::new(),
-            pathway_ids: HashSet::new(),
-            level_ids: HashSet::new(),
-            fare_ids: HashSet::new(),
-            stop_time_pks: HashSet::new(),
-            calendar_date_pks: HashSet::new(),
-            shape_pks: HashSet::new(),
-            frequency_pks: HashSet::new(),
-            has_feed_info: false,
-        };
-
-        match target {
-            GtfsTarget::Agency => {
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-            }
-            GtfsTarget::Stops => {
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-                idx.level_ids = feed.levels.iter().map(|l| l.level_id.as_ref()).collect();
-            }
-            GtfsTarget::Routes => {
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-            }
-            GtfsTarget::Trips => {
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .chain(feed.calendar_dates.iter().map(|cd| cd.service_id.as_ref()))
-                    .collect();
-            }
-            GtfsTarget::StopTimes => {
-                idx.stop_time_pks = feed
-                    .stop_times
-                    .iter()
-                    .map(|st| (st.trip_id.as_ref(), st.stop_sequence))
-                    .collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-            }
-            GtfsTarget::Calendar => {
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .collect();
-            }
-            GtfsTarget::CalendarDates => {
-                idx.calendar_date_pks = feed
-                    .calendar_dates
-                    .iter()
-                    .map(|cd| (cd.service_id.as_ref(), cd.date))
-                    .collect();
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .chain(feed.calendar_dates.iter().map(|cd| cd.service_id.as_ref()))
-                    .collect();
-            }
-            GtfsTarget::Shapes => {
-                idx.shape_pks = feed
-                    .shapes
-                    .iter()
-                    .map(|s| (s.shape_id.as_ref(), s.shape_pt_sequence))
-                    .collect();
-            }
-            GtfsTarget::Frequencies => {
-                idx.frequency_pks = feed
-                    .frequencies
-                    .iter()
-                    .map(|f| (f.trip_id.as_ref(), f.start_time))
-                    .collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-            }
-            GtfsTarget::Transfers => {
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-            }
-            GtfsTarget::Pathways => {
-                idx.pathway_ids = feed
-                    .pathways
-                    .iter()
-                    .map(|p| p.pathway_id.as_ref())
-                    .collect();
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-            }
-            GtfsTarget::Levels => {
-                idx.level_ids = feed.levels.iter().map(|l| l.level_id.as_ref()).collect();
-            }
-            GtfsTarget::FeedInfo => {
-                idx.has_feed_info = feed.feed_info.is_some();
-            }
-            GtfsTarget::FareAttributes => {
-                idx.fare_ids = feed
-                    .fare_attributes
-                    .iter()
-                    .map(|fa| fa.fare_id.as_ref())
-                    .collect();
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-            }
-            GtfsTarget::FareRules => {
-                idx.fare_ids = feed
-                    .fare_attributes
-                    .iter()
-                    .map(|fa| fa.fare_id.as_ref())
-                    .collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-            }
-            GtfsTarget::Translations => {}
-            GtfsTarget::Attributions => {
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-            }
-        }
-
-        idx
-    }
-}
-
 fn validate_primary_key(
     idx: &FeedIndex,
     target: GtfsTarget,
@@ -541,37 +327,45 @@ fn validate_primary_key(
             if let Some(&id) = fields.get("agency_id")
                 && idx.agency_ids.contains(id)
             {
-                return Err(pk_err("agency_id", id, "agency.txt"));
+                return Err(common::pk_err("agency_id", id, "agency.txt").into());
             }
         }
-        GtfsTarget::Stops => pk_check_simple(fields, "stop_id", &idx.stop_ids, "stops.txt")?,
-        GtfsTarget::Routes => pk_check_simple(fields, "route_id", &idx.route_ids, "routes.txt")?,
-        GtfsTarget::Trips => pk_check_simple(fields, "trip_id", &idx.trip_ids, "trips.txt")?,
+        GtfsTarget::Stops => {
+            common::pk_check_simple(fields, "stop_id", &idx.stop_ids, "stops.txt")?;
+        }
+        GtfsTarget::Routes => {
+            common::pk_check_simple(fields, "route_id", &idx.route_ids, "routes.txt")?;
+        }
+        GtfsTarget::Trips => {
+            common::pk_check_simple(fields, "trip_id", &idx.trip_ids, "trips.txt")?;
+        }
         GtfsTarget::StopTimes => {
             if let (Some(&tid), Some(&seq_s)) = (fields.get("trip_id"), fields.get("stop_sequence"))
                 && let Ok(seq) = seq_s.parse::<u32>()
                 && idx.stop_time_pks.contains(&(tid, seq))
             {
-                return Err(pk_err(
+                return Err(common::pk_err(
                     "(trip_id, stop_sequence)",
                     &format!("({tid}, {seq})"),
                     "stop_times.txt",
-                ));
+                )
+                .into());
             }
         }
         GtfsTarget::Calendar => {
-            pk_check_simple(fields, "service_id", &idx.service_ids, "calendar.txt")?;
+            common::pk_check_simple(fields, "service_id", &idx.service_ids, "calendar.txt")?;
         }
         GtfsTarget::CalendarDates => {
             if let (Some(&sid), Some(&date_s)) = (fields.get("service_id"), fields.get("date"))
                 && let Ok(date) = date_s.parse::<GtfsDate>()
                 && idx.calendar_date_pks.contains(&(sid, date))
             {
-                return Err(pk_err(
+                return Err(common::pk_err(
                     "(service_id, date)",
                     &format!("({sid}, {date_s})"),
                     "calendar_dates.txt",
-                ));
+                )
+                .into());
             }
         }
         GtfsTarget::Shapes => {
@@ -580,11 +374,12 @@ fn validate_primary_key(
                 && let Ok(seq) = seq_s.parse::<u32>()
                 && idx.shape_pks.contains(&(sid, seq))
             {
-                return Err(pk_err(
+                return Err(common::pk_err(
                     "(shape_id, shape_pt_sequence)",
                     &format!("({sid}, {seq})"),
                     "shapes.txt",
-                ));
+                )
+                .into());
             }
         }
         GtfsTarget::Frequencies => {
@@ -592,131 +387,30 @@ fn validate_primary_key(
                 && let Ok(st) = st_s.parse::<GtfsTime>()
                 && idx.frequency_pks.contains(&(tid, st))
             {
-                return Err(pk_err(
+                return Err(common::pk_err(
                     "(trip_id, start_time)",
                     &format!("({tid}, {st_s})"),
                     "frequencies.txt",
-                ));
+                )
+                .into());
             }
         }
         GtfsTarget::Pathways => {
-            pk_check_simple(fields, "pathway_id", &idx.pathway_ids, "pathways.txt")?;
+            common::pk_check_simple(fields, "pathway_id", &idx.pathway_ids, "pathways.txt")?;
         }
-        GtfsTarget::Levels => pk_check_simple(fields, "level_id", &idx.level_ids, "levels.txt")?,
+        GtfsTarget::Levels => {
+            common::pk_check_simple(fields, "level_id", &idx.level_ids, "levels.txt")?;
+        }
         GtfsTarget::FeedInfo => {
             if idx.has_feed_info {
                 return Err(CreateError::FeedInfoAlreadyExists);
             }
         }
         GtfsTarget::FareAttributes => {
-            pk_check_simple(fields, "fare_id", &idx.fare_ids, "fare_attributes.txt")?;
+            common::pk_check_simple(fields, "fare_id", &idx.fare_ids, "fare_attributes.txt")?;
         }
         // fare_rules, transfers, translations, attributions: no strict PK
         _ => {}
-    }
-    Ok(())
-}
-
-fn pk_check_simple(
-    fields: &Fields,
-    key: &str,
-    set: &HashSet<&str>,
-    file: &str,
-) -> Result<(), CreateError> {
-    if let Some(&id) = fields.get(key)
-        && set.contains(id)
-    {
-        return Err(pk_err(key, id, file));
-    }
-    Ok(())
-}
-
-fn pk_err(field: &str, value: &str, file: &str) -> CreateError {
-    CreateError::DuplicatePrimaryKey {
-        field: field.to_string(),
-        value: value.to_string(),
-        file: file.to_string(),
-    }
-}
-
-fn validate_foreign_keys(
-    idx: &FeedIndex,
-    target: GtfsTarget,
-    fields: &Fields,
-) -> Result<(), CreateError> {
-    match target {
-        GtfsTarget::Routes | GtfsTarget::FareAttributes => {
-            fk_check(fields, "agency_id", "agency.txt", &idx.agency_ids)?;
-        }
-        GtfsTarget::Trips => {
-            fk_check(fields, "route_id", "routes.txt", &idx.route_ids)?;
-            fk_check(
-                fields,
-                "service_id",
-                "calendar.txt / calendar_dates.txt",
-                &idx.service_ids,
-            )?;
-        }
-        GtfsTarget::StopTimes => {
-            fk_check(fields, "trip_id", "trips.txt", &idx.trip_ids)?;
-            fk_check(fields, "stop_id", "stops.txt", &idx.stop_ids)?;
-        }
-        GtfsTarget::Stops => {
-            fk_check(fields, "parent_station", "stops.txt", &idx.stop_ids)?;
-            fk_check(fields, "level_id", "levels.txt", &idx.level_ids)?;
-        }
-        GtfsTarget::CalendarDates => {
-            fk_check(
-                fields,
-                "service_id",
-                "calendar.txt / calendar_dates.txt",
-                &idx.service_ids,
-            )?;
-        }
-        GtfsTarget::Frequencies => {
-            fk_check(fields, "trip_id", "trips.txt", &idx.trip_ids)?;
-        }
-        GtfsTarget::Transfers => {
-            fk_check(fields, "from_stop_id", "stops.txt", &idx.stop_ids)?;
-            fk_check(fields, "to_stop_id", "stops.txt", &idx.stop_ids)?;
-            fk_check(fields, "from_route_id", "routes.txt", &idx.route_ids)?;
-            fk_check(fields, "to_route_id", "routes.txt", &idx.route_ids)?;
-            fk_check(fields, "from_trip_id", "trips.txt", &idx.trip_ids)?;
-            fk_check(fields, "to_trip_id", "trips.txt", &idx.trip_ids)?;
-        }
-        GtfsTarget::Pathways => {
-            fk_check(fields, "from_stop_id", "stops.txt", &idx.stop_ids)?;
-            fk_check(fields, "to_stop_id", "stops.txt", &idx.stop_ids)?;
-        }
-        GtfsTarget::FareRules => {
-            fk_check(fields, "fare_id", "fare_attributes.txt", &idx.fare_ids)?;
-            fk_check(fields, "route_id", "routes.txt", &idx.route_ids)?;
-        }
-        GtfsTarget::Attributions => {
-            fk_check(fields, "agency_id", "agency.txt", &idx.agency_ids)?;
-            fk_check(fields, "route_id", "routes.txt", &idx.route_ids)?;
-            fk_check(fields, "trip_id", "trips.txt", &idx.trip_ids)?;
-        }
-        _ => {}
-    }
-    Ok(())
-}
-
-/// Check that a field value (if present) exists in the given set. O(1).
-fn fk_check(
-    fields: &Fields,
-    field: &str,
-    referenced_file: &str,
-    valid: &HashSet<&str>,
-) -> Result<(), CreateError> {
-    if let Some(&val) = fields.get(field)
-        && !valid.contains(val)
-    {
-        return Err(CreateError::ForeignKeyViolation {
-            field: field.to_string(),
-            value: val.to_string(),
-            referenced_file: referenced_file.to_string(),
-        });
     }
     Ok(())
 }

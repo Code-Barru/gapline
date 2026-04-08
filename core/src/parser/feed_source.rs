@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor, Read, Write};
@@ -184,6 +184,40 @@ impl FeedSource {
 
         for (&gtfs_file, entry_name) in index {
             if gtfs_file == exclude {
+                continue;
+            }
+            let mut entry = archive.by_name(entry_name)?;
+            let capacity = usize::try_from(entry.size()).unwrap_or(0);
+            let mut buf = Vec::with_capacity(capacity);
+            entry.read_to_end(&mut buf)?;
+
+            writer.start_file(gtfs_file.to_string(), opts)?;
+            writer.write_all(&buf)?;
+        }
+
+        Ok(())
+    }
+
+    /// Copies all ZIP entries except those in `exclude` into `writer`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParserError`] on I/O or ZIP failures.
+    pub fn copy_zip_entries_except_set(
+        &self,
+        exclude: &HashSet<GtfsFiles>,
+        writer: &mut ZipWriter<File>,
+        opts: SimpleFileOptions,
+    ) -> Result<(), ParserError> {
+        let FeedSource::Zip { path, index, .. } = self else {
+            return Ok(());
+        };
+
+        let file = File::open(path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+
+        for (&gtfs_file, entry_name) in index {
+            if exclude.contains(&gtfs_file) {
                 continue;
             }
             let mut entry = archive.by_name(entry_name)?;

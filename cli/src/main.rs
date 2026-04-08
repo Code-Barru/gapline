@@ -36,6 +36,23 @@ fn main() {
             confirm,
             output,
         } => commands::run_create(feed, set, *target, *confirm, output.as_deref()),
+        Commands::Update {
+            feed,
+            where_query,
+            set,
+            target,
+            confirm,
+            cascade,
+            output,
+        } => commands::run_update(
+            feed,
+            where_query,
+            set,
+            *target,
+            *confirm,
+            *cascade,
+            output.as_deref(),
+        ),
         _ => {
             println!("Not implemented yet");
         }

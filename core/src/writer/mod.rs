@@ -6,6 +6,7 @@
 //!
 //! Uses the [`Filterable`] trait to generically convert records into CSV rows.
 
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -147,6 +148,69 @@ pub fn write_modified(
 
             // Write the modified target from the in-memory feed
             write_target_to_zip(feed, target, &mut zip, opts)?;
+
+            zip.finish()?;
+
+            if same_file {
+                std::fs::rename(&actual_output, output)?;
+            }
+
+            Ok(())
+        }
+    }
+}
+
+/// Writes multiple modified targets back to disk in a single pass.
+///
+/// # Errors
+///
+/// Returns [`WriteError`] on I/O, CSV, or ZIP failures.
+pub fn write_modified_targets(
+    feed: &GtfsFeed,
+    source: &FeedSource,
+    targets: &[GtfsTarget],
+    output: &Path,
+) -> Result<(), WriteError> {
+    if targets.len() == 1 {
+        return write_modified(feed, source, targets[0], output);
+    }
+
+    match source {
+        FeedSource::Directory { path, .. } => {
+            let dir = if output.is_dir() {
+                output
+            } else {
+                path.as_path()
+            };
+            for &t in targets {
+                write_target_to_file(feed, t, &dir.join(t.file_name()))?;
+            }
+            Ok(())
+        }
+        FeedSource::InMemory { .. } => write_feed(feed, output),
+        FeedSource::Zip { path: src_path, .. } => {
+            let exclude: HashSet<_> = targets.iter().map(|&t| target_to_gtfs_file(t)).collect();
+
+            let same_file = output == src_path;
+            let actual_output = if same_file {
+                let mut tmp = output.to_path_buf();
+                tmp.set_extension("zip.tmp");
+                tmp
+            } else {
+                output.to_path_buf()
+            };
+
+            let out = File::create(&actual_output)?;
+            let mut zip = ZipWriter::new(out);
+            let opts = SimpleFileOptions::default();
+
+            source
+                .copy_zip_entries_except_set(&exclude, &mut zip, opts)
+                .map_err(|e| WriteError::Io(std::io::Error::other(e.to_string())))?;
+
+            for &t in targets {
+                write_target_to_zip(feed, t, &mut zip, opts)?;
+            }
 
             zip.finish()?;
 
