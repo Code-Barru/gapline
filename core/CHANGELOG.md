@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.12.0] - 2026-04-09
+
+### Features
+
+- feat: run batch commands
+
 ## [0.11.0] - 2026-04-08
 
 ### Features
