@@ -15,6 +15,7 @@
 pub mod commands;
 mod output;
 mod parser;
+pub mod runner;
 
 pub use output::{render_read_results, render_report};
 pub use parser::{Cli, Commands, CrudTarget, OutputFormat};

@@ -9,6 +9,7 @@ use headway_core::parser::FeedLoader;
 
 use super::output::{render_read_results, render_report};
 use super::parser::{CrudTarget, OutputFormat};
+use super::runner;
 
 pub fn run_validate(feed: &Path, format: Option<OutputFormat>, output: Option<&Path>) {
     let config = Arc::new(Config::default());
@@ -370,4 +371,19 @@ pub fn run_delete(
         parts.join(" + "),
         if total > 1 { "s" } else { "" }
     );
+}
+
+pub fn run_run(file: &Path) {
+    let directives = match runner::parse_hw_file(file) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(1);
+        }
+    };
+
+    if let Err(e) = runner::execute(&directives) {
+        eprintln!("{e}");
+        process::exit(1);
+    }
 }

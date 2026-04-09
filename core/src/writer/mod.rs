@@ -98,6 +98,19 @@ pub fn write_feed(feed: &GtfsFeed, path: &Path) -> Result<(), WriteError> {
     Ok(())
 }
 
+/// Like [`write_feed`], but atomic: writes to a `.zip.tmp` then renames.
+///
+/// # Errors
+///
+/// Returns [`WriteError`] on I/O or serialization failure.
+pub fn write_feed_atomic(feed: &GtfsFeed, path: &Path) -> Result<(), WriteError> {
+    let mut tmp = path.to_path_buf();
+    tmp.set_extension("zip.tmp");
+    write_feed(feed, &tmp)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
+
 /// Writes a modified feed back to disk, re-serializing only the changed target.
 ///
 /// # Errors

@@ -66,8 +66,6 @@ fn main() {
             *confirm,
             output.as_deref(),
         ),
-        Commands::Run { .. } => {
-            println!("Not implemented yet");
-        }
+        Commands::Run { file } => commands::run_run(file),
     }
 }
