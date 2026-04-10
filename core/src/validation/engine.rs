@@ -5,7 +5,7 @@
 //! sequentially. Sections 1-2 run against raw `FeedSource`; sections 3+ run
 //! against the parsed `GtfsFeed`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::IsTerminal;
 use std::sync::{Arc, LazyLock};
 
@@ -87,6 +87,7 @@ pub struct ValidationEngine {
 impl ValidationEngine {
     /// Creates a new engine pre-loaded with all registered rules.
     #[must_use]
+    #[allow(clippy::too_many_lines)] // section-by-section rule registration
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.validation.max_rows;
         let thresholds = &config.validation.thresholds;
@@ -115,6 +116,11 @@ impl ValidationEngine {
             rail_kmh: thresholds.speed_limits.rail_kmh,
             bus_kmh: thresholds.speed_limits.bus_kmh,
             ferry_kmh: thresholds.speed_limits.ferry_kmh,
+            cable_tram_kmh: thresholds.speed_limits.cable_tram_kmh,
+            aerial_lift_kmh: thresholds.speed_limits.aerial_lift_kmh,
+            funicular_kmh: thresholds.speed_limits.funicular_kmh,
+            trolleybus_kmh: thresholds.speed_limits.trolleybus_kmh,
+            monorail_kmh: thresholds.speed_limits.monorail_kmh,
             default_kmh: thresholds.speed_limits.default_kmh,
         };
         let service_cache = Arc::new(
@@ -167,7 +173,51 @@ impl ValidationEngine {
         };
         crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
         crate::validation::third_party::register_rules(&mut engine);
+
+        // Apply [validation.disabled_rules] / [validation.enabled_rules].
+        // Blacklist beats whitelist when both are set.
+        let disabled: HashSet<&str> = engine
+            .config
+            .validation
+            .disabled_rules
+            .iter()
+            .map(String::as_str)
+            .collect();
+        let enabled: HashSet<&str> = engine
+            .config
+            .validation
+            .enabled_rules
+            .iter()
+            .map(String::as_str)
+            .collect();
+        if !disabled.is_empty() || !enabled.is_empty() {
+            engine.pre_rules.retain(|r| {
+                let id = r.rule_id();
+                !disabled.contains(id) && (enabled.is_empty() || enabled.contains(id))
+            });
+            engine.rules.retain(|r| {
+                let id = r.rule_id();
+                !disabled.contains(id) && (enabled.is_empty() || enabled.contains(id))
+            });
+        }
+
         engine
+    }
+
+    /// All pre-parsing (sections 1–2) rules currently registered with
+    /// the engine, in registration order. Used by `headway rules list`
+    /// to enumerate available rule IDs for `disabled_rules` /
+    /// `enabled_rules` configuration.
+    #[must_use]
+    pub fn pre_rules(&self) -> &[Box<dyn StructuralValidationRule>] {
+        &self.pre_rules
+    }
+
+    /// All post-parsing (sections 3+) rules currently registered with
+    /// the engine, in registration order.
+    #[must_use]
+    pub fn post_rules(&self) -> &[Box<dyn ValidationRule>] {
+        &self.rules
     }
 
     /// Adds a pre-parsing (structural) rule dynamically.

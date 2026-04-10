@@ -47,11 +47,24 @@ fn cmd_err(line: usize, message: String) -> RunError {
 
 /// Executes `.hw` directives sequentially, stopping on first error.
 ///
+/// `parent_config` is the application config loaded by `main.rs`. The
+/// runner reuses it for nested validation (with progress disabled) so the
+/// `.hw` script inherits the same thresholds, disabled rules, and output
+/// preferences as a regular `headway validate` invocation.
+///
 /// # Errors
 ///
 /// Returns the first [`RunError`] encountered.
-pub fn execute(directives: &[HwDirective]) -> Result<(), RunError> {
+pub fn execute(directives: &[HwDirective], parent_config: &Arc<Config>) -> Result<(), RunError> {
     let mut state = RunnerState::new();
+
+    // Build a runner-local config: same as parent, but never draws progress
+    // bars (the `.hw` runner already prints its own per-directive header).
+    let runner_config = {
+        let mut c = (**parent_config).clone();
+        c.output.show_progress = false;
+        Arc::new(c)
+    };
 
     for (i, directive) in directives.iter().enumerate() {
         eprintln!("[{}] {}", i + 1, directive.raw_line);
@@ -62,7 +75,13 @@ pub fn execute(directives: &[HwDirective]) -> Result<(), RunError> {
                 exec_save(&state, path.as_ref(), directive.line_number)?;
             }
             DirectiveKind::Validate { format, output } => {
-                exec_validate(&state, *format, output.as_deref(), directive.line_number)?;
+                exec_validate(
+                    &state,
+                    &runner_config,
+                    *format,
+                    output.as_deref(),
+                    directive.line_number,
+                )?;
             }
             DirectiveKind::Read {
                 target,
@@ -162,20 +181,20 @@ fn exec_save(state: &RunnerState, path: Option<&PathBuf>, line: usize) -> Result
 
 fn exec_validate(
     state: &RunnerState,
+    config: &Arc<Config>,
     format: Option<OutputFormat>,
     output: Option<&std::path::Path>,
     line: usize,
 ) -> Result<(), RunError> {
     let feed = state.require_feed(line)?;
 
-    let mut config = Config::default();
-    config.output.show_progress = false;
-    let engine = ValidationEngine::new(Arc::new(config));
+    let engine = ValidationEngine::new(Arc::clone(config));
 
     let report = engine.validate_feed(feed, &state.parse_errors);
 
     let fmt = format.unwrap_or(OutputFormat::Text);
-    render_report(&report, fmt, output).map_err(|e| cmd_err(line, format!("render error: {e}")))?;
+    render_report(&report, fmt, output, config)
+        .map_err(|e| cmd_err(line, format!("render error: {e}")))?;
 
     if report.has_errors() {
         return Err(RunError::ValidationFailed { line });

@@ -118,6 +118,11 @@ fn default_thresholds() -> SpeedThresholds {
         rail_kmh: 500.0,
         bus_kmh: 150.0,
         ferry_kmh: 150.0,
+        cable_tram_kmh: 30.0,
+        aerial_lift_kmh: 50.0,
+        funicular_kmh: 50.0,
+        trolleybus_kmh: 150.0,
+        monorail_kmh: 150.0,
         default_kmh: 150.0,
     }
 }

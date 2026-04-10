@@ -1,19 +1,51 @@
-//! Sanity tests for the [`headway_core::config::Config`] TOML schema.
+//! Tests for the [`headway_core::config::Config`] TOML schema and loader.
 //!
-//! `#[allow(clippy::float_cmp)]` — these tests compare against the *exact*
+//! Covers:
+//! - Schema sanity (empty TOML, partial overrides, `deny_unknown_fields`)
+//! - Loader hierarchy: defaults → local → CLI overrides
+//! - Error reporting for malformed files
+//! - CLI override semantics (replace vs append for `disabled_rules`)
+//!
+//! The global `~/.config/headway/config.toml` is intentionally **not**
+//! exercised here — these tests use [`Config::load_from`] with an explicit
+//! base directory plus `cli.config_path`, which together pin the local
+//! lookup to a tempdir. The user-global file is still consulted by
+//! `load_from`, but tests asserting on the merged result must tolerate the
+//! possibility that a developer machine has one. We work around this by
+//! only asserting on fields the test sets explicitly.
+//!
+//! `#[allow(clippy::float_cmp)]` — assertions compare against the *exact*
 //! literal defaults declared in `core/src/config.rs`. There is no rounding
 //! source between the literal and the deserialized value, so a strict `==`
-//! is the assertion we actually want.
+//! is the assertion we want.
 #![allow(clippy::float_cmp)]
 
-//!
-//! Step 1 of the configuration ticket only restructures the `Config` struct
-//! into the nested layout from Architecture Decision 5; the actual loader
-//! (`Config::load()`) lands later. These tests verify that the struct is
-//! "TOML-ready" — defaults, partial overrides, and `deny_unknown_fields` —
-//! so step 2 can plug in the loader without redoing schema work.
+use std::path::PathBuf;
 
-use headway_core::config::Config;
+use headway_core::config::{CliOverrides, Config};
+use headway_core::validation::Severity;
+use tempfile::TempDir;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+fn write_local(dir: &TempDir, contents: &str) -> PathBuf {
+    let path = dir.path().join("headway.toml");
+    std::fs::write(&path, contents).expect("write headway.toml");
+    path
+}
+
+/// `Config::load_from` with an isolated tempdir base, no CLI overrides
+/// (other than `config_path` pinning).
+fn load_local(dir: &TempDir) -> Config {
+    let local = dir.path().join("headway.toml");
+    let cli = CliOverrides {
+        config_path: Some(local),
+        ..CliOverrides::default()
+    };
+    Config::load_from(Some(dir.path()), cli).expect("load_from")
+}
 
 #[test]
 fn empty_toml_yields_full_defaults() {
@@ -97,4 +129,188 @@ fn unknown_field_rejected() {
         msg.contains("unknown field") || msg.contains("max_stop_to_shape"),
         "expected unknown-field error, got: {msg}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Loader tests — exercise Config::load_from end-to-end
+// ---------------------------------------------------------------------------
+
+/// Ticket scenario 1: no config file at all → built-in defaults are used.
+#[test]
+fn load_no_local_file_returns_defaults() {
+    let dir = tempfile::tempdir().unwrap();
+    // Note: no headway.toml is written. The global config may or may not
+    // exist on the dev machine — assert only on a defaults-only sanity field
+    // that no realistic global config would override.
+    let cli = CliOverrides {
+        config_path: Some(dir.path().join("headway.toml")),
+        ..CliOverrides::default()
+    };
+    let config = Config::load_from(Some(dir.path()), cli).expect("load_from");
+    assert!(config.default.feed.is_none());
+    // The defaults `Config::default()` exposes for these fields are pinned
+    // in the source — if a stray global config sets them, the test would
+    // need to be reworked, but in practice none of these are commonly set.
+    assert_eq!(
+        config
+            .validation
+            .thresholds
+            .distances
+            .max_stop_to_shape_distance_m,
+        100.0
+    );
+}
+
+/// Ticket scenario 2: only `./headway.toml` exists, with `default.feed`.
+#[test]
+fn load_local_only_resolves_feed() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r#"
+            [default]
+            feed = "./data/feed.zip"
+        "#,
+    );
+
+    let config = load_local(&dir);
+    assert_eq!(
+        config.default.feed.as_deref(),
+        Some(std::path::Path::new("./data/feed.zip"))
+    );
+    // Other sections must remain at defaults.
+    assert_eq!(config.validation.thresholds.speed_limits.bus_kmh, 150.0);
+}
+
+/// Ticket scenario 4: CLI flag overrides a config-file value.
+#[test]
+fn cli_overrides_beat_local_file() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r#"
+            [default]
+            format = "json"
+        "#,
+    );
+    let cli = CliOverrides {
+        config_path: Some(dir.path().join("headway.toml")),
+        format: Some("text".into()),
+        ..CliOverrides::default()
+    };
+    let config = Config::load_from(Some(dir.path()), cli).expect("load_from");
+    assert_eq!(config.default.format.as_deref(), Some("text"));
+}
+
+/// Ticket scenario 5: malformed TOML produces a clear error mentioning
+/// the path and a position indicator.
+#[test]
+fn malformed_toml_emits_path_and_position_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_local(
+        &dir,
+        // `format = 42` is a type mismatch (expected string).
+        r"
+            [default]
+            format = 42
+        ",
+    );
+
+    let cli = CliOverrides {
+        config_path: Some(path.clone()),
+        ..CliOverrides::default()
+    };
+    let err = Config::load_from(Some(dir.path()), cli).expect_err("malformed TOML must error");
+    let msg = err.to_string();
+    assert!(msg.contains("Config error in"), "got: {msg}");
+    // The serde error mentions the offending field name; do a lax check.
+    assert!(
+        msg.contains("format") || msg.contains("invalid"),
+        "got: {msg}"
+    );
+}
+
+/// Ticket scenario 6: speed-limit override applied through the loader.
+#[test]
+fn load_speed_limit_override() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r"
+            [validation.thresholds.speed_limits]
+            bus_kmh = 200.0
+        ",
+    );
+    let config = load_local(&dir);
+    assert_eq!(config.validation.thresholds.speed_limits.bus_kmh, 200.0);
+    // Tram unchanged.
+    assert_eq!(config.validation.thresholds.speed_limits.tram_kmh, 150.0);
+}
+
+/// Ticket scenario 12: a config file with only one section keeps every
+/// other section at defaults.
+#[test]
+fn load_partial_config_keeps_other_sections_default() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r#"
+            [default]
+            feed = "./feed.zip"
+        "#,
+    );
+    let config = load_local(&dir);
+    assert!(config.default.feed.is_some());
+    assert!(config.output.show_progress);
+    assert!(config.batch.echo_commands);
+    assert_eq!(config.performance.csv_buffer_size, 8192);
+}
+
+/// `disabled_rules` from the CLI are appended to whatever the file
+/// contained, not replacing it. Documented behavior.
+#[test]
+fn cli_disabled_rules_append_to_file_list() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r#"
+            [validation]
+            disabled_rules = ["from_file"]
+        "#,
+    );
+    let cli = CliOverrides {
+        config_path: Some(dir.path().join("headway.toml")),
+        disabled_rules: vec!["from_cli".into()],
+        ..CliOverrides::default()
+    };
+    let config = Config::load_from(Some(dir.path()), cli).expect("load_from");
+    assert_eq!(config.validation.disabled_rules.len(), 2);
+    assert!(
+        config
+            .validation
+            .disabled_rules
+            .contains(&"from_file".into())
+    );
+    assert!(
+        config
+            .validation
+            .disabled_rules
+            .contains(&"from_cli".into())
+    );
+}
+
+/// Ticket scenario 8: `min_severity` from the file is preserved when no
+/// CLI override is set.
+#[test]
+fn min_severity_loaded_from_file() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        r#"
+            [validation]
+            min_severity = "error"
+        "#,
+    );
+    let config = load_local(&dir);
+    assert_eq!(config.validation.min_severity, Some(Severity::Error));
 }

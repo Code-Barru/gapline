@@ -4,8 +4,8 @@
 //! Decision 5: six top-level sections (`[default]`, `[validation]`,
 //! `[performance]`, `[output]`, `[batch]`, `[experimental]`), each
 //! independently `Default`. The struct derives [`serde::Deserialize`]
-//! so a future `Config::load()` can populate it from TOML — no loader
-//! exists yet; the rest of the codebase still constructs `Config::default()`.
+//! and is loaded by [`Config::load`] / [`Config::load_from`] from a
+//! priority chain: defaults → global → local → CLI overrides.
 //!
 //! ## Naming
 //!
@@ -14,7 +14,7 @@
 //! diverges from the unit-less names in the architecture document — this
 //! is intentional and accepted.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
@@ -89,8 +89,12 @@ pub struct Thresholds {
     pub naming: Naming,
 }
 
-/// Per-route-type maximum speeds in km/h. Five route types are wired today;
-/// step 8 of the broader plan extends this to all ten GTFS route types.
+/// Per-route-type maximum speeds in km/h. Covers all ten GTFS basic route
+/// types; extended types (`Hvt`, `Unknown`) fall back to `default_kmh`.
+///
+/// Field naming follows [`crate::models::RouteType`] — note that
+/// `route_type` 6 is `aerial_lift_kmh` in this codebase, not `gondola_kmh`
+/// as in the architecture spec.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SpeedLimits {
@@ -99,7 +103,13 @@ pub struct SpeedLimits {
     pub rail_kmh: f64,
     pub bus_kmh: f64,
     pub ferry_kmh: f64,
-    /// Fallback used for any route type without a dedicated entry.
+    pub cable_tram_kmh: f64,
+    pub aerial_lift_kmh: f64,
+    pub funicular_kmh: f64,
+    pub trolleybus_kmh: f64,
+    pub monorail_kmh: f64,
+    /// Fallback used for any route type without a dedicated entry
+    /// (high-value transport types and unknowns).
     pub default_kmh: f64,
 }
 
@@ -111,6 +121,11 @@ impl Default for SpeedLimits {
             rail_kmh: 500.0,
             bus_kmh: 150.0,
             ferry_kmh: 150.0,
+            cable_tram_kmh: 30.0,
+            aerial_lift_kmh: 50.0,
+            funicular_kmh: 50.0,
+            trolleybus_kmh: 150.0,
+            monorail_kmh: 150.0,
             default_kmh: 150.0,
         }
     }
@@ -329,4 +344,200 @@ pub struct ExperimentalSection {
     pub validate_flex: bool,
     pub validate_fares_v2: bool,
     pub validate_geojson: bool,
+}
+
+// ============================================================================
+// CLI overrides
+// ============================================================================
+
+/// Values supplied on the command line that take priority over any TOML
+/// file. Each `Option`-typed field uses `None` to mean "not provided on
+/// the CLI" — only `Some(_)` values overwrite the loaded config.
+///
+/// `disabled_rules` is **appended** to whatever the file already contained,
+/// not replaced — additive rule blacklisting from the CLI is the more
+/// useful semantics in practice.
+#[derive(Debug, Default)]
+pub struct CliOverrides {
+    /// Optional `--config PATH` override. When set, this path replaces
+    /// `./headway.toml` in the lookup chain (the global config is still
+    /// consulted as the lower-priority layer).
+    pub config_path: Option<PathBuf>,
+    pub feed: Option<PathBuf>,
+    pub format: Option<String>,
+    pub output: Option<PathBuf>,
+    pub no_color: Option<bool>,
+    pub force_color: Option<bool>,
+    pub threads: Option<usize>,
+    pub min_severity: Option<Severity>,
+    pub disabled_rules: Vec<String>,
+}
+
+// ============================================================================
+// Loader & errors
+// ============================================================================
+
+/// Errors produced by [`Config::load`] / [`Config::load_from`].
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+    /// Failed to read a config file (file existed but was unreadable).
+    /// Missing files are not an error — they are silently skipped.
+    #[error("Cannot read config file {path}: {source}")]
+    Io {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    /// TOML parse / deserialization failure. The message is pre-formatted
+    /// to include the path and (when available) the line number.
+    #[error("Config error in {path}: {message}")]
+    Parse { path: PathBuf, message: String },
+}
+
+impl Config {
+    /// Loads the config using the current process's working directory as
+    /// the base for `./headway.toml`. Convenience wrapper over
+    /// [`Config::load_from`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ConfigError`] if a config file exists but cannot be read
+    /// or contains invalid TOML.
+    pub fn load(cli: CliOverrides) -> Result<Self, ConfigError> {
+        let cwd = std::env::current_dir().ok();
+        Self::load_from(cwd.as_deref(), cli)
+    }
+
+    /// Loads the config with an explicit base directory for the local
+    /// `headway.toml` lookup. Used by tests to avoid touching the global
+    /// process cwd.
+    ///
+    /// Hierarchy (lowest to highest priority):
+    /// 1. Built-in defaults
+    /// 2. Global `~/.config/headway/config.toml` (if it exists)
+    /// 3. Local `<base>/headway.toml`, or `cli.config_path` if set
+    /// 4. CLI overrides applied last
+    ///
+    /// Missing files at any layer are silently skipped (CA2).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ConfigError::Io`] when a file exists but cannot be read,
+    /// or [`ConfigError::Parse`] when the TOML is malformed.
+    pub fn load_from(base_dir: Option<&Path>, cli: CliOverrides) -> Result<Self, ConfigError> {
+        let mut merged = toml::Table::new();
+
+        if let Some(global) = global_config_path()
+            && let Some((table, _)) = read_table(&global)?
+        {
+            merge_tables(&mut merged, table);
+        }
+
+        let local_path = cli
+            .config_path
+            .clone()
+            .or_else(|| base_dir.map(|d| d.join("headway.toml")));
+        let local_path_for_errors = local_path
+            .clone()
+            .unwrap_or_else(|| PathBuf::from("./headway.toml"));
+        if let Some(path) = local_path.as_deref()
+            && let Some((table, _)) = read_table(path)?
+        {
+            merge_tables(&mut merged, table);
+        }
+
+        let mut config: Config = Config::deserialize(merged).map_err(|e| ConfigError::Parse {
+            path: local_path_for_errors,
+            message: format_de_error(&e),
+        })?;
+
+        config.apply_cli_overrides(cli);
+        Ok(config)
+    }
+
+    /// Applies CLI overrides on top of an already-loaded config.
+    fn apply_cli_overrides(&mut self, cli: CliOverrides) {
+        if let Some(v) = cli.feed {
+            self.default.feed = Some(v);
+        }
+        if let Some(v) = cli.format {
+            self.default.format = Some(v);
+        }
+        if let Some(v) = cli.output {
+            self.default.output = Some(v);
+        }
+        if let Some(v) = cli.no_color {
+            self.output.no_color = v;
+        }
+        if let Some(v) = cli.force_color {
+            self.output.force_color = v;
+        }
+        if let Some(v) = cli.threads {
+            self.performance.num_threads = Some(v);
+        }
+        if let Some(v) = cli.min_severity {
+            self.validation.min_severity = Some(v);
+        }
+        // Append rather than replace: CLI extends the file blacklist.
+        self.validation.disabled_rules.extend(cli.disabled_rules);
+    }
+}
+
+/// Returns `~/.config/headway/config.toml` (or the OS equivalent), if a
+/// home/config directory can be determined for the current user.
+fn global_config_path() -> Option<PathBuf> {
+    dirs::config_dir().map(|d| d.join("headway").join("config.toml"))
+}
+
+/// Reads a TOML file and returns its parsed root table along with the
+/// raw text (kept for future error-context use). Returns `Ok(None)` when
+/// the file does not exist — that is the silently-ignored case.
+fn read_table(path: &Path) -> Result<Option<(toml::Table, String)>, ConfigError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Io {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+    let table = text
+        .parse::<toml::Table>()
+        .map_err(|e| ConfigError::Parse {
+            path: path.to_path_buf(),
+            message: format_parse_error(&e),
+        })?;
+    Ok(Some((table, text)))
+}
+
+/// Recursively merges `from` into `into`. When both sides hold a sub-table
+/// at the same key, the merge descends; otherwise the value from `from`
+/// (the higher-priority layer) wins.
+fn merge_tables(into: &mut toml::Table, from: toml::Table) {
+    for (key, value) in from {
+        match (into.remove(&key), value) {
+            (Some(toml::Value::Table(mut existing)), toml::Value::Table(incoming)) => {
+                merge_tables(&mut existing, incoming);
+                into.insert(key, toml::Value::Table(existing));
+            }
+            (_, value) => {
+                into.insert(key, value);
+            }
+        }
+    }
+}
+
+/// Pretty-prints a `toml::de::Error` from the parsing stage. Includes the
+/// line/column when the error span is known.
+fn format_parse_error(err: &toml::de::Error) -> String {
+    if let Some(span) = err.span() {
+        format!("{} at byte {}", err.message(), span.start)
+    } else {
+        err.message().to_string()
+    }
+}
+
+/// Pretty-prints a `toml::de::Error` from the deserialization stage.
+/// Includes the field path / line when serde and toml expose them.
+fn format_de_error(err: &toml::de::Error) -> String {
+    err.to_string()
 }

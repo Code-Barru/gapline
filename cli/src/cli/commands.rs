@@ -1,19 +1,64 @@
 //! Command handlers — one function per subcommand.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::Arc;
 
 use headway_core::config::Config;
 use headway_core::parser::FeedLoader;
+use headway_core::validation::engine::ValidationEngine;
 
-use super::output::{render_read_results, render_report};
-use super::parser::{CrudTarget, OutputFormat};
+use super::output::{RuleEntry, Stage, render_read_results, render_report, render_rules_list};
+use super::parser::{CrudTarget, OutputFormat, SeverityArg};
 use super::runner;
 
-pub fn run_validate(feed: &Path, format: Option<OutputFormat>, output: Option<&Path>) {
-    let config = Arc::new(Config::default());
-    let report = match headway_core::validation::validate(feed, config) {
+/// Resolves the GTFS feed path from CLI flags then `[default] feed`.
+/// Exits with an error if neither is set.
+fn resolve_feed(cli_feed: Option<&Path>, config: &Config) -> PathBuf {
+    if let Some(p) = cli_feed {
+        return p.to_path_buf();
+    }
+    if let Some(p) = config.default.feed.as_ref() {
+        return p.clone();
+    }
+    eprintln!(
+        "Missing feed path. Pass --feed PATH or set [default] feed = \"...\" in your config."
+    );
+    process::exit(1);
+}
+
+/// Resolves the output format from CLI flag then `[default] format`,
+/// falling back to `OutputFormat::Text`.
+fn resolve_format(cli_format: Option<OutputFormat>, config: &Config) -> OutputFormat {
+    cli_format
+        .or_else(|| {
+            config
+                .default
+                .format
+                .as_deref()
+                .and_then(OutputFormat::from_config_str)
+        })
+        .unwrap_or(OutputFormat::Text)
+}
+
+/// Resolves the output destination from CLI flag then `[default] output`.
+fn resolve_output(cli_output: Option<&Path>, config: &Config) -> Option<PathBuf> {
+    cli_output
+        .map(Path::to_path_buf)
+        .or_else(|| config.default.output.clone())
+}
+
+pub fn run_validate(
+    config: &Arc<Config>,
+    feed: Option<&Path>,
+    format: Option<OutputFormat>,
+    output: Option<&Path>,
+) {
+    let feed = resolve_feed(feed, config);
+    let fmt = resolve_format(format, config);
+    let output = resolve_output(output, config);
+
+    let report = match headway_core::validation::validate(&feed, Arc::clone(config)) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("{e}");
@@ -21,8 +66,7 @@ pub fn run_validate(feed: &Path, format: Option<OutputFormat>, output: Option<&P
         }
     };
 
-    let fmt = format.unwrap_or(OutputFormat::Text);
-    if let Err(e) = render_report(&report, fmt, output) {
+    if let Err(e) = render_report(&report, fmt, output.as_deref(), config) {
         eprintln!("Error while rendering report: {e}");
         process::exit(1);
     }
@@ -33,13 +77,18 @@ pub fn run_validate(feed: &Path, format: Option<OutputFormat>, output: Option<&P
 }
 
 pub fn run_read(
-    feed: &Path,
+    config: &Arc<Config>,
+    feed: Option<&Path>,
     where_query: Option<&String>,
     target: CrudTarget,
     format: Option<OutputFormat>,
     output: Option<&Path>,
 ) {
-    let mut source = match FeedLoader::open(feed) {
+    let feed = resolve_feed(feed, config);
+    let fmt = resolve_format(format, config);
+    let output = resolve_output(output, config);
+
+    let mut source = match FeedLoader::open(&feed) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
@@ -75,21 +124,24 @@ pub fn run_read(
         }
     };
 
-    let fmt = format.unwrap_or(OutputFormat::Text);
-    if let Err(e) = render_read_results(&result, fmt, output) {
+    if let Err(e) = render_read_results(&result, fmt, output.as_deref()) {
         eprintln!("Error while rendering results: {e}");
         process::exit(1);
     }
 }
 
 pub fn run_create(
-    feed: &Path,
+    config: &Arc<Config>,
+    feed: Option<&Path>,
     set: &[String],
     target: CrudTarget,
     confirm: bool,
     output: Option<&Path>,
 ) {
-    let source = match FeedLoader::open(feed) {
+    let feed = resolve_feed(feed, config);
+    let output = resolve_output(output, config);
+
+    let source = match FeedLoader::open(&feed) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
@@ -129,7 +181,7 @@ pub fn run_create(
 
     headway_core::crud::create::apply_create(&mut feed_data, plan);
 
-    let write_path = output.map_or_else(|| feed.to_path_buf(), Path::to_path_buf);
+    let write_path = output.unwrap_or_else(|| feed.clone());
     if let Err(e) =
         headway_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
     {
@@ -140,8 +192,10 @@ pub fn run_create(
     eprintln!("Created 1 record in {}", target.to_target().file_name());
 }
 
+#[allow(clippy::too_many_arguments)] // CRUD update needs all of these from the CLI
 pub fn run_update(
-    feed: &Path,
+    config: &Arc<Config>,
+    feed: Option<&Path>,
     where_query: &str,
     set: &[String],
     target: CrudTarget,
@@ -149,7 +203,10 @@ pub fn run_update(
     cascade: bool,
     output: Option<&Path>,
 ) {
-    let source = match FeedLoader::open(feed) {
+    let feed = resolve_feed(feed, config);
+    let output = resolve_output(output, config);
+
+    let source = match FeedLoader::open(&feed) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
@@ -225,7 +282,7 @@ pub fn run_update(
 
     let result = headway_core::crud::update::apply_update(&mut feed_data, &plan);
 
-    let write_path = output.map_or_else(|| feed.to_path_buf(), Path::to_path_buf);
+    let write_path = output.unwrap_or_else(|| feed.clone());
     if let Err(e) = headway_core::writer::write_modified_targets(
         &feed_data,
         &source,
@@ -292,18 +349,22 @@ fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) {
 }
 
 pub fn run_delete(
-    feed: &Path,
+    config: &Arc<Config>,
+    feed: Option<&Path>,
     where_query: Option<&String>,
     target: CrudTarget,
     confirm: bool,
     output: Option<&Path>,
 ) {
+    let feed = resolve_feed(feed, config);
+    let output = resolve_output(output, config);
+
     let Some(where_query) = where_query else {
         eprintln!("Missing --where filter. Refusing to delete without filter.");
         process::exit(1);
     };
 
-    let source = match FeedLoader::open(feed) {
+    let source = match FeedLoader::open(&feed) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
@@ -345,7 +406,7 @@ pub fn run_delete(
 
     let result = headway_core::crud::delete::apply_delete(&mut feed_data, &plan);
 
-    let write_path = output.map_or_else(|| feed.to_path_buf(), Path::to_path_buf);
+    let write_path = output.unwrap_or_else(|| feed.clone());
     if let Err(e) = headway_core::writer::write_modified_targets(
         &feed_data,
         &source,
@@ -373,7 +434,7 @@ pub fn run_delete(
     );
 }
 
-pub fn run_run(file: &Path) {
+pub fn run_run(config: &Arc<Config>, file: &Path) {
     let directives = match runner::parse_hw_file(file) {
         Ok(d) => d,
         Err(e) => {
@@ -382,8 +443,52 @@ pub fn run_run(file: &Path) {
         }
     };
 
-    if let Err(e) = runner::execute(&directives) {
+    if let Err(e) = runner::execute(&directives, config) {
         eprintln!("{e}");
+        process::exit(1);
+    }
+}
+
+/// `headway rules list` — prints every registered validation rule.
+///
+/// The listing always uses a fresh `Config::default()` engine so that the
+/// user's `[validation] disabled_rules` / `enabled_rules` do **not** hide
+/// entries — discoverability is the whole point of the command. The user
+/// `config` is still consulted for `[default] format` and `[default]
+/// output`, mirroring every other subcommand.
+pub fn run_rules_list(
+    config: &Arc<Config>,
+    severity_filter: Option<SeverityArg>,
+    format_cli: Option<OutputFormat>,
+    output_cli: Option<&Path>,
+) {
+    let listing_engine = ValidationEngine::new(Arc::new(Config::default()));
+
+    let mut entries: Vec<RuleEntry> = listing_engine
+        .pre_rules()
+        .iter()
+        .map(|r| RuleEntry::new(r.rule_id(), r.severity(), Stage::Structural))
+        .chain(
+            listing_engine
+                .post_rules()
+                .iter()
+                .map(|r| RuleEntry::new(r.rule_id(), r.severity(), Stage::Semantic)),
+        )
+        .collect();
+
+    if let Some(filter) = severity_filter {
+        let target = filter.to_core();
+        entries.retain(|e| e.severity == target);
+    }
+
+    // Stage first (structural before semantic), then alphabetical rule_id.
+    entries.sort_by(|a, b| a.stage.cmp(&b.stage).then(a.rule_id.cmp(b.rule_id)));
+
+    let fmt = resolve_format(format_cli, config);
+    let output = resolve_output(output_cli, config);
+
+    if let Err(e) = render_rules_list(&entries, fmt, output.as_deref()) {
+        eprintln!("Error rendering rules list: {e}");
         process::exit(1);
     }
 }

@@ -1,8 +1,16 @@
 use headway::cli::{OutputFormat, render_read_results, render_report};
+use headway_core::config::Config;
 use headway_core::crud::read::ReadResult;
 use headway_core::validation::{Severity, ValidationError, ValidationReport};
 use std::fs;
 use tempfile::NamedTempFile;
+
+/// Default test config used by all `render_report` invocations in this file.
+/// Pre-bound `min_severity = None` so existing assertions about counts and
+/// content remain unchanged.
+fn test_config() -> Config {
+    Config::default()
+}
 
 // Helper to create test errors
 fn create_test_errors_1() -> Vec<ValidationError> {
@@ -34,7 +42,13 @@ fn test_text_format_grouped_by_file() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -61,7 +75,13 @@ fn test_text_format_error_without_context() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -85,7 +105,13 @@ fn test_text_format_error_with_full_context() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -101,7 +127,13 @@ fn test_json_format() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Json, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Json,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
     let json: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -127,7 +159,13 @@ fn test_json_format_empty_report() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Json, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Json,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
     let json: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -151,7 +189,7 @@ fn test_file_writing() {
     let temp_file = NamedTempFile::new().unwrap();
     let path = temp_file.path().to_path_buf();
 
-    render_report(&report, OutputFormat::Json, Some(&path)).unwrap();
+    render_report(&report, OutputFormat::Json, Some(&path), &test_config()).unwrap();
 
     // Verify file exists and is parsable
     let content = fs::read_to_string(&path).unwrap();
@@ -166,7 +204,7 @@ fn test_file_writing_nonexistent_directory() {
     let report = ValidationReport::from(errors);
 
     let bad_path = std::path::PathBuf::from("/nonexistent/dir/report.json");
-    let result = render_report(&report, OutputFormat::Json, Some(&bad_path));
+    let result = render_report(&report, OutputFormat::Json, Some(&bad_path), &test_config());
 
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -181,7 +219,13 @@ fn test_tty_detection_pipe() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -195,7 +239,7 @@ fn test_format_xml_not_supported() {
     let errors = create_test_errors_1();
     let report = ValidationReport::from(errors);
 
-    let result = render_report(&report, OutputFormat::Xml, None);
+    let result = render_report(&report, OutputFormat::Xml, None, &test_config());
 
     assert!(result.is_err());
     // The error message is printed to stderr, but the Result is Err
@@ -207,7 +251,7 @@ fn test_format_csv_not_supported() {
     let errors = create_test_errors_1();
     let report = ValidationReport::from(errors);
 
-    let result = render_report(&report, OutputFormat::Csv, None);
+    let result = render_report(&report, OutputFormat::Csv, None, &test_config());
 
     assert!(result.is_err());
 }
@@ -222,7 +266,13 @@ fn test_summary_pass_with_warnings() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -240,7 +290,13 @@ fn test_summary_fail_with_errors() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 
@@ -271,7 +327,13 @@ fn test_grouping_by_file() {
     let report = ValidationReport::from(errors);
 
     let temp_file = NamedTempFile::new().unwrap();
-    render_report(&report, OutputFormat::Text, Some(temp_file.path())).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Text,
+        Some(temp_file.path()),
+        &test_config(),
+    )
+    .unwrap();
 
     let content = fs::read_to_string(temp_file.path()).unwrap();
 

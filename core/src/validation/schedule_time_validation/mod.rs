@@ -62,6 +62,8 @@ pub struct TransferThresholds {
 
 /// Speed thresholds used by the section-7 speed validation rule.
 /// Each field is a maximum speed in km/h for the corresponding route type.
+/// Extended types ([`RouteType::Hvt`], [`RouteType::Unknown`]) fall back
+/// to `default_kmh`.
 #[derive(Debug, Clone, Copy)]
 pub struct SpeedThresholds {
     pub tram_kmh: f64,
@@ -69,6 +71,11 @@ pub struct SpeedThresholds {
     pub rail_kmh: f64,
     pub bus_kmh: f64,
     pub ferry_kmh: f64,
+    pub cable_tram_kmh: f64,
+    pub aerial_lift_kmh: f64,
+    pub funicular_kmh: f64,
+    pub trolleybus_kmh: f64,
+    pub monorail_kmh: f64,
     pub default_kmh: f64,
 }
 
@@ -82,7 +89,12 @@ impl SpeedThresholds {
             RouteType::Rail => self.rail_kmh,
             RouteType::Bus => self.bus_kmh,
             RouteType::Ferry => self.ferry_kmh,
-            _ => self.default_kmh,
+            RouteType::CableTram => self.cable_tram_kmh,
+            RouteType::AerialLift => self.aerial_lift_kmh,
+            RouteType::Funicular => self.funicular_kmh,
+            RouteType::Trolleybus => self.trolleybus_kmh,
+            RouteType::Monorail => self.monorail_kmh,
+            RouteType::Hvt(_) | RouteType::Unknown(_) => self.default_kmh,
         }
     }
 }

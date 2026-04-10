@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+use headway_core::validation::Severity;
+
 /// Top-level CLI argument parser for headway.
 ///
 /// Uses [clap](https://docs.rs/clap) derive API with git-style subcommands.
@@ -22,6 +24,47 @@ pub struct Cli {
     /// The subcommand to execute.
     #[command(subcommand)]
     pub command: Commands,
+
+    /// Path to a TOML config file. Overrides `./headway.toml` in the
+    /// lookup chain. The global `~/.config/headway/config.toml` is still
+    /// consulted as a lower-priority layer.
+    #[arg(long, global = true, value_name = "PATH")]
+    pub config: Option<PathBuf>,
+
+    /// Disable colored output, even when stdout is a TTY.
+    #[arg(long, global = true, conflicts_with = "force_color")]
+    pub no_color: bool,
+
+    /// Force colored output, even when stdout is not a TTY.
+    #[arg(long, global = true, conflicts_with = "no_color")]
+    pub force_color: bool,
+
+    /// Number of worker threads for parallel validation. Auto-detected
+    /// when omitted.
+    #[arg(long, global = true, value_name = "N")]
+    pub threads: Option<usize>,
+}
+
+/// CLI alias for [`headway_core::validation::Severity`].
+///
+/// Lives here so clap can derive `ValueEnum` without dragging clap into
+/// `headway-core`. Maps 1:1 to the core enum via [`SeverityArg::to_core`].
+#[derive(Copy, Clone, Debug, ValueEnum)]
+pub enum SeverityArg {
+    Error,
+    Warning,
+    Info,
+}
+
+impl SeverityArg {
+    #[must_use]
+    pub fn to_core(self) -> Severity {
+        match self {
+            Self::Error => Severity::Error,
+            Self::Warning => Severity::Warning,
+            Self::Info => Severity::Info,
+        }
+    }
 }
 
 /// Available subcommands for headway.
@@ -33,8 +76,9 @@ pub enum Commands {
     #[command(about = "Validates a GTFS feed")]
     Validate {
         /// Path to the GTFS feed (`.zip` archive or decompressed directory).
+        /// May be omitted if `[default] feed` is set in the config file.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
-        feed: PathBuf,
+        feed: Option<PathBuf>,
         /// Output format for the validation report.
         #[arg(
             long,
@@ -45,13 +89,25 @@ pub enum Commands {
         /// Write the report to a file instead of stdout.
         #[arg(short, long, value_name = "PATH", help = "Output path")]
         output: Option<PathBuf>,
+        /// Minimum severity to display in the report. Findings below this
+        /// level are filtered from both the listing and the summary counts.
+        #[arg(
+            long,
+            value_name = "LEVEL",
+            help = "Minimum severity: error, warning, info"
+        )]
+        min_severity: Option<SeverityArg>,
+        /// Disable a validation rule by ID. May be passed multiple times.
+        /// Appends to the `disabled_rules` list from the config file.
+        #[arg(long = "disable-rule", value_name = "RULE_ID", num_args = 1..)]
+        disable_rule: Vec<String>,
     },
     /// Read and query data from a GTFS file.
     #[command(about = "Read and query GTFS fields")]
     Read {
-        /// Path to the GTFS feed.
+        /// Path to the GTFS feed. Optional when `[default] feed` is set.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
-        feed: PathBuf,
+        feed: Option<PathBuf>,
         /// Filter expression using the mini query language.
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
         where_query: Option<String>,
@@ -75,9 +131,9 @@ pub enum Commands {
     /// Insert new records into a GTFS file.
     #[command(about = "Insert GTFS fields into a feed")]
     Create {
-        /// Path to the GTFS feed.
+        /// Path to the GTFS feed. Optional when `[default] feed` is set.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
-        feed: PathBuf,
+        feed: Option<PathBuf>,
         /// Field values to set on the new record (e.g. `stop_id=NEW_01`).
         #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
         set: Vec<String>,
@@ -97,9 +153,9 @@ pub enum Commands {
     /// Update existing records in a GTFS file.
     #[command(about = "Update GTFS field in a feed")]
     Update {
-        /// Path to the GTFS feed.
+        /// Path to the GTFS feed. Optional when `[default] feed` is set.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
-        feed: PathBuf,
+        feed: Option<PathBuf>,
         /// Filter expression to select records to update (required).
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
         where_query: String,
@@ -125,9 +181,9 @@ pub enum Commands {
     /// Delete records from a GTFS file.
     #[command(about = "Delete GTFS records from a feed")]
     Delete {
-        /// Path to the GTFS feed.
+        /// Path to the GTFS feed. Optional when `[default] feed` is set.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
-        feed: PathBuf,
+        feed: Option<PathBuf>,
         /// Filter expression to select records to delete.
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
         where_query: Option<String>,
@@ -151,6 +207,39 @@ pub enum Commands {
         #[arg(value_name = "file.hw", help = "Headway file path")]
         file: PathBuf,
     },
+    /// Inspect the validation rules registered with this build.
+    #[command(about = "List or inspect validation rules")]
+    Rules {
+        /// The `rules` subcommand to execute.
+        #[command(subcommand)]
+        command: RulesCommand,
+    },
+}
+
+/// Subcommands of `headway rules`.
+#[derive(Debug, Subcommand)]
+pub enum RulesCommand {
+    /// List every validation rule registered with this build.
+    #[command(about = "List every registered validation rule")]
+    List {
+        /// Restrict the listing to rules with this severity.
+        #[arg(
+            long,
+            value_name = "LEVEL",
+            help = "Filter by severity: error, warning, info"
+        )]
+        severity: Option<SeverityArg>,
+        /// Output format. Defaults to text.
+        #[arg(
+            long,
+            help = "Output format: json, csv, xml and text",
+            hide_possible_values = true
+        )]
+        format: Option<OutputFormat>,
+        /// Write the listing to a file instead of stdout.
+        #[arg(short, long, value_name = "PATH", help = "Output path")]
+        output: Option<PathBuf>,
+    },
 }
 
 /// Supported output formats for validation reports and query results.
@@ -168,6 +257,22 @@ pub enum OutputFormat {
     Xml,
     /// Human-readable colored terminal text (default).
     Text,
+}
+
+impl OutputFormat {
+    /// Parses an `[default] format` value loaded from the config file.
+    /// Returns `None` for unrecognized values — the caller decides whether
+    /// that is a hard error or a fall-through to the default.
+    #[must_use]
+    pub fn from_config_str(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "json" => Some(Self::Json),
+            "csv" => Some(Self::Csv),
+            "xml" => Some(Self::Xml),
+            "text" => Some(Self::Text),
+            _ => None,
+        }
+    }
 }
 
 /// GTFS files that support CRUD operations.
