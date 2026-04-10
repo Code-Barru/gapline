@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.13.0] - 2026-04-10
+
+### Features
+
+- feat: configuration management system
+
 ## [0.12.0] - 2026-04-09
 
 ### Features
