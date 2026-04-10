@@ -8,13 +8,12 @@ use headway_core::config::Config;
 use headway_core::crud::read::GtfsTarget;
 use headway_core::models::GtfsFeed;
 use headway_core::parser::{FeedLoader, ParseError};
-use headway_core::validation::ValidationReport;
 use headway_core::validation::engine::ValidationEngine;
 
 use super::error::RunError;
 use super::parser::{DirectiveKind, HwDirective};
 use crate::cli::output::{render_read_results, render_report};
-use crate::cli::parser::OutputFormat;
+use crate::cli::parser::{CrudTarget, OutputFormat};
 
 struct RunnerState {
     feed: Option<GtfsFeed>,
@@ -40,6 +39,10 @@ impl RunnerState {
     fn require_feed_mut(&mut self, line: usize) -> Result<&mut GtfsFeed, RunError> {
         self.feed.as_mut().ok_or(RunError::NoFeedLoaded { line })
     }
+}
+
+fn cmd_err(line: usize, message: String) -> RunError {
+    RunError::Command { line, message }
 }
 
 /// Executes `.hw` directives sequentially, stopping on first error.
@@ -140,10 +143,9 @@ fn exec_feed(state: &mut RunnerState, path: &std::path::Path, line: usize) -> Re
 
 fn exec_save(state: &RunnerState, path: Option<&PathBuf>, line: usize) -> Result<(), RunError> {
     let feed = state.require_feed(line)?;
-    let output = path.or(state.feed_path.as_ref()).ok_or(RunError::Command {
-        line,
-        message: "save requires a path (no feed path available as default)".to_string(),
-    })?;
+    let output = path
+        .or(state.feed_path.as_ref())
+        .ok_or_else(|| cmd_err(line, "save requires a path (no feed path available)".into()))?;
 
     let targets: Vec<GtfsTarget> = state.modified_targets.iter().copied().collect();
 
@@ -152,10 +154,7 @@ fn exec_save(state: &RunnerState, path: Option<&PathBuf>, line: usize) -> Result
             .map_err(|e| RunError::Write { line, source: e });
     };
 
-    let source = FeedLoader::open(feed_path).map_err(|e| RunError::Command {
-        line,
-        message: e.to_string(),
-    })?;
+    let source = FeedLoader::open(feed_path).map_err(|e| cmd_err(line, e.to_string()))?;
 
     headway_core::writer::write_modified_targets(feed, &source, &targets, output)
         .map_err(|e| RunError::Write { line, source: e })
@@ -169,19 +168,14 @@ fn exec_validate(
 ) -> Result<(), RunError> {
     let feed = state.require_feed(line)?;
 
-    let config = Config {
-        quiet: true,
-        ..Config::default()
-    };
+    let mut config = Config::default();
+    config.output.show_progress = false;
     let engine = ValidationEngine::new(Arc::new(config));
 
-    let report: ValidationReport = engine.validate_feed(feed, &state.parse_errors);
+    let report = engine.validate_feed(feed, &state.parse_errors);
 
     let fmt = format.unwrap_or(OutputFormat::Text);
-    render_report(&report, fmt, output).map_err(|e| RunError::Command {
-        line,
-        message: format!("render error: {e}"),
-    })?;
+    render_report(&report, fmt, output).map_err(|e| cmd_err(line, format!("render error: {e}")))?;
 
     if report.has_errors() {
         return Err(RunError::ValidationFailed { line });
@@ -192,7 +186,7 @@ fn exec_validate(
 
 fn exec_read(
     state: &RunnerState,
-    target: crate::cli::parser::CrudTarget,
+    target: CrudTarget,
     where_query: Option<&str>,
     format: Option<OutputFormat>,
     output: Option<&std::path::Path>,
@@ -200,34 +194,24 @@ fn exec_read(
 ) -> Result<(), RunError> {
     let feed = state.require_feed(line)?;
 
-    let query = match where_query {
-        Some(q) => Some(
-            headway_core::crud::query::parse(q).map_err(|e| RunError::Command {
-                line,
-                message: format!("invalid query: {e}"),
-            })?,
-        ),
-        None => None,
-    };
+    let query = where_query
+        .map(headway_core::crud::query::parse)
+        .transpose()
+        .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
     let result = headway_core::crud::read::read_records(feed, target.to_target(), query.as_ref())
-        .map_err(|e| RunError::Command {
-        line,
-        message: e.to_string(),
-    })?;
+        .map_err(|e| cmd_err(line, e.to_string()))?;
 
     let fmt = format.unwrap_or(OutputFormat::Text);
-    render_read_results(&result, fmt, output).map_err(|e| RunError::Command {
-        line,
-        message: format!("render error: {e}"),
-    })?;
+    render_read_results(&result, fmt, output)
+        .map_err(|e| cmd_err(line, format!("render error: {e}")))?;
 
     Ok(())
 }
 
 fn exec_create(
     state: &mut RunnerState,
-    target: crate::cli::parser::CrudTarget,
+    target: CrudTarget,
     set: &[String],
     confirm: bool,
     line: usize,
@@ -238,12 +222,8 @@ fn exec_create(
 
     let feed = state.require_feed(line)?;
 
-    let plan = headway_core::crud::create::validate_create(feed, target.to_target(), set).map_err(
-        |e| RunError::Command {
-            line,
-            message: e.to_string(),
-        },
-    )?;
+    let plan = headway_core::crud::create::validate_create(feed, target.to_target(), set)
+        .map_err(|e| cmd_err(line, e.to_string()))?;
 
     let feed = state.require_feed_mut(line)?;
     headway_core::crud::create::apply_create(feed, plan);
@@ -255,7 +235,7 @@ fn exec_create(
 
 fn exec_update(
     state: &mut RunnerState,
-    target: crate::cli::parser::CrudTarget,
+    target: CrudTarget,
     where_query: &str,
     set: &[String],
     confirm: bool,
@@ -268,17 +248,12 @@ fn exec_update(
 
     let feed = state.require_feed(line)?;
 
-    let query = headway_core::crud::query::parse(where_query).map_err(|e| RunError::Command {
-        line,
-        message: format!("invalid query: {e}"),
-    })?;
+    let query = headway_core::crud::query::parse(where_query)
+        .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
     let plan =
         headway_core::crud::update::validate_update(feed, target.to_target(), &query, set, cascade)
-            .map_err(|e| RunError::Command {
-                line,
-                message: e.to_string(),
-            })?;
+            .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
         eprintln!("  0 records matched. Nothing to update.");
@@ -302,7 +277,7 @@ fn exec_update(
 
 fn exec_delete(
     state: &mut RunnerState,
-    target: crate::cli::parser::CrudTarget,
+    target: CrudTarget,
     where_query: Option<&str>,
     confirm: bool,
     line: usize,
@@ -311,23 +286,16 @@ fn exec_delete(
         return Err(RunError::MissingConfirm { line });
     }
 
-    let where_query = where_query.ok_or_else(|| RunError::Command {
-        line,
-        message: "delete requires --where filter".to_string(),
-    })?;
+    let where_query =
+        where_query.ok_or_else(|| cmd_err(line, "delete requires --where filter".into()))?;
 
     let feed = state.require_feed(line)?;
 
-    let query = headway_core::crud::query::parse(where_query).map_err(|e| RunError::Command {
-        line,
-        message: format!("invalid query: {e}"),
-    })?;
+    let query = headway_core::crud::query::parse(where_query)
+        .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
     let plan = headway_core::crud::delete::validate_delete(feed, target.to_target(), &query)
-        .map_err(|e| RunError::Command {
-            line,
-            message: e.to_string(),
-        })?;
+        .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
         eprintln!("  0 records matched. Nothing to delete.");

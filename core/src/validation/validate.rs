@@ -34,7 +34,7 @@ static SPINNER_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, ParserError> {
     let mut source = FeedLoader::open(path)?;
     source.preload()?;
-    let quiet = config.quiet;
+    let show_progress = config.output.show_progress;
     let engine = ValidationEngine::new(config);
 
     let structural_report = engine.validate_structural(&source);
@@ -44,7 +44,7 @@ pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, Pa
     }
 
     let spinner = ProgressBar::new_spinner();
-    if !quiet && std::io::stderr().is_terminal() {
+    if show_progress && std::io::stderr().is_terminal() {
         spinner.set_style(SPINNER_STYLE.clone());
         spinner.set_message("Loading feed...");
         spinner.enable_steady_tick(std::time::Duration::from_millis(100));

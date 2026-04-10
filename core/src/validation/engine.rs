@@ -77,7 +77,6 @@ fn display_group(progress_group: &str) -> &str {
 /// let report = engine.validate_structural(&source);
 /// ```
 pub struct ValidationEngine {
-    #[allow(dead_code)]
     config: Arc<Config>,
     /// Pre-parsing rules (sections 1-2) operating on raw `FeedSource`.
     pre_rules: Vec<Box<dyn StructuralValidationRule>>,
@@ -89,33 +88,34 @@ impl ValidationEngine {
     /// Creates a new engine pre-loaded with all registered rules.
     #[must_use]
     pub fn new(config: Arc<Config>) -> Self {
-        let max_rows = config.max_rows;
-        let max_trip_duration_hours = config.max_trip_duration_hours;
-        let max_route_short_name_length = config.max_route_short_name_length;
+        let max_rows = config.validation.max_rows;
+        let thresholds = &config.validation.thresholds;
+        let max_trip_duration_hours = thresholds.time.max_trip_duration_hours;
+        let max_route_short_name_length = thresholds.naming.max_route_short_name_length;
         let distance_thresholds = crate::validation::schedule_time_validation::DistanceThresholds {
-            max_stop_to_shape_distance_m: config.max_stop_to_shape_distance_m,
-            min_shape_point_distance_m: config.min_shape_point_distance_m,
-            shape_dist_incoherence_ratio: config.shape_dist_incoherence_ratio,
-            min_distance_from_origin_m: config.min_distance_from_origin_m,
-            min_distance_from_poles_m: config.min_distance_from_poles_m,
+            max_stop_to_shape_distance_m: thresholds.distances.max_stop_to_shape_distance_m,
+            min_shape_point_distance_m: thresholds.distances.min_shape_point_distance_m,
+            shape_dist_incoherence_ratio: thresholds.distances.shape_dist_incoherence_ratio,
+            min_distance_from_origin_m: thresholds.coordinates.min_distance_from_origin_m,
+            min_distance_from_poles_m: thresholds.coordinates.min_distance_from_poles_m,
         };
         let calendar_thresholds = crate::validation::schedule_time_validation::CalendarThresholds {
-            min_feed_coverage_days: config.min_feed_coverage_days,
-            feed_expiration_warning_days: config.feed_expiration_warning_days,
-            min_trip_activity_days: config.min_trip_activity_days,
-            reference_date: config.reference_date,
+            min_feed_coverage_days: thresholds.calendar.min_feed_coverage_days,
+            feed_expiration_warning_days: thresholds.calendar.feed_expiration_warning_days,
+            min_trip_activity_days: thresholds.calendar.min_trip_activity_days,
+            reference_date: thresholds.calendar.reference_date,
         };
         let transfer_thresholds = crate::validation::schedule_time_validation::TransferThresholds {
-            max_transfer_distance_m: config.max_transfer_distance_m,
-            transfer_distance_warning_m: config.transfer_distance_warning_m,
+            max_transfer_distance_m: thresholds.distances.max_transfer_distance_m,
+            transfer_distance_warning_m: thresholds.distances.transfer_distance_warning_m,
         };
         let speed_thresholds = crate::validation::schedule_time_validation::SpeedThresholds {
-            tram_kmh: config.speed_limit_tram_kmh,
-            subway_kmh: config.speed_limit_subway_kmh,
-            rail_kmh: config.speed_limit_rail_kmh,
-            bus_kmh: config.speed_limit_bus_kmh,
-            ferry_kmh: config.speed_limit_ferry_kmh,
-            default_kmh: config.speed_limit_default_kmh,
+            tram_kmh: thresholds.speed_limits.tram_kmh,
+            subway_kmh: thresholds.speed_limits.subway_kmh,
+            rail_kmh: thresholds.speed_limits.rail_kmh,
+            bus_kmh: thresholds.speed_limits.bus_kmh,
+            ferry_kmh: thresholds.speed_limits.ferry_kmh,
+            default_kmh: thresholds.speed_limits.default_kmh,
         };
         let service_cache = Arc::new(
             crate::validation::schedule_time_validation::service_dates::ServiceDateCache::new(),
@@ -204,7 +204,7 @@ impl ValidationEngine {
         sections.sort();
 
         let multi = MultiProgress::new();
-        if self.config.quiet || !std::io::stderr().is_terminal() {
+        if !self.config.output.show_progress || !std::io::stderr().is_terminal() {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 
@@ -278,7 +278,7 @@ impl ValidationEngine {
         sections.sort();
 
         let multi = MultiProgress::new();
-        if self.config.quiet || !std::io::stderr().is_terminal() {
+        if !self.config.output.show_progress || !std::io::stderr().is_terminal() {
             multi.set_draw_target(ProgressDrawTarget::hidden());
         }
 

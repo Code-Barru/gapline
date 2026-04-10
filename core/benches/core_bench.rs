@@ -89,10 +89,9 @@ fn bench_feed_loading(c: &mut Criterion) {
 fn bench_validation(c: &mut Criterion) {
     let (_dir, zip_path) = create_valid_feed();
     let source = FeedLoader::open(&zip_path).expect("open failed");
-    let config = Arc::new(Config {
-        quiet: true,
-        ..Config::default()
-    });
+    let mut bench_config = Config::default();
+    bench_config.output.show_progress = false;
+    let config = Arc::new(bench_config);
 
     c.bench_function("validation/structural", |b| {
         let engine = ValidationEngine::new(Arc::clone(&config));

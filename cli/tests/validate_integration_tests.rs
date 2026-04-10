@@ -326,5 +326,5 @@ fn engine_uses_arc_config() {
     let config = Arc::new(Config::default());
     let config_clone = Arc::clone(&config);
     let _engine = ValidationEngine::new(config);
-    assert_eq!(config_clone.max_rows, None);
+    assert_eq!(config_clone.validation.max_rows, None);
 }
