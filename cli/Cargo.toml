@@ -22,11 +22,15 @@ indicatif    = { workspace = true }
 rayon        = { workspace = true }
 serde        = { workspace = true }
 serde_json   = { workspace = true }
+csv          = { workspace = true }
+quick-xml    = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
 tempfile   = { workspace = true }
 zip        = { workspace = true }
+csv        = { workspace = true }
+quick-xml  = { workspace = true }
 
 [lints]
 workspace = true

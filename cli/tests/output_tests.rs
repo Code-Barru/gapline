@@ -233,29 +233,6 @@ fn test_tty_detection_pipe() {
     assert!(!content.contains("\x1b["));
 }
 
-// Test 9: Format not supported - XML
-#[test]
-fn test_format_xml_not_supported() {
-    let errors = create_test_errors_1();
-    let report = ValidationReport::from(errors);
-
-    let result = render_report(&report, OutputFormat::Xml, None, &test_config());
-
-    assert!(result.is_err());
-    // The error message is printed to stderr, but the Result is Err
-}
-
-// Test 10: Format not supported - CSV
-#[test]
-fn test_format_csv_not_supported() {
-    let errors = create_test_errors_1();
-    let report = ValidationReport::from(errors);
-
-    let result = render_report(&report, OutputFormat::Csv, None, &test_config());
-
-    assert!(result.is_err());
-}
-
 // Test 11: Summary PASS - only warnings
 #[test]
 fn test_summary_pass_with_warnings() {
@@ -448,4 +425,247 @@ fn read_file_output() {
     let content = fs::read_to_string(&path).unwrap();
     assert!(!content.is_empty());
     serde_json::from_str::<serde_json::Value>(&content).unwrap();
+}
+
+fn render_validation_to_string(report: &ValidationReport, format: OutputFormat) -> String {
+    let temp = NamedTempFile::new().unwrap();
+    render_report(report, format, Some(temp.path()), &test_config()).unwrap();
+    fs::read_to_string(temp.path()).unwrap()
+}
+
+fn render_read_to_string(result: &ReadResult, format: OutputFormat) -> String {
+    let temp = NamedTempFile::new().unwrap();
+    render_read_results(result, format, Some(temp.path())).unwrap();
+    fs::read_to_string(temp.path()).unwrap()
+}
+
+#[test]
+fn validate_csv_has_expected_headers() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Csv);
+    let mut lines = content.lines();
+    let header = lines.next().unwrap();
+    assert_eq!(
+        header,
+        "rule_id,section,severity,message,file_name,line_number,field_name,value"
+    );
+}
+
+#[test]
+fn validate_csv_one_row_per_error() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Csv);
+    let mut rdr = csv::Reader::from_reader(content.as_bytes());
+    let rows: Vec<_> = rdr.records().map(|r| r.unwrap()).collect();
+    assert_eq!(rows.len(), 4);
+}
+
+#[test]
+fn validate_csv_escapes_commas_and_quotes() {
+    let errors = vec![
+        ValidationError::new("e1", "1", Severity::Error)
+            .message("foo, bar \"baz\"")
+            .file("stops.txt"),
+    ];
+    let report = ValidationReport::from(errors);
+    let content = render_validation_to_string(&report, OutputFormat::Csv);
+
+    let mut rdr = csv::Reader::from_reader(content.as_bytes());
+    let rec = rdr.records().next().unwrap().unwrap();
+    assert_eq!(&rec[3], "foo, bar \"baz\"");
+}
+
+#[test]
+fn validate_csv_none_fields_are_empty_string() {
+    let errors = vec![ValidationError::new("e1", "1", Severity::Error).message("no line number")];
+    let report = ValidationReport::from(errors);
+    let content = render_validation_to_string(&report, OutputFormat::Csv);
+    let mut rdr = csv::Reader::from_reader(content.as_bytes());
+    let rec = rdr.records().next().unwrap().unwrap();
+    assert_eq!(&rec[4], "");
+    assert_eq!(&rec[5], "");
+    assert_eq!(&rec[6], "");
+    assert_eq!(&rec[7], "");
+    assert!(!content.contains("null"));
+}
+
+#[test]
+fn validate_csv_zero_errors_emits_header_only() {
+    let report = ValidationReport::from(vec![]);
+    let content = render_validation_to_string(&report, OutputFormat::Csv);
+    let lines: Vec<_> = content.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(lines.len(), 1);
+    assert!(lines[0].starts_with("rule_id,"));
+}
+
+#[test]
+fn validate_xml_is_well_formed() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Xml);
+    let mut rdr = quick_xml::Reader::from_str(&content);
+    loop {
+        match rdr.read_event() {
+            Ok(quick_xml::events::Event::Eof) => break,
+            Ok(_) => {}
+            Err(e) => panic!("malformed XML: {e}"),
+        }
+    }
+}
+
+#[test]
+fn validate_xml_contains_all_fields() {
+    let errors = vec![
+        ValidationError::new("e1", "1", Severity::Error)
+            .message("Invalid lat")
+            .file("stops.txt")
+            .line(42)
+            .field("stop_lat")
+            .value("999.0"),
+    ];
+    let report = ValidationReport::from(errors);
+    let content = render_validation_to_string(&report, OutputFormat::Xml);
+    assert!(content.contains("<rule_id>e1</rule_id>"));
+    assert!(content.contains("<section>1</section>"));
+    assert!(content.contains("<severity>error</severity>"));
+    assert!(content.contains("<message>Invalid lat</message>"));
+    assert!(content.contains("<file_name>stops.txt</file_name>"));
+    assert!(content.contains("<line_number>42</line_number>"));
+    assert!(content.contains("<field_name>stop_lat</field_name>"));
+    assert!(content.contains("<value>999.0</value>"));
+}
+
+#[test]
+fn validate_xml_is_pretty_printed() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Xml);
+    assert!(content.contains('\n'));
+    assert!(content.contains("  <"));
+}
+
+#[test]
+fn validate_xml_zero_errors_has_valid_root() {
+    let report = ValidationReport::from(vec![]);
+    let content = render_validation_to_string(&report, OutputFormat::Xml);
+    assert!(content.contains("<validation_report>"));
+    assert!(content.contains("</validation_report>"));
+    assert!(content.contains("<error_count>0</error_count>"));
+}
+
+#[test]
+fn read_csv_headers_match_result() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Csv);
+    let mut rdr = csv::Reader::from_reader(content.as_bytes());
+    let headers = rdr.headers().unwrap().clone();
+    let got: Vec<&str> = headers.iter().collect();
+    assert_eq!(got, vec!["stop_id", "stop_name", "stop_lat"]);
+}
+
+#[test]
+fn read_csv_none_fields_are_empty_string() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Csv);
+    let mut rdr = csv::Reader::from_reader(content.as_bytes());
+    let rows: Vec<_> = rdr.records().map(|r| r.unwrap()).collect();
+    assert_eq!(&rows[1][1], "");
+    assert!(!content.contains("null"));
+}
+
+#[test]
+fn read_csv_empty_result_emits_headers_only() {
+    let result = ReadResult {
+        headers: vec!["stop_id", "stop_name"],
+        rows: vec![],
+        file_name: "stops.txt",
+    };
+    let content = render_read_to_string(&result, OutputFormat::Csv);
+    let lines: Vec<_> = content.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0], "stop_id,stop_name");
+}
+
+#[test]
+fn read_xml_is_well_formed() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Xml);
+    let mut rdr = quick_xml::Reader::from_str(&content);
+    loop {
+        match rdr.read_event() {
+            Ok(quick_xml::events::Event::Eof) => break,
+            Ok(_) => {}
+            Err(e) => panic!("malformed XML: {e}"),
+        }
+    }
+}
+
+#[test]
+fn read_xml_root_has_file_attr() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Xml);
+    assert!(content.contains(r#"<records file="stops.txt">"#));
+    assert!(content.contains("<record>"));
+    assert!(content.contains(r#"<field name="stop_id">S1</field>"#));
+}
+
+#[test]
+fn read_xml_none_fields_are_empty_elements() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Xml);
+    assert!(content.contains(r#"<field name="stop_name"/>"#));
+}
+
+#[test]
+fn read_xml_pretty_printed() {
+    let result = sample_read_result();
+    let content = render_read_to_string(&result, OutputFormat::Xml);
+    assert!(content.contains('\n'));
+    assert!(content.contains("  <record>"));
+}
+
+#[test]
+fn validate_xml_written_to_file() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let temp = NamedTempFile::new().unwrap();
+    render_report(
+        &report,
+        OutputFormat::Xml,
+        Some(temp.path()),
+        &test_config(),
+    )
+    .unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    assert!(content.starts_with("<?xml"));
+}
+
+#[test]
+fn validate_csv_written_to_file() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let temp = NamedTempFile::new().unwrap();
+    render_report(
+        &report,
+        OutputFormat::Csv,
+        Some(temp.path()),
+        &test_config(),
+    )
+    .unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    assert!(content.starts_with("rule_id,"));
+}
+
+#[test]
+fn read_csv_written_to_file() {
+    let result = sample_read_result();
+    let temp = NamedTempFile::new().unwrap();
+    render_read_results(&result, OutputFormat::Csv, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    assert!(content.starts_with("stop_id,"));
+}
+
+#[test]
+fn read_xml_written_to_file() {
+    let result = sample_read_result();
+    let temp = NamedTempFile::new().unwrap();
+    render_read_results(&result, OutputFormat::Xml, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    assert!(content.starts_with("<?xml"));
 }

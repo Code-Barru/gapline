@@ -26,6 +26,7 @@ clap_complete = "4.5"
 colored     = "3.1.1"
 comfy-table = "7.2.2"
 indicatif   = "0.18.4"
+quick-xml   = { version = "0.36", features = ["serialize"] }
 # Internal
 headway-core = { path = "core" }
 # Dev
