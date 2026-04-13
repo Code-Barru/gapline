@@ -82,7 +82,7 @@ pub enum Commands {
         /// Output format for the validation report.
         #[arg(
             long,
-            help = "Output format: json, csv, xml and text",
+            help = "Output format: json, csv, xml, html and text",
             hide_possible_values = true
         )]
         format: Option<OutputFormat>,
@@ -120,7 +120,7 @@ pub enum Commands {
         /// Output format for the results.
         #[arg(
             long,
-            help = "Output format: json, csv, xml and text",
+            help = "Output format: json, csv, xml, html and text",
             hide_possible_values = true
         )]
         format: Option<OutputFormat>,
@@ -244,7 +244,7 @@ pub enum RulesCommand {
         /// Output format. Defaults to text.
         #[arg(
             long,
-            help = "Output format: json, csv, xml and text",
+            help = "Output format: json, csv, xml, html and text",
             hide_possible_values = true
         )]
         format: Option<OutputFormat>,
@@ -267,6 +267,8 @@ pub enum OutputFormat {
     Csv,
     /// Standard XML.
     Xml,
+    /// Self-contained HTML report with inlined CSS/JS.
+    Html,
     /// Human-readable colored terminal text (default).
     Text,
 }
@@ -281,6 +283,7 @@ impl OutputFormat {
             "json" => Some(Self::Json),
             "csv" => Some(Self::Csv),
             "xml" => Some(Self::Xml),
+            "html" => Some(Self::Html),
             "text" => Some(Self::Text),
             _ => None,
         }

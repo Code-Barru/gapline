@@ -3,6 +3,7 @@ use headway_core::config::Config;
 use headway_core::crud::read::ReadResult;
 use headway_core::validation::{Severity, ValidationError, ValidationReport};
 use std::fs;
+use std::path::Path;
 use tempfile::NamedTempFile;
 
 /// Default test config used by all `render_report` invocations in this file.
@@ -45,6 +46,7 @@ fn test_text_format_grouped_by_file() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -78,6 +80,7 @@ fn test_text_format_error_without_context() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -108,6 +111,7 @@ fn test_text_format_error_with_full_context() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -130,6 +134,7 @@ fn test_json_format() {
     render_report(
         &report,
         OutputFormat::Json,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -162,6 +167,7 @@ fn test_json_format_empty_report() {
     render_report(
         &report,
         OutputFormat::Json,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -189,7 +195,14 @@ fn test_file_writing() {
     let temp_file = NamedTempFile::new().unwrap();
     let path = temp_file.path().to_path_buf();
 
-    render_report(&report, OutputFormat::Json, Some(&path), &test_config()).unwrap();
+    render_report(
+        &report,
+        OutputFormat::Json,
+        Path::new("test_feed.zip"),
+        Some(&path),
+        &test_config(),
+    )
+    .unwrap();
 
     // Verify file exists and is parsable
     let content = fs::read_to_string(&path).unwrap();
@@ -204,7 +217,13 @@ fn test_file_writing_nonexistent_directory() {
     let report = ValidationReport::from(errors);
 
     let bad_path = std::path::PathBuf::from("/nonexistent/dir/report.json");
-    let result = render_report(&report, OutputFormat::Json, Some(&bad_path), &test_config());
+    let result = render_report(
+        &report,
+        OutputFormat::Json,
+        Path::new("test_feed.zip"),
+        Some(&bad_path),
+        &test_config(),
+    );
 
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
@@ -222,6 +241,7 @@ fn test_tty_detection_pipe() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -246,6 +266,7 @@ fn test_summary_pass_with_warnings() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -270,6 +291,7 @@ fn test_summary_fail_with_errors() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -307,6 +329,7 @@ fn test_grouping_by_file() {
     render_report(
         &report,
         OutputFormat::Text,
+        Path::new("test_feed.zip"),
         Some(temp_file.path()),
         &test_config(),
     )
@@ -429,7 +452,14 @@ fn read_file_output() {
 
 fn render_validation_to_string(report: &ValidationReport, format: OutputFormat) -> String {
     let temp = NamedTempFile::new().unwrap();
-    render_report(report, format, Some(temp.path()), &test_config()).unwrap();
+    render_report(
+        report,
+        format,
+        Path::new("test_feed.zip"),
+        Some(temp.path()),
+        &test_config(),
+    )
+    .unwrap();
     fs::read_to_string(temp.path()).unwrap()
 }
 
@@ -629,6 +659,7 @@ fn validate_xml_written_to_file() {
     render_report(
         &report,
         OutputFormat::Xml,
+        Path::new("test_feed.zip"),
         Some(temp.path()),
         &test_config(),
     )
@@ -644,6 +675,7 @@ fn validate_csv_written_to_file() {
     render_report(
         &report,
         OutputFormat::Csv,
+        Path::new("test_feed.zip"),
         Some(temp.path()),
         &test_config(),
     )
@@ -668,4 +700,182 @@ fn read_xml_written_to_file() {
     render_read_results(&result, OutputFormat::Xml, Some(temp.path())).unwrap();
     let content = fs::read_to_string(temp.path()).unwrap();
     assert!(content.starts_with("<?xml"));
+}
+
+// ===========================================================================
+// HTML format
+// ===========================================================================
+
+#[test]
+fn validate_html_contains_summary_and_verdict_fail() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.starts_with("<!DOCTYPE html>"));
+    assert!(content.contains(r#"id="summary""#));
+    assert!(content.contains(r#"id="verdict""#));
+    assert!(content.contains("FAIL"));
+    assert!(content.contains("verdict fail"));
+    assert!(content.contains(r#"<span class="n">2</span> errors"#));
+    assert!(content.contains(r#"<span class="n">1</span> warnings"#));
+    assert!(content.contains(r#"<span class="n">1</span> infos"#));
+}
+
+#[test]
+fn validate_html_empty_report_shows_pass() {
+    let report = ValidationReport::from(vec![]);
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.contains("PASS"));
+    assert!(content.contains("No issues found"));
+    assert!(content.contains("verdict pass"));
+    assert!(!content.contains(r#"class="row row-error""#));
+    assert!(content.contains("empty-state"));
+}
+
+#[test]
+fn validate_html_groups_errors_by_file_with_counts() {
+    let errors = vec![
+        ValidationError::new("e1", "1", Severity::Error)
+            .message("a")
+            .file("stops.txt"),
+        ValidationError::new("e2", "1", Severity::Error)
+            .message("b")
+            .file("stops.txt"),
+        ValidationError::new("e3", "1", Severity::Error)
+            .message("c")
+            .file("stops.txt"),
+        ValidationError::new("e4", "1", Severity::Error)
+            .message("d")
+            .file("trips.txt"),
+        ValidationError::new("e5", "1", Severity::Error)
+            .message("e")
+            .file("trips.txt"),
+    ];
+    let report = ValidationReport::from(errors);
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.contains(r#"data-file-count="3""#));
+    assert!(content.contains(r#"data-file-count="2""#));
+    let groups = content.matches(r#"class="file-group""#).count();
+    assert_eq!(groups, 2);
+}
+
+#[test]
+fn validate_html_escapes_user_values_against_xss() {
+    let errors = vec![
+        ValidationError::new("e1", "1", Severity::Error)
+            .message("boom")
+            .file("stops.txt")
+            .line(1)
+            .field("stop_name")
+            .value("<script>alert(1)</script>"),
+    ];
+    let report = ValidationReport::from(errors);
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
+    assert!(!content.contains("<script>alert(1)</script>"));
+}
+
+#[test]
+fn validate_html_includes_metadata_header() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.contains("test_feed.zip"));
+    assert!(content.contains(&format!("headway v{}", env!("CARGO_PKG_VERSION"))));
+    // Generated timestamp: %Y-%m-%d %H:%M:%S — check for the "20" century prefix
+    // next to the "Generated:" label
+    let gen_pos = content.find("Generated:").expect("Generated label present");
+    let tail = &content[gen_pos..gen_pos + 40];
+    assert!(
+        tail.contains("20"),
+        "expected a year-like token near Generated label, got: {tail}"
+    );
+}
+
+#[test]
+fn validate_html_contains_severity_toggles() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let content = render_validation_to_string(&report, OutputFormat::Html);
+
+    assert!(content.contains(r#"id="toggle-error""#));
+    assert!(content.contains(r#"id="toggle-warning""#));
+    assert!(content.contains(r#"id="toggle-info""#));
+    assert!(content.contains("hide-error"));
+}
+
+#[test]
+fn validate_html_writes_to_file_and_is_parseable() {
+    let report = ValidationReport::from(create_test_errors_1());
+    let temp = NamedTempFile::new().unwrap();
+    render_report(
+        &report,
+        OutputFormat::Html,
+        Path::new("my_feed.zip"),
+        Some(temp.path()),
+        &test_config(),
+    )
+    .unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+    assert!(content.starts_with("<!DOCTYPE html>"));
+    assert!(content.ends_with("</html>\n") || content.ends_with("</html>"));
+    assert!(content.contains("my_feed.zip"));
+}
+
+#[test]
+fn parser_accepts_html_format() {
+    assert!(matches!(
+        OutputFormat::from_config_str("html"),
+        Some(OutputFormat::Html)
+    ));
+    assert!(matches!(
+        OutputFormat::from_config_str("HTML"),
+        Some(OutputFormat::Html)
+    ));
+}
+
+#[test]
+fn read_html_renders_table_with_escaped_values() {
+    let result = ReadResult {
+        headers: vec!["stop_id", "stop_name"],
+        rows: vec![
+            vec![Some("S1".into()), Some("A&B <x>".into())],
+            vec![Some("S2".into()), None],
+        ],
+        file_name: "stops.txt",
+    };
+    let content = render_read_to_string(&result, OutputFormat::Html);
+
+    assert!(content.starts_with("<!DOCTYPE html>"));
+    assert!(content.contains("<table>"));
+    assert!(content.contains("<th>stop_id</th>"));
+    assert!(content.contains("<th>stop_name</th>"));
+    assert!(content.contains("A&amp;B &lt;x&gt;"));
+    assert!(!content.contains("A&B <x>"));
+    assert!(content.contains(r#"class="empty""#));
+    assert!(content.contains("Found 2 records in stops.txt"));
+}
+
+#[test]
+fn rules_html_groups_by_stage() {
+    use headway::cli::{RuleEntry, Stage, render_rules_list};
+    let entries = vec![
+        RuleEntry::new("struct_rule_a", Severity::Error, Stage::Structural),
+        RuleEntry::new("sem_rule_a", Severity::Warning, Stage::Semantic),
+        RuleEntry::new("sem_rule_b", Severity::Info, Stage::Semantic),
+    ];
+    let temp = NamedTempFile::new().unwrap();
+    render_rules_list(&entries, OutputFormat::Html, Some(temp.path())).unwrap();
+    let content = fs::read_to_string(temp.path()).unwrap();
+
+    assert!(content.starts_with("<!DOCTYPE html>"));
+    assert!(content.contains("structural (1)"));
+    assert!(content.contains("semantic (2)"));
+    assert!(content.contains("<code>struct_rule_a</code>"));
+    assert!(content.contains("<code>sem_rule_a</code>"));
+    assert!(content.contains(r#"class="sev error""#));
+    assert!(content.contains(r#"class="sev warning""#));
+    assert!(content.contains(r#"class="sev info""#));
 }

@@ -1,13 +1,16 @@
 use colored::{Color, Colorize};
 use serde::Serialize;
 use serde_json::{json, to_string_pretty};
+use std::fmt::Write as _;
 use std::io::{self, IsTerminal, Write};
 use std::path::Path;
 
-use super::{csv_to_io, open_writer, xml_to_io};
+use super::{announce_html_dest, csv_to_io, html_escape, open_html_sink, open_writer, xml_to_io};
 use crate::cli::OutputFormat;
 use headway_core::config::Config;
 use headway_core::validation::{Severity, ValidationError, ValidationReport};
+
+const VALIDATION_HTML_TEMPLATE: &str = include_str!("validation_template.html");
 
 struct FilteredView<'a> {
     errors: Vec<&'a ValidationError>,
@@ -67,6 +70,7 @@ fn severity_color(severity: Severity) -> Color {
 pub fn render_report(
     report: &ValidationReport,
     format: OutputFormat,
+    feed_path: &Path,
     output_dest: Option<&Path>,
     config: &Config,
 ) -> io::Result<()> {
@@ -83,6 +87,7 @@ pub fn render_report(
         OutputFormat::Json => render_json(&view, output_dest),
         OutputFormat::Csv => render_csv(&view, output_dest),
         OutputFormat::Xml => render_xml(&view, output_dest),
+        OutputFormat::Html => render_html(&view, feed_path, output_dest),
     }
 }
 
@@ -240,4 +245,113 @@ fn render_xml(view: &FilteredView<'_>, output_dest: Option<&Path>) -> io::Result
     writeln!(writer, r#"<?xml version="1.0" encoding="UTF-8"?>"#)?;
     writeln!(writer, "{body}")?;
     writer.flush()
+}
+
+fn severity_class(severity: Severity) -> &'static str {
+    match severity {
+        Severity::Error => "row-error",
+        Severity::Warning => "row-warning",
+        Severity::Info => "row-info",
+    }
+}
+
+fn build_html_body(view: &FilteredView<'_>) -> String {
+    if view.errors.is_empty() {
+        return r#"<section class="empty-state"><div class="icon">&#10003;</div><p><strong>No issues found.</strong></p><p>The feed passed every enabled validation rule.</p></section>"#
+            .to_string();
+    }
+
+    let mut out = String::new();
+    let mut idx = 0;
+    while idx < view.errors.len() {
+        let group_file = view.errors[idx].file_name.as_deref();
+        let mut end = idx + 1;
+        while end < view.errors.len() && view.errors[end].file_name.as_deref() == group_file {
+            end += 1;
+        }
+        let group = &view.errors[idx..end];
+        let file_label = group_file.unwrap_or("(no file)");
+        let count = group.len();
+        let name = html_escape(file_label);
+        let _ = write!(
+            out,
+            r#"<section class="file-group" data-file-count="{count}"><h2>{name} <span class="count">({count})</span></h2><ul>"#,
+        );
+        for err in group {
+            let sev = err.severity.to_string();
+            let class = severity_class(err.severity);
+            let sev_esc = html_escape(&sev);
+            let rule = html_escape(&err.rule_id);
+            let msg = html_escape(&err.message);
+            let _ = write!(
+                out,
+                r#"<li class="row {class}"><span class="sev">{sev_esc}</span><div class="body"><code>{rule}</code> {msg}"#,
+            );
+            if let (Some(file), Some(line)) = (&err.file_name, err.line_number) {
+                let file_esc = html_escape(file);
+                let _ = write!(out, r#"<span class="loc">— {file_esc}:{line}</span>"#,);
+            }
+            if let (Some(field), Some(value)) = (&err.field_name, &err.value) {
+                let field_esc = html_escape(field);
+                let value_esc = html_escape(value);
+                let _ = write!(
+                    out,
+                    r#"<span class="field">— {field_esc} = <code>{value_esc}</code></span>"#,
+                );
+            }
+            out.push_str("</div></li>");
+        }
+        out.push_str("</ul></section>");
+        idx = end;
+    }
+    out
+}
+
+fn render_html_string(view: &FilteredView<'_>, feed_path: &Path) -> String {
+    let feed_name = feed_path.file_name().map_or_else(
+        || feed_path.to_string_lossy().into_owned(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    let generated_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let version = env!("CARGO_PKG_VERSION");
+    let (verdict_class, verdict_label) = if view.has_errors() {
+        (
+            "fail",
+            format!(
+                "FAIL — {} error{}, {} warning{}",
+                view.error_count,
+                if view.error_count == 1 { "" } else { "s" },
+                view.warning_count,
+                if view.warning_count == 1 { "" } else { "s" },
+            ),
+        )
+    } else {
+        ("pass", "PASS — No issues found".to_string())
+    };
+    let body = build_html_body(view);
+
+    VALIDATION_HTML_TEMPLATE
+        .replace("{{FEED_NAME}}", &html_escape(&feed_name))
+        .replace("{{GENERATED_AT}}", &html_escape(&generated_at))
+        .replace("{{VERSION}}", &html_escape(version))
+        .replace("{{VERDICT_CLASS}}", verdict_class)
+        .replace("{{VERDICT_LABEL}}", &html_escape(&verdict_label))
+        .replace("{{ERROR_COUNT}}", &view.error_count.to_string())
+        .replace("{{WARNING_COUNT}}", &view.warning_count.to_string())
+        .replace("{{INFO_COUNT}}", &view.info_count.to_string())
+        .replace("{{BODY}}", &body)
+}
+
+fn render_html(
+    view: &FilteredView<'_>,
+    feed_path: &Path,
+    output_dest: Option<&Path>,
+) -> io::Result<()> {
+    let rendered = render_html_string(view, feed_path);
+    let (mut writer, dest) = open_html_sink(output_dest)?;
+    writer.write_all(rendered.as_bytes())?;
+    writer.flush()?;
+    drop(writer);
+    announce_html_dest(&dest);
+    Ok(())
 }

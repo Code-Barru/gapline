@@ -668,6 +668,7 @@ checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
 name = "headway"
 version = "0.13.0"
 dependencies = [
+ "chrono",
  "clap",
  "clap_complete",
  "colored",

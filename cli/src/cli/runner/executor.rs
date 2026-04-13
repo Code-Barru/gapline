@@ -193,7 +193,11 @@ fn exec_validate(
     let report = engine.validate_feed(feed, &state.parse_errors);
 
     let fmt = format.unwrap_or(OutputFormat::Text);
-    render_report(&report, fmt, output, config)
+    let feed_path = state
+        .feed_path
+        .clone()
+        .unwrap_or_else(|| std::path::PathBuf::from("feed"));
+    render_report(&report, fmt, &feed_path, output, config)
         .map_err(|e| cmd_err(line, format!("render error: {e}")))?;
 
     if report.has_errors() {

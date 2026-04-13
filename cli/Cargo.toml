@@ -24,13 +24,15 @@ serde        = { workspace = true }
 serde_json   = { workspace = true }
 csv          = { workspace = true }
 quick-xml    = { workspace = true }
+chrono       = { workspace = true }
+tempfile     = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
-tempfile   = { workspace = true }
 zip        = { workspace = true }
 csv        = { workspace = true }
 quick-xml  = { workspace = true }
+tempfile   = { workspace = true }
 
 [lints]
 workspace = true

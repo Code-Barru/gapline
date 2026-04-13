@@ -28,7 +28,7 @@ pub fn run_validate(
         }
     };
 
-    if let Err(e) = render_report(&report, fmt, output.as_deref(), config) {
+    if let Err(e) = render_report(&report, fmt, &feed, output.as_deref(), config) {
         eprintln!("Error while rendering report: {e}");
         process::exit(1);
     }

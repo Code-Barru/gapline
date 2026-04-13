@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Headway Validation Report — {{FEED_NAME}}</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f7;
+  color: #222;
+  line-height: 1.5;
+}
+header.page {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 1.5rem 2rem;
+}
+header.page h1 { margin: 0 0 .25rem; font-size: 1.4rem; }
+header.page .meta { opacity: .75; font-size: .85rem; }
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem; }
+.summary {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  margin-bottom: 1.5rem;
+}
+.verdict {
+  display: inline-block;
+  padding: .35rem .8rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: .5px;
+}
+.verdict.pass { background: #2e7d32; color: #fff; }
+.verdict.fail { background: #d32f2f; color: #fff; }
+.counts { margin-top: .75rem; display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.counts .count { font-size: .95rem; }
+.counts .n { font-weight: 700; font-size: 1.1rem; }
+.counts .error .n { color: #d32f2f; }
+.counts .warning .n { color: #f57c00; }
+.counts .info .n { color: #1976d2; }
+.filters {
+  background: #fff;
+  border-radius: 8px;
+  padding: .9rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filters strong { font-size: .85rem; text-transform: uppercase; color: #666; }
+.filters label { cursor: pointer; user-select: none; font-size: .9rem; }
+.filters label input { margin-right: .35rem; }
+.file-group {
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.file-group > h2 {
+  margin: 0;
+  padding: .85rem 1.25rem;
+  font-size: 1rem;
+  background: #eceff1;
+  border-bottom: 1px solid #dfe3e6;
+}
+.file-group > h2 .count { color: #666; font-weight: 400; font-size: .85rem; }
+.file-group ul { list-style: none; margin: 0; padding: 0; }
+.row {
+  padding: .75rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: .9rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .75rem;
+  align-items: start;
+}
+.row:last-child { border-bottom: none; }
+.row .sev {
+  display: inline-block;
+  padding: .15rem .55rem;
+  border-radius: 3px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: #fff;
+  min-width: 62px;
+  text-align: center;
+}
+.row-error .sev { background: #d32f2f; }
+.row-warning .sev { background: #f57c00; }
+.row-info .sev { background: #1976d2; }
+.row .body code { background: #f5f5f5; padding: .1rem .35rem; border-radius: 3px; font-size: .85em; }
+.row .body .loc { color: #666; font-size: .82rem; margin-left: .35rem; }
+.row .body .field { color: #444; font-size: .82rem; margin-left: .35rem; }
+.empty-state {
+  background: #fff;
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  color: #666;
+}
+.empty-state .icon { font-size: 2.5rem; color: #2e7d32; }
+body.hide-error .row-error { display: none; }
+body.hide-warning .row-warning { display: none; }
+body.hide-info .row-info { display: none; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Headway Validation Report</h1>
+  <div class="meta">
+    Feed: <strong>{{FEED_NAME}}</strong>
+    &nbsp;·&nbsp; Generated: {{GENERATED_AT}}
+    &nbsp;·&nbsp; headway v{{VERSION}}
+  </div>
+</header>
+<main>
+  <section class="summary" id="summary">
+    <span id="verdict" class="verdict {{VERDICT_CLASS}}">{{VERDICT_LABEL}}</span>
+    <div class="counts">
+      <div class="count error"><span class="n">{{ERROR_COUNT}}</span> errors</div>
+      <div class="count warning"><span class="n">{{WARNING_COUNT}}</span> warnings</div>
+      <div class="count info"><span class="n">{{INFO_COUNT}}</span> infos</div>
+    </div>
+  </section>
+  <section class="filters" aria-label="Severity filters">
+    <strong>Filter</strong>
+    <label><input type="checkbox" id="toggle-error" checked> Error</label>
+    <label><input type="checkbox" id="toggle-warning" checked> Warning</label>
+    <label><input type="checkbox" id="toggle-info" checked> Info</label>
+  </section>
+  {{BODY}}
+</main>
+<script>
+(function() {
+  var pairs = [
+    ["toggle-error", "hide-error"],
+    ["toggle-warning", "hide-warning"],
+    ["toggle-info", "hide-info"]
+  ];
+  pairs.forEach(function(p) {
+    var cb = document.getElementById(p[0]);
+    if (!cb) return;
+    cb.addEventListener("change", function() {
+      document.body.classList.toggle(p[1], !cb.checked);
+    });
+  });
+})();
+</script>
+</body>
+</html>
