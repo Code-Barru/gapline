@@ -42,6 +42,8 @@ pub enum Filter {
     Lt(String, String),
     /// `field <= value`
     Lte(String, String),
+    /// `field LIKE pattern` — SQL-style pattern match (`%` = any sequence, `_` = single char).
+    Like(String, String),
 }
 
 impl Filter {
@@ -54,7 +56,8 @@ impl Filter {
             | Self::Gt(f, _)
             | Self::Gte(f, _)
             | Self::Lt(f, _)
-            | Self::Lte(f, _) => f,
+            | Self::Lte(f, _)
+            | Self::Like(f, _) => f,
         }
     }
 }
@@ -68,6 +71,7 @@ impl fmt::Display for Filter {
             Self::Gte(field, val) => write!(f, "{field}>={val}"),
             Self::Lt(field, val) => write!(f, "{field}<{val}"),
             Self::Lte(field, val) => write!(f, "{field}<={val}"),
+            Self::Like(field, val) => write!(f, "{field} LIKE {val}"),
         }
     }
 }

@@ -1025,3 +1025,78 @@ fn performance_1m_records() {
         "filtering 1M records took {elapsed:?}, expected < 1s"
     );
 }
+
+// ===========================================================================
+// LIKE
+// ===========================================================================
+
+#[test]
+fn parse_like_simple() {
+    let q = parse("stop_name LIKE Gare%").unwrap();
+    assert_eq!(
+        q,
+        Query::Filter(Filter::Like("stop_name".into(), "Gare%".into()))
+    );
+}
+
+#[test]
+fn parse_like_with_backticks_and_and() {
+    let q = parse("stop_name LIKE `foo bar%` AND route_type=1").unwrap();
+    assert_eq!(
+        q,
+        Query::And(vec![
+            Query::Filter(Filter::Like("stop_name".into(), "foo bar%".into())),
+            Query::Filter(Filter::Eq("route_type".into(), "1".into())),
+        ])
+    );
+}
+
+#[test]
+fn parse_like_empty_value_errors() {
+    let err = parse("stop_name LIKE ").unwrap_err();
+    assert!(matches!(err, QueryError::EmptyValue(f) if f == "stop_name"));
+}
+
+#[test]
+fn parse_like_empty_field_errors() {
+    let err = parse(" LIKE foo").unwrap_err();
+    assert!(matches!(err, QueryError::EmptyField));
+}
+
+#[test]
+fn eval_like_prefix() {
+    let q = parse("stop_name LIKE `Gare%`").unwrap();
+    assert!(q.matches(&TestRecord::new(&[("stop_name", "Gare du Nord")])));
+    assert!(q.matches(&TestRecord::new(&[("stop_name", "Gare")])));
+    assert!(!q.matches(&TestRecord::new(&[("stop_name", "Petite Gare")])));
+}
+
+#[test]
+fn eval_like_substring() {
+    let q = parse("stop_name LIKE `%central%`").unwrap();
+    assert!(q.matches(&TestRecord::new(&[("stop_name", "central")])));
+    assert!(q.matches(&TestRecord::new(&[("stop_name", "Gare centrale")])));
+    assert!(!q.matches(&TestRecord::new(&[("stop_name", "Gare du Nord")])));
+}
+
+#[test]
+fn eval_like_underscore() {
+    let q = parse("stop_id LIKE S_1").unwrap();
+    assert!(q.matches(&TestRecord::new(&[("stop_id", "SA1")])));
+    assert!(!q.matches(&TestRecord::new(&[("stop_id", "S1")])));
+    assert!(!q.matches(&TestRecord::new(&[("stop_id", "SAA1")])));
+}
+
+#[test]
+fn eval_like_case_sensitive() {
+    let q = parse("stop_name LIKE Gare").unwrap();
+    assert!(q.matches(&TestRecord::new(&[("stop_name", "Gare")])));
+    assert!(!q.matches(&TestRecord::new(&[("stop_name", "gare")])));
+}
+
+#[test]
+fn eval_like_none_field_does_not_match() {
+    let q = parse("stop_name LIKE `%`").unwrap();
+    let rec = TestRecord::with_none(&[("stop_name", None)]);
+    assert!(!q.matches(&rec));
+}

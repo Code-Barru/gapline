@@ -65,7 +65,46 @@ fn eval_filter(filter: &Filter, record: &impl Filterable) -> bool {
         Filter::Gte(field, value) => compare(record, field, value, std::cmp::Ordering::is_ge),
         Filter::Lt(field, value) => compare(record, field, value, std::cmp::Ordering::is_lt),
         Filter::Lte(field, value) => compare(record, field, value, std::cmp::Ordering::is_le),
+        Filter::Like(field, pattern) => match record.field_value(field) {
+            Some(v) => like_match(&v, pattern),
+            None => false,
+        },
     }
+}
+
+/// SQL `LIKE` pattern matching: `%` matches any sequence, `_` matches one char.
+/// Case-sensitive, anchored on both ends.
+fn like_match(value: &str, pattern: &str) -> bool {
+    let v: Vec<char> = value.chars().collect();
+    let p: Vec<char> = pattern.chars().collect();
+    let (mut vi, mut pi) = (0, 0);
+    let mut backtrack: Option<(usize, usize)> = None;
+
+    while vi < v.len() {
+        match p.get(pi) {
+            Some('%') => {
+                pi += 1;
+                backtrack = Some((pi, vi));
+            }
+            Some('_') => {
+                vi += 1;
+                pi += 1;
+            }
+            Some(c) if *c == v[vi] => {
+                vi += 1;
+                pi += 1;
+            }
+            _ => match backtrack.as_mut() {
+                Some((bp, bv)) => {
+                    *bv += 1;
+                    pi = *bp;
+                    vi = *bv;
+                }
+                None => return false,
+            },
+        }
+    }
+    p[pi..].iter().all(|&c| c == '%')
 }
 
 /// Compares a record's field value against a filter value.

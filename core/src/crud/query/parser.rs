@@ -6,6 +6,7 @@ use super::types::{Filter, Query, QueryError};
 /// - Equality: `field=value`
 /// - Inequality: `field!=value`
 /// - Comparison: `field>value`, `field>=value`, `field<value`, `field<=value`
+/// - Pattern match: `field LIKE pattern` (`%` = any sequence, `_` = single char)
 /// - Logical AND: `expr1 AND expr2` (higher precedence)
 /// - Logical OR: `expr1 OR expr2` (lower precedence)
 /// - Spaces around operators: `field = value`
@@ -96,27 +97,48 @@ const OPERATORS: &[(&str, FilterConstructor); 6] = &[
 
 /// Parses a single filter expression like `field=value` or `field >= value`.
 fn parse_filter(segment: &str) -> Result<Filter, QueryError> {
+    // `LIKE` is a word-keyword operator; pad so it's also caught at boundaries.
+    let padded = format!(" {segment} ");
+    let like_parts = split_keyword(&padded, " LIKE ");
+    match like_parts.len() {
+        1 => {}
+        2 => return build_filter(segment, like_parts[0], like_parts[1], Filter::Like),
+        _ => return Err(QueryError::InvalidExpression(segment.to_owned())),
+    }
+
     for &(op, constructor) in OPERATORS {
         if let Some(pos) = find_operator(segment, op) {
-            let field = segment[..pos].trim().to_owned();
-            let raw_value = segment[pos + op.len()..].trim();
-            let value = strip_backticks(raw_value).to_owned();
-
-            if field.is_empty() {
-                return Err(QueryError::EmptyField);
-            }
-            if !is_valid_field_name(&field) {
-                return Err(QueryError::UnknownOperator(segment.to_owned()));
-            }
-            if value.is_empty() {
-                return Err(QueryError::EmptyValue(field));
-            }
-
-            return Ok(constructor(field, value));
+            return build_filter(
+                segment,
+                &segment[..pos],
+                &segment[pos + op.len()..],
+                constructor,
+            );
         }
     }
 
     Err(QueryError::UnknownOperator(segment.to_owned()))
+}
+
+/// Validates a `field`/`value` pair and constructs a [`Filter`] via `ctor`.
+fn build_filter(
+    segment: &str,
+    field: &str,
+    raw_value: &str,
+    ctor: fn(String, String) -> Filter,
+) -> Result<Filter, QueryError> {
+    let field = field.trim();
+    let value = strip_backticks(raw_value.trim());
+    if field.is_empty() {
+        return Err(QueryError::EmptyField);
+    }
+    if !is_valid_field_name(field) {
+        return Err(QueryError::UnknownOperator(segment.to_owned()));
+    }
+    if value.is_empty() {
+        return Err(QueryError::EmptyValue(field.to_owned()));
+    }
+    Ok(ctor(field.to_owned(), value.to_owned()))
 }
 
 /// Finds the position of `op` in `segment`, skipping backtick-quoted regions.
