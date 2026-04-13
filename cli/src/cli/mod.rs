@@ -12,10 +12,13 @@
 //! - `OutputFormat` -- Supported output formats (JSON, CSV, XML, text).
 //! - `CrudTarget` -- GTFS files that support CRUD operations.
 
+pub mod bootstrap;
 pub mod commands;
+mod completion_install;
 mod output;
 mod parser;
 pub mod runner;
 
+pub use completion_install::{InstallError, InstallReport, install_completion};
 pub use output::{RuleEntry, Stage, render_read_results, render_report, render_rules_list};
 pub use parser::{Cli, Commands, CrudTarget, OutputFormat, RulesCommand, SeverityArg};

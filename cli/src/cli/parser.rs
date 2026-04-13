@@ -214,6 +214,18 @@ pub enum Commands {
         #[command(subcommand)]
         command: RulesCommand,
     },
+    /// Generate or install a shell completion script.
+    #[command(about = "Generate or install a shell completion script")]
+    Completion {
+        /// Target shell (bash, zsh, fish, elvish, powershell).
+        #[arg(value_name = "SHELL", help = "Shell to generate completion for")]
+        shell: clap_complete::Shell,
+        /// Install the script to the shell's standard completion directory
+        /// instead of printing to stdout. Only bash, zsh and fish are
+        /// supported for installation.
+        #[arg(long, help = "Install to the shell's standard completion directory")]
+        install: bool,
+    },
 }
 
 /// Subcommands of `headway rules`.
