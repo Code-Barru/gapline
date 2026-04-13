@@ -11,6 +11,50 @@ use crate::models::{
     Timezone, Transfer, TransferType, Translation, Trip, TripId, Url, WheelchairAccessible,
 };
 
+/// Uniform field-setter API: each GTFS record type forwards to its
+/// corresponding `set_*_field` free function. Enables generic dispatch over
+/// GTFS types in `update.rs`.
+pub trait FieldSetter {
+    /// Parses `value` and assigns it to `field` on `self`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CrudError`] on parse failure or unknown field.
+    fn set_field(&mut self, field: &str, value: &str) -> Result<(), CrudError>;
+}
+
+macro_rules! impl_field_setter {
+    ($($ty:ident => $setter:ident),* $(,)?) => {
+        $(
+            impl FieldSetter for $ty {
+                fn set_field(&mut self, field: &str, value: &str) -> Result<(), CrudError> {
+                    $setter(self, field, value)
+                }
+            }
+        )*
+    };
+}
+
+impl_field_setter! {
+    Agency => set_agency_field,
+    Stop => set_stop_field,
+    Route => set_route_field,
+    Trip => set_trip_field,
+    StopTime => set_stop_time_field,
+    Calendar => set_calendar_field,
+    CalendarDate => set_calendar_date_field,
+    Shape => set_shape_field,
+    Frequency => set_frequency_field,
+    Transfer => set_transfer_field,
+    Pathway => set_pathway_field,
+    Level => set_level_field,
+    FeedInfo => set_feed_info_field,
+    FareAttribute => set_fare_attribute_field,
+    FareRule => set_fare_rule_field,
+    Translation => set_translation_field,
+    Attribution => set_attribution_field,
+}
+
 fn parse_value<T: std::str::FromStr>(
     value: &str,
     field: &str,

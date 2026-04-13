@@ -80,25 +80,7 @@ pub fn read_records(
     target: GtfsTarget,
     query: Option<&Query>,
 ) -> Result<ReadResult, ReadError> {
-    let mut result = match target {
-        GtfsTarget::Agency => collect_records(&feed.agencies, query)?,
-        GtfsTarget::Stops => collect_records(&feed.stops, query)?,
-        GtfsTarget::Routes => collect_records(&feed.routes, query)?,
-        GtfsTarget::Trips => collect_records(&feed.trips, query)?,
-        GtfsTarget::StopTimes => collect_records(&feed.stop_times, query)?,
-        GtfsTarget::Calendar => collect_records(&feed.calendars, query)?,
-        GtfsTarget::CalendarDates => collect_records(&feed.calendar_dates, query)?,
-        GtfsTarget::Shapes => collect_records(&feed.shapes, query)?,
-        GtfsTarget::Frequencies => collect_records(&feed.frequencies, query)?,
-        GtfsTarget::Transfers => collect_records(&feed.transfers, query)?,
-        GtfsTarget::Pathways => collect_records(&feed.pathways, query)?,
-        GtfsTarget::Levels => collect_records(&feed.levels, query)?,
-        GtfsTarget::FeedInfo => collect_records(feed.feed_info.as_slice(), query)?,
-        GtfsTarget::FareAttributes => collect_records(&feed.fare_attributes, query)?,
-        GtfsTarget::FareRules => collect_records(&feed.fare_rules, query)?,
-        GtfsTarget::Translations => collect_records(&feed.translations, query)?,
-        GtfsTarget::Attributions => collect_records(&feed.attributions, query)?,
-    };
+    let mut result = dispatch_slice!(target, feed, |records| collect_records(records, query)?);
     result.file_name = target.file_name();
 
     Ok(result)

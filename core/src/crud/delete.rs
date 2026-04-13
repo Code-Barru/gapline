@@ -14,10 +14,7 @@ use crate::crud::common::{
 use crate::crud::query::{Query, QueryError};
 use crate::crud::read::GtfsTarget;
 use crate::integrity::{EntityRef, IntegrityIndex};
-use crate::models::{
-    Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
-    GtfsDate, GtfsFeed, Level, Pathway, Route, Shape, Stop, StopTime, Transfer, Translation, Trip,
-};
+use crate::models::{GtfsDate, GtfsFeed};
 use crate::parser::feed_source::GtfsFiles;
 
 /// Errors that can occur during record deletion.
@@ -168,45 +165,11 @@ pub fn validate_delete(
     target: GtfsTarget,
     query: &Query,
 ) -> Result<DeletePlan, DeleteError> {
-    match target {
-        GtfsTarget::Agency => query.validate_fields::<Agency>()?,
-        GtfsTarget::Stops => query.validate_fields::<Stop>()?,
-        GtfsTarget::Routes => query.validate_fields::<Route>()?,
-        GtfsTarget::Trips => query.validate_fields::<Trip>()?,
-        GtfsTarget::StopTimes => query.validate_fields::<StopTime>()?,
-        GtfsTarget::Calendar => query.validate_fields::<Calendar>()?,
-        GtfsTarget::CalendarDates => query.validate_fields::<CalendarDate>()?,
-        GtfsTarget::Shapes => query.validate_fields::<Shape>()?,
-        GtfsTarget::Frequencies => query.validate_fields::<Frequency>()?,
-        GtfsTarget::Transfers => query.validate_fields::<Transfer>()?,
-        GtfsTarget::Pathways => query.validate_fields::<Pathway>()?,
-        GtfsTarget::Levels => query.validate_fields::<Level>()?,
-        GtfsTarget::FeedInfo => query.validate_fields::<FeedInfo>()?,
-        GtfsTarget::FareAttributes => query.validate_fields::<FareAttribute>()?,
-        GtfsTarget::FareRules => query.validate_fields::<FareRule>()?,
-        GtfsTarget::Translations => query.validate_fields::<Translation>()?,
-        GtfsTarget::Attributions => query.validate_fields::<Attribution>()?,
-    }
+    for_each_target_type!(target, |T| query.validate_fields::<T>()?);
 
-    let matched_indices = match target {
-        GtfsTarget::Agency => find_matching_indices(&feed.agencies, query),
-        GtfsTarget::Stops => find_matching_indices(&feed.stops, query),
-        GtfsTarget::Routes => find_matching_indices(&feed.routes, query),
-        GtfsTarget::Trips => find_matching_indices(&feed.trips, query),
-        GtfsTarget::StopTimes => find_matching_indices(&feed.stop_times, query),
-        GtfsTarget::Calendar => find_matching_indices(&feed.calendars, query),
-        GtfsTarget::CalendarDates => find_matching_indices(&feed.calendar_dates, query),
-        GtfsTarget::Shapes => find_matching_indices(&feed.shapes, query),
-        GtfsTarget::Frequencies => find_matching_indices(&feed.frequencies, query),
-        GtfsTarget::Transfers => find_matching_indices(&feed.transfers, query),
-        GtfsTarget::Pathways => find_matching_indices(&feed.pathways, query),
-        GtfsTarget::Levels => find_matching_indices(&feed.levels, query),
-        GtfsTarget::FeedInfo => find_matching_indices(feed.feed_info.as_slice(), query),
-        GtfsTarget::FareAttributes => find_matching_indices(&feed.fare_attributes, query),
-        GtfsTarget::FareRules => find_matching_indices(&feed.fare_rules, query),
-        GtfsTarget::Translations => find_matching_indices(&feed.translations, query),
-        GtfsTarget::Attributions => find_matching_indices(&feed.attributions, query),
-    };
+    let matched_indices = dispatch_slice!(target, feed, |records| find_matching_indices(
+        records, query
+    ));
 
     let matched_count = matched_indices.len();
 

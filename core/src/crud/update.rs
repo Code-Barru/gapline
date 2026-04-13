@@ -14,17 +14,9 @@ use crate::crud::common::{
 use crate::crud::query::Filterable;
 use crate::crud::query::{Query, QueryError};
 use crate::crud::read::GtfsTarget;
-use crate::crud::setters::{
-    set_agency_field, set_attribution_field, set_calendar_date_field, set_calendar_field,
-    set_fare_attribute_field, set_fare_rule_field, set_feed_info_field, set_frequency_field,
-    set_level_field, set_pathway_field, set_route_field, set_shape_field, set_stop_field,
-    set_stop_time_field, set_transfer_field, set_translation_field, set_trip_field,
-};
+use crate::crud::setters::FieldSetter;
 use crate::integrity::{EntityRef, IntegrityIndex};
-use crate::models::{
-    Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
-    GtfsFeed, Level, Pathway, Route, Shape, Stop, StopTime, Transfer, Translation, Trip,
-};
+use crate::models::GtfsFeed;
 use crate::parser::feed_source::GtfsFiles;
 
 /// Errors that can occur during record update.
@@ -246,7 +238,6 @@ fn build_cascade_from_index(integrity: &IntegrityIndex, entity: &EntityRef) -> V
 /// # Errors
 ///
 /// Returns [`UpdateError`] on any validation failure.
-#[allow(clippy::too_many_lines)]
 pub fn validate_update(
     feed: &GtfsFeed,
     target: GtfsTarget,
@@ -262,46 +253,12 @@ pub fn validate_update(
     let index = FeedIndex::build(feed, target);
 
     // 3. Validate query fields
-    match target {
-        GtfsTarget::Agency => query.validate_fields::<Agency>()?,
-        GtfsTarget::Stops => query.validate_fields::<Stop>()?,
-        GtfsTarget::Routes => query.validate_fields::<Route>()?,
-        GtfsTarget::Trips => query.validate_fields::<Trip>()?,
-        GtfsTarget::StopTimes => query.validate_fields::<StopTime>()?,
-        GtfsTarget::Calendar => query.validate_fields::<Calendar>()?,
-        GtfsTarget::CalendarDates => query.validate_fields::<CalendarDate>()?,
-        GtfsTarget::Shapes => query.validate_fields::<Shape>()?,
-        GtfsTarget::Frequencies => query.validate_fields::<Frequency>()?,
-        GtfsTarget::Transfers => query.validate_fields::<Transfer>()?,
-        GtfsTarget::Pathways => query.validate_fields::<Pathway>()?,
-        GtfsTarget::Levels => query.validate_fields::<Level>()?,
-        GtfsTarget::FeedInfo => query.validate_fields::<FeedInfo>()?,
-        GtfsTarget::FareAttributes => query.validate_fields::<FareAttribute>()?,
-        GtfsTarget::FareRules => query.validate_fields::<FareRule>()?,
-        GtfsTarget::Translations => query.validate_fields::<Translation>()?,
-        GtfsTarget::Attributions => query.validate_fields::<Attribution>()?,
-    }
+    for_each_target_type!(target, |T| query.validate_fields::<T>()?);
 
     // 4. Find matching record indices
-    let matched_indices = match target {
-        GtfsTarget::Agency => find_matching_indices(&feed.agencies, query),
-        GtfsTarget::Stops => find_matching_indices(&feed.stops, query),
-        GtfsTarget::Routes => find_matching_indices(&feed.routes, query),
-        GtfsTarget::Trips => find_matching_indices(&feed.trips, query),
-        GtfsTarget::StopTimes => find_matching_indices(&feed.stop_times, query),
-        GtfsTarget::Calendar => find_matching_indices(&feed.calendars, query),
-        GtfsTarget::CalendarDates => find_matching_indices(&feed.calendar_dates, query),
-        GtfsTarget::Shapes => find_matching_indices(&feed.shapes, query),
-        GtfsTarget::Frequencies => find_matching_indices(&feed.frequencies, query),
-        GtfsTarget::Transfers => find_matching_indices(&feed.transfers, query),
-        GtfsTarget::Pathways => find_matching_indices(&feed.pathways, query),
-        GtfsTarget::Levels => find_matching_indices(&feed.levels, query),
-        GtfsTarget::FeedInfo => find_matching_indices(feed.feed_info.as_slice(), query),
-        GtfsTarget::FareAttributes => find_matching_indices(&feed.fare_attributes, query),
-        GtfsTarget::FareRules => find_matching_indices(&feed.fare_rules, query),
-        GtfsTarget::Translations => find_matching_indices(&feed.translations, query),
-        GtfsTarget::Attributions => find_matching_indices(&feed.attributions, query),
-    };
+    let matched_indices = dispatch_slice!(target, feed, |records| find_matching_indices(
+        records, query
+    ));
 
     let matched_count = matched_indices.len();
 
@@ -443,115 +400,70 @@ fn check_new_pk_unique(
     Ok(())
 }
 
-#[allow(clippy::too_many_lines)]
 fn validate_types(
     feed: &GtfsFeed,
     target: GtfsTarget,
     matched_indices: &[usize],
     assignments: &[FieldAssignment],
 ) -> Result<(), UpdateError> {
-    macro_rules! validate_on_clone {
-        ($records:expr, $setter:ident) => {{
-            let mut clone = $records[matched_indices[0]].clone();
-            for a in assignments {
-                $setter(&mut clone, &a.field, &a.value)?;
-            }
-        }};
-    }
+    dispatch_slice!(target, feed, |records| {
+        if records.is_empty() {
+            return Ok(());
+        }
+        let mut clone = records[matched_indices[0]].clone();
+        for a in assignments {
+            clone.set_field(&a.field, &a.value)?;
+        }
+        Ok(())
+    })
+}
 
-    match target {
-        GtfsTarget::Agency => validate_on_clone!(feed.agencies, set_agency_field),
-        GtfsTarget::Stops => validate_on_clone!(feed.stops, set_stop_field),
-        GtfsTarget::Routes => validate_on_clone!(feed.routes, set_route_field),
-        GtfsTarget::Trips => validate_on_clone!(feed.trips, set_trip_field),
-        GtfsTarget::StopTimes => validate_on_clone!(feed.stop_times, set_stop_time_field),
-        GtfsTarget::Calendar => validate_on_clone!(feed.calendars, set_calendar_field),
-        GtfsTarget::CalendarDates => {
-            validate_on_clone!(feed.calendar_dates, set_calendar_date_field);
+fn write_assignments<T>(records: &mut [T], plan: &UpdatePlan) -> Result<(), UpdateError>
+where
+    T: FieldSetter,
+{
+    for &idx in &plan.matched_indices {
+        for a in &plan.assignments {
+            records[idx].set_field(&a.field, &a.value)?;
         }
-        GtfsTarget::Shapes => validate_on_clone!(feed.shapes, set_shape_field),
-        GtfsTarget::Frequencies => validate_on_clone!(feed.frequencies, set_frequency_field),
-        GtfsTarget::Transfers => validate_on_clone!(feed.transfers, set_transfer_field),
-        GtfsTarget::Pathways => validate_on_clone!(feed.pathways, set_pathway_field),
-        GtfsTarget::Levels => validate_on_clone!(feed.levels, set_level_field),
-        GtfsTarget::FeedInfo => {
-            if let Some(ref fi) = feed.feed_info {
-                let mut clone = fi.clone();
-                for a in assignments {
-                    set_feed_info_field(&mut clone, &a.field, &a.value)?;
-                }
-            }
-        }
-        GtfsTarget::FareAttributes => {
-            validate_on_clone!(feed.fare_attributes, set_fare_attribute_field);
-        }
-        GtfsTarget::FareRules => validate_on_clone!(feed.fare_rules, set_fare_rule_field),
-        GtfsTarget::Translations => validate_on_clone!(feed.translations, set_translation_field),
-        GtfsTarget::Attributions => validate_on_clone!(feed.attributions, set_attribution_field),
     }
-
     Ok(())
 }
 
-macro_rules! apply_updates {
-    ($records:expr, $plan:expr, $setter:ident) => {{
-        for &idx in &$plan.matched_indices {
-            for a in &$plan.assignments {
-                $setter(&mut $records[idx], &a.field, &a.value).unwrap();
-            }
+fn rewrite_fk<T>(
+    records: &mut [T],
+    fk_field: &str,
+    old_value: &str,
+    new_value: &str,
+) -> Result<(), UpdateError>
+where
+    T: Filterable + FieldSetter,
+{
+    for record in records.iter_mut() {
+        if record.field_value(fk_field).as_deref() == Some(old_value) {
+            record.set_field(fk_field, new_value)?;
         }
-        $plan.matched_count
-    }};
+    }
+    Ok(())
 }
 
 /// Applies a validated [`UpdatePlan`] by mutating the matched records in-place,
 /// including cascade updates to dependent files if present.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics if any setter call fails, which should never happen since the plan
-/// was already validated by [`validate_update`].
-#[allow(clippy::too_many_lines)]
-pub fn apply_update(feed: &mut GtfsFeed, plan: &UpdatePlan) -> UpdateResult {
-    let count = match plan.target {
-        GtfsTarget::Agency => apply_updates!(feed.agencies, plan, set_agency_field),
-        GtfsTarget::Stops => apply_updates!(feed.stops, plan, set_stop_field),
-        GtfsTarget::Routes => apply_updates!(feed.routes, plan, set_route_field),
-        GtfsTarget::Trips => apply_updates!(feed.trips, plan, set_trip_field),
-        GtfsTarget::StopTimes => apply_updates!(feed.stop_times, plan, set_stop_time_field),
-        GtfsTarget::Calendar => apply_updates!(feed.calendars, plan, set_calendar_field),
-        GtfsTarget::CalendarDates => {
-            apply_updates!(feed.calendar_dates, plan, set_calendar_date_field)
-        }
-        GtfsTarget::Shapes => apply_updates!(feed.shapes, plan, set_shape_field),
-        GtfsTarget::Frequencies => apply_updates!(feed.frequencies, plan, set_frequency_field),
-        GtfsTarget::Transfers => apply_updates!(feed.transfers, plan, set_transfer_field),
-        GtfsTarget::Pathways => apply_updates!(feed.pathways, plan, set_pathway_field),
-        GtfsTarget::Levels => apply_updates!(feed.levels, plan, set_level_field),
-        GtfsTarget::FeedInfo => {
-            if let Some(ref mut fi) = feed.feed_info {
-                for a in &plan.assignments {
-                    set_feed_info_field(fi, &a.field, &a.value).unwrap();
-                }
-            }
-            plan.matched_count
-        }
-        GtfsTarget::FareAttributes => {
-            apply_updates!(feed.fare_attributes, plan, set_fare_attribute_field)
-        }
-        GtfsTarget::FareRules => apply_updates!(feed.fare_rules, plan, set_fare_rule_field),
-        GtfsTarget::Translations => {
-            apply_updates!(feed.translations, plan, set_translation_field)
-        }
-        GtfsTarget::Attributions => {
-            apply_updates!(feed.attributions, plan, set_attribution_field)
-        }
-    };
+/// Returns [`UpdateError`] if a setter call fails. This should not happen in
+/// practice since the plan is pre-validated by [`validate_update`], but
+/// errors are surfaced rather than panicked on so the caller can decide.
+pub fn apply_update(feed: &mut GtfsFeed, plan: &UpdatePlan) -> Result<UpdateResult, UpdateError> {
+    dispatch_slice_mut!(plan.target, feed, |records| write_assignments(
+        records, plan
+    ))?;
 
     let mut modified_targets = vec![plan.target];
 
     if let Some(ref cascade) = plan.cascade {
-        apply_cascade(feed, cascade);
+        apply_cascade(feed, cascade)?;
         for entry in &cascade.entries {
             if !modified_targets.contains(&entry.dependent) {
                 modified_targets.push(entry.dependent);
@@ -559,66 +471,32 @@ pub fn apply_update(feed: &mut GtfsFeed, plan: &UpdatePlan) -> UpdateResult {
         }
     }
 
-    UpdateResult {
-        count,
+    Ok(UpdateResult {
+        count: plan.matched_count,
         modified_targets,
-    }
+    })
 }
 
-fn apply_cascade(feed: &mut GtfsFeed, cascade: &CascadePlan) {
+fn apply_cascade(feed: &mut GtfsFeed, cascade: &CascadePlan) -> Result<(), UpdateError> {
     let old = &cascade.old_value;
     let new = &cascade.new_value;
 
     for entry in &cascade.entries {
         for &fk_field in &entry.fk_fields {
-            apply_cascade_to_target(feed, entry.dependent, fk_field, old, new);
+            apply_cascade_to_target(feed, entry.dependent, fk_field, old, new)?;
         }
     }
+    Ok(())
 }
 
-#[allow(clippy::too_many_lines)]
 fn apply_cascade_to_target(
     feed: &mut GtfsFeed,
     target: GtfsTarget,
     fk_field: &str,
     old_value: &str,
     new_value: &str,
-) {
-    macro_rules! cascade_field {
-        ($records:expr, $setter:ident) => {
-            for record in &mut $records {
-                if record.field_value(fk_field).as_deref() == Some(old_value) {
-                    $setter(record, fk_field, new_value).unwrap();
-                }
-            }
-        };
-    }
-
-    match target {
-        GtfsTarget::Agency => cascade_field!(feed.agencies, set_agency_field),
-        GtfsTarget::Stops => cascade_field!(feed.stops, set_stop_field),
-        GtfsTarget::Routes => cascade_field!(feed.routes, set_route_field),
-        GtfsTarget::Trips => cascade_field!(feed.trips, set_trip_field),
-        GtfsTarget::StopTimes => cascade_field!(feed.stop_times, set_stop_time_field),
-        GtfsTarget::Calendar => cascade_field!(feed.calendars, set_calendar_field),
-        GtfsTarget::CalendarDates => cascade_field!(feed.calendar_dates, set_calendar_date_field),
-        GtfsTarget::Shapes => cascade_field!(feed.shapes, set_shape_field),
-        GtfsTarget::Frequencies => cascade_field!(feed.frequencies, set_frequency_field),
-        GtfsTarget::Transfers => cascade_field!(feed.transfers, set_transfer_field),
-        GtfsTarget::Pathways => cascade_field!(feed.pathways, set_pathway_field),
-        GtfsTarget::Levels => cascade_field!(feed.levels, set_level_field),
-        GtfsTarget::FeedInfo => {
-            if let Some(ref mut fi) = feed.feed_info
-                && fi.field_value(fk_field).as_deref() == Some(old_value)
-            {
-                set_feed_info_field(fi, fk_field, new_value).unwrap();
-            }
-        }
-        GtfsTarget::FareAttributes => {
-            cascade_field!(feed.fare_attributes, set_fare_attribute_field);
-        }
-        GtfsTarget::FareRules => cascade_field!(feed.fare_rules, set_fare_rule_field),
-        GtfsTarget::Translations => cascade_field!(feed.translations, set_translation_field),
-        GtfsTarget::Attributions => cascade_field!(feed.attributions, set_attribution_field),
-    }
+) -> Result<(), UpdateError> {
+    dispatch_slice_mut!(target, feed, |records| rewrite_fk(
+        records, fk_field, old_value, new_value
+    ))
 }

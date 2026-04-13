@@ -148,7 +148,7 @@ fn update_simple_stop_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let result = apply_update(&mut feed, &plan);
+    let result = apply_update(&mut feed, &plan).unwrap();
     assert_eq!(result.count, 1);
     assert_eq!(feed.stops[0].stop_name.as_deref(), Some("New Name"));
     // Ensure other stops unchanged
@@ -168,7 +168,7 @@ fn update_multiple_stop_times() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 2);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     for st in &feed.stop_times {
         assert_eq!(st.departure_time.unwrap().to_string(), "09:00:00");
     }
@@ -203,7 +203,7 @@ fn update_pk_unreferenced() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.stops[2].stop_id.as_ref(), "S99");
 }
 
@@ -236,7 +236,7 @@ fn update_fk_valid() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.trips[0].route_id.as_ref(), "R2");
 }
 
@@ -333,7 +333,7 @@ fn update_agency_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.agencies[0].agency_name, "New Agency Name");
 }
 
@@ -352,7 +352,7 @@ fn update_route_short_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.routes[0].route_short_name.as_deref(), Some("Express"));
 }
 
@@ -370,7 +370,7 @@ fn update_calendar_monday() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!(!feed.calendars[0].monday);
 }
 
@@ -393,7 +393,7 @@ fn update_calendar_date_exception_type() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!(matches!(
         feed.calendar_dates[0].exception_type,
         ExceptionType::Removed
@@ -420,7 +420,7 @@ fn update_shape_pt_lat() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!((feed.shapes[0].shape_pt_lat.0 - 46.0).abs() < f64::EPSILON);
 }
 
@@ -444,7 +444,7 @@ fn update_frequency_headway_secs() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.frequencies[0].headway_secs, 300);
 }
 
@@ -471,7 +471,7 @@ fn update_transfer_type() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!(matches!(
         feed.transfers[0].transfer_type,
         TransferType::MinimumTime
@@ -505,7 +505,7 @@ fn update_pathway_length() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!((feed.pathways[0].length.unwrap() - 250.5).abs() < f64::EPSILON);
 }
 
@@ -527,7 +527,7 @@ fn update_level_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.levels[0].level_name.as_deref(), Some("Mezzanine"));
 }
 
@@ -555,7 +555,7 @@ fn update_feed_info_publisher_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(
         feed.feed_info.as_ref().unwrap().feed_publisher_name,
         "New Publisher"
@@ -584,7 +584,7 @@ fn update_fare_attribute_price() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert!((feed.fare_attributes[0].price - 3.75).abs() < f64::EPSILON);
 }
 
@@ -619,7 +619,7 @@ fn update_fare_rule_origin_id() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.fare_rules[0].origin_id.as_deref(), Some("zone_B"));
 }
 
@@ -645,7 +645,7 @@ fn update_translation_text() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.translations[0].translation, "Nouveau Nom");
 }
 
@@ -675,7 +675,7 @@ fn update_attribution_organization_name() {
     )
     .unwrap();
     assert_eq!(plan.matched_count, 1);
-    let _ = apply_update(&mut feed, &plan);
+    apply_update(&mut feed, &plan).unwrap();
     assert_eq!(feed.attributions[0].organization_name, "New Org");
 }
 
@@ -698,7 +698,7 @@ fn cascade_updates_dependent_fk() {
     assert_eq!(cascade.old_value, "S01");
     assert_eq!(cascade.new_value, "S99");
 
-    let result = apply_update(&mut feed, &plan);
+    let result = apply_update(&mut feed, &plan).unwrap();
     // Primary target + stop_times modified
     assert!(result.modified_targets.contains(&GtfsTarget::Stops));
     assert!(result.modified_targets.contains(&GtfsTarget::StopTimes));
@@ -731,7 +731,7 @@ fn cascade_updates_multiple_fk_fields() {
         true,
     )
     .unwrap();
-    let result = apply_update(&mut feed, &plan);
+    let result = apply_update(&mut feed, &plan).unwrap();
     assert!(result.modified_targets.contains(&GtfsTarget::Transfers));
     // Both from_stop_id and to_stop_id should be cascaded
     assert_eq!(
@@ -758,7 +758,7 @@ fn cascade_no_dependents() {
     )
     .unwrap();
     assert!(plan.cascade.is_none());
-    let result = apply_update(&mut feed, &plan);
+    let result = apply_update(&mut feed, &plan).unwrap();
     assert_eq!(result.modified_targets, vec![GtfsTarget::Stops]);
     assert_eq!(feed.stops[2].stop_id.as_ref(), "S99");
 }

@@ -417,7 +417,7 @@ fn validate_primary_key(
 
 fn build_record(target: GtfsTarget, fields: &Fields) -> Result<CreatedRecord, CreateError> {
     match target {
-        GtfsTarget::Agency => build_agency(fields).map(CreatedRecord::Agency),
+        GtfsTarget::Agency => Ok(CreatedRecord::Agency(build_agency(fields))),
         GtfsTarget::Stops => build_stop(fields).map(CreatedRecord::Stop),
         GtfsTarget::Routes => build_route(fields).map(CreatedRecord::Route),
         GtfsTarget::Trips => build_trip(fields).map(CreatedRecord::Trip),
@@ -433,10 +433,107 @@ fn build_record(target: GtfsTarget, fields: &Fields) -> Result<CreatedRecord, Cr
         GtfsTarget::FareAttributes => {
             build_fare_attribute(fields).map(CreatedRecord::FareAttribute)
         }
-        GtfsTarget::FareRules => build_fare_rule(fields).map(CreatedRecord::FareRule),
-        GtfsTarget::Translations => build_translation(fields).map(CreatedRecord::Translation),
+        GtfsTarget::FareRules => Ok(CreatedRecord::FareRule(build_fare_rule(fields))),
+        GtfsTarget::Translations => Ok(CreatedRecord::Translation(build_translation(fields))),
         GtfsTarget::Attributions => build_attribution(fields).map(CreatedRecord::Attribution),
     }
+}
+
+/// Generates `fn $fn(f: &Fields) -> Result<$ty, CreateError>` via incremental
+/// TT munching. Each field line must end with a trailing comma. Field names
+/// are derived from the struct field identifier via `stringify!`.
+///
+/// Macros cannot expand to a single struct field in Rust, so we accumulate
+/// the full struct-literal body in `[$($acc:tt)*]` and emit it in the
+/// terminal arm.
+macro_rules! build_record {
+    ($fn:ident -> $ty:ident { $($body:tt)* }) => {
+        build_record!(@walk fallible, $fn, $ty, f, [] $($body)*);
+    };
+
+    (@plain $fn:ident -> $ty:ident { $($body:tt)* }) => {
+        build_record!(@walk plain, $fn, $ty, f, [] $($body)*);
+    };
+
+    // --- terminal arms ---
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]) => {
+        fn $fn($f: &Fields) -> Result<$ty, CreateError> {
+            Ok($ty { $($acc)* })
+        }
+    };
+    (@walk plain, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]) => {
+        fn $fn($f: &Fields) -> $ty {
+            $ty { $($acc)* }
+        }
+    };
+
+    // --- infallible kinds (valid in both modes) ---
+    (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_str, $($rest:tt)*) => {
+        build_record!(@walk $mode, $fn, $ty, $f,
+            [$($acc)* $name: req_str($f, stringify!($name)),] $($rest)*);
+    };
+    (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : opt_str, $($rest:tt)*) => {
+        build_record!(@walk $mode, $fn, $ty, $f,
+            [$($acc)* $name: opt_str($f, stringify!($name)),] $($rest)*);
+    };
+    (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_bool, $($rest:tt)*) => {
+        build_record!(@walk $mode, $fn, $ty, $f,
+            [$($acc)* $name: req_bool($f, stringify!($name)),] $($rest)*);
+    };
+    (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_id<$t:ty>, $($rest:tt)*) => {
+        build_record!(@walk $mode, $fn, $ty, $f,
+            [$($acc)* $name: req_id::<$t>($f, stringify!($name)),] $($rest)*);
+    };
+    (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : opt_id<$t:ty>, $($rest:tt)*) => {
+        build_record!(@walk $mode, $fn, $ty, $f,
+            [$($acc)* $name: opt_id::<$t>($f, stringify!($name)),] $($rest)*);
+    };
+
+    // --- fallible kinds (only valid in fallible mode) ---
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_parse($expected:literal), $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: req_parse($f, stringify!($name), $expected)?,] $($rest)*);
+    };
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : opt_parse($expected:literal), $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: opt_parse($f, stringify!($name), $expected)?,] $($rest)*);
+    };
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_parse<$t:ty>($expected:literal) as $wrap:path, $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: $wrap(req_parse::<$t>($f, stringify!($name), $expected)?),]
+            $($rest)*);
+    };
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : opt_parse<$t:ty>($expected:literal) as $wrap:path, $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: opt_parse::<$t>($f, stringify!($name), $expected)?.map($wrap),]
+            $($rest)*);
+    };
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : req_enum($from:path, $expected:literal), $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: req_enum($f, stringify!($name), $from, $expected)?,] $($rest)*);
+    };
+    (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
+        $name:ident : opt_enum($from:path, $expected:literal), $($rest:tt)*) => {
+        build_record!(@walk fallible, $fn, $ty, $f,
+            [$($acc)* $name: opt_enum($f, stringify!($name), $from, $expected)?,] $($rest)*);
+    };
+}
+
+/// Infallible variant — delegates to `build_record!(@plain ...)`.
+macro_rules! build_record_plain {
+    ($fn:ident -> $ty:ident { $($body:tt)* }) => {
+        build_record!(@plain $fn -> $ty { $($body)* });
+    };
 }
 
 fn req_str(fields: &Fields, name: &str) -> String {
@@ -539,253 +636,230 @@ fn req_bool(fields: &Fields, name: &str) -> bool {
     fields.get(name).is_some_and(|v| *v == "1")
 }
 
-#[allow(clippy::unnecessary_wraps)]
-fn build_agency(f: &Fields) -> Result<Agency, CreateError> {
-    Ok(Agency {
-        agency_id: opt_id::<AgencyId>(f, "agency_id"),
-        agency_name: req_str(f, "agency_name"),
-        agency_url: req_id::<Url>(f, "agency_url"),
-        agency_timezone: req_id::<Timezone>(f, "agency_timezone"),
-        agency_lang: opt_id::<LanguageCode>(f, "agency_lang"),
-        agency_phone: opt_id::<Phone>(f, "agency_phone"),
-        agency_fare_url: opt_id::<Url>(f, "agency_fare_url"),
-        agency_email: opt_id::<Email>(f, "agency_email"),
-    })
+build_record_plain! {
+    build_agency -> Agency {
+        agency_id: opt_id<AgencyId>,
+        agency_name: req_str,
+        agency_url: req_id<Url>,
+        agency_timezone: req_id<Timezone>,
+        agency_lang: opt_id<LanguageCode>,
+        agency_phone: opt_id<Phone>,
+        agency_fare_url: opt_id<Url>,
+        agency_email: opt_id<Email>,
+    }
 }
 
-fn build_stop(f: &Fields) -> Result<Stop, CreateError> {
-    Ok(Stop {
-        stop_id: req_id::<StopId>(f, "stop_id"),
-        stop_code: opt_str(f, "stop_code"),
-        stop_name: opt_str(f, "stop_name"),
-        tts_stop_name: opt_str(f, "tts_stop_name"),
-        stop_desc: opt_str(f, "stop_desc"),
-        stop_lat: opt_parse::<f64>(f, "stop_lat", "number")?.map(Latitude),
-        stop_lon: opt_parse::<f64>(f, "stop_lon", "number")?.map(Longitude),
-        zone_id: opt_str(f, "zone_id"),
-        stop_url: opt_id::<Url>(f, "stop_url"),
-        location_type: opt_enum(f, "location_type", LocationType::from_i32, "0-4")?,
-        parent_station: opt_id::<StopId>(f, "parent_station"),
-        stop_timezone: opt_id::<Timezone>(f, "stop_timezone"),
-        wheelchair_boarding: opt_enum(
-            f,
-            "wheelchair_boarding",
-            WheelchairAccessible::from_i32,
-            "0-2",
-        )?,
-        level_id: opt_id::<LevelId>(f, "level_id"),
-        platform_code: opt_str(f, "platform_code"),
-    })
+build_record! {
+    build_stop -> Stop {
+        stop_id: req_id<StopId>,
+        stop_code: opt_str,
+        stop_name: opt_str,
+        tts_stop_name: opt_str,
+        stop_desc: opt_str,
+        stop_lat: opt_parse<f64>("number") as Latitude,
+        stop_lon: opt_parse<f64>("number") as Longitude,
+        zone_id: opt_str,
+        stop_url: opt_id<Url>,
+        location_type: opt_enum(LocationType::from_i32, "0-4"),
+        parent_station: opt_id<StopId>,
+        stop_timezone: opt_id<Timezone>,
+        wheelchair_boarding: opt_enum(WheelchairAccessible::from_i32, "0-2"),
+        level_id: opt_id<LevelId>,
+        platform_code: opt_str,
+    }
 }
 
-fn build_route(f: &Fields) -> Result<Route, CreateError> {
-    Ok(Route {
-        route_id: req_id::<RouteId>(f, "route_id"),
-        agency_id: opt_id::<AgencyId>(f, "agency_id"),
-        route_short_name: opt_str(f, "route_short_name"),
-        route_long_name: opt_str(f, "route_long_name"),
-        route_desc: opt_str(f, "route_desc"),
-        route_type: req_enum(f, "route_type", RouteType::from_i32, "route type integer")?,
-        route_url: opt_id::<Url>(f, "route_url"),
-        route_color: opt_id::<Color>(f, "route_color"),
-        route_text_color: opt_id::<Color>(f, "route_text_color"),
-        route_sort_order: opt_parse(f, "route_sort_order", "integer")?,
-        continuous_pickup: opt_enum(f, "continuous_pickup", ContinuousPickup::from_i32, "0-3")?,
-        continuous_drop_off: opt_enum(
-            f,
-            "continuous_drop_off",
-            ContinuousDropOff::from_i32,
-            "0-3",
-        )?,
-        network_id: opt_str(f, "network_id"),
-    })
+build_record! {
+    build_route -> Route {
+        route_id: req_id<RouteId>,
+        agency_id: opt_id<AgencyId>,
+        route_short_name: opt_str,
+        route_long_name: opt_str,
+        route_desc: opt_str,
+        route_type: req_enum(RouteType::from_i32, "route type integer"),
+        route_url: opt_id<Url>,
+        route_color: opt_id<Color>,
+        route_text_color: opt_id<Color>,
+        route_sort_order: opt_parse("integer"),
+        continuous_pickup: opt_enum(ContinuousPickup::from_i32, "0-3"),
+        continuous_drop_off: opt_enum(ContinuousDropOff::from_i32, "0-3"),
+        network_id: opt_str,
+    }
 }
 
-fn build_trip(f: &Fields) -> Result<Trip, CreateError> {
-    Ok(Trip {
-        route_id: req_id::<RouteId>(f, "route_id"),
-        service_id: req_id::<ServiceId>(f, "service_id"),
-        trip_id: req_id::<TripId>(f, "trip_id"),
-        trip_headsign: opt_str(f, "trip_headsign"),
-        trip_short_name: opt_str(f, "trip_short_name"),
-        direction_id: opt_enum(f, "direction_id", DirectionId::from_i32, "0-1")?,
-        block_id: opt_str(f, "block_id"),
-        shape_id: opt_id::<ShapeId>(f, "shape_id"),
-        wheelchair_accessible: opt_enum(
-            f,
-            "wheelchair_accessible",
-            WheelchairAccessible::from_i32,
-            "0-2",
-        )?,
-        bikes_allowed: opt_enum(f, "bikes_allowed", BikesAllowed::from_i32, "0-2")?,
-    })
+build_record! {
+    build_trip -> Trip {
+        route_id: req_id<RouteId>,
+        service_id: req_id<ServiceId>,
+        trip_id: req_id<TripId>,
+        trip_headsign: opt_str,
+        trip_short_name: opt_str,
+        direction_id: opt_enum(DirectionId::from_i32, "0-1"),
+        block_id: opt_str,
+        shape_id: opt_id<ShapeId>,
+        wheelchair_accessible: opt_enum(WheelchairAccessible::from_i32, "0-2"),
+        bikes_allowed: opt_enum(BikesAllowed::from_i32, "0-2"),
+    }
 }
 
-fn build_stop_time(f: &Fields) -> Result<StopTime, CreateError> {
-    Ok(StopTime {
-        trip_id: req_id::<TripId>(f, "trip_id"),
-        arrival_time: opt_parse(f, "arrival_time", "time HH:MM:SS")?,
-        departure_time: opt_parse(f, "departure_time", "time HH:MM:SS")?,
-        stop_id: req_id::<StopId>(f, "stop_id"),
-        stop_sequence: req_parse(f, "stop_sequence", "integer")?,
-        stop_headsign: opt_str(f, "stop_headsign"),
-        pickup_type: opt_enum(f, "pickup_type", PickupType::from_i32, "0-3")?,
-        drop_off_type: opt_enum(f, "drop_off_type", DropOffType::from_i32, "0-3")?,
-        continuous_pickup: opt_enum(f, "continuous_pickup", ContinuousPickup::from_i32, "0-3")?,
-        continuous_drop_off: opt_enum(
-            f,
-            "continuous_drop_off",
-            ContinuousDropOff::from_i32,
-            "0-3",
-        )?,
-        shape_dist_traveled: opt_parse(f, "shape_dist_traveled", "number")?,
-        timepoint: opt_enum(f, "timepoint", Timepoint::from_i32, "0-1")?,
-    })
+build_record! {
+    build_stop_time -> StopTime {
+        trip_id: req_id<TripId>,
+        arrival_time: opt_parse("time HH:MM:SS"),
+        departure_time: opt_parse("time HH:MM:SS"),
+        stop_id: req_id<StopId>,
+        stop_sequence: req_parse("integer"),
+        stop_headsign: opt_str,
+        pickup_type: opt_enum(PickupType::from_i32, "0-3"),
+        drop_off_type: opt_enum(DropOffType::from_i32, "0-3"),
+        continuous_pickup: opt_enum(ContinuousPickup::from_i32, "0-3"),
+        continuous_drop_off: opt_enum(ContinuousDropOff::from_i32, "0-3"),
+        shape_dist_traveled: opt_parse("number"),
+        timepoint: opt_enum(Timepoint::from_i32, "0-1"),
+    }
 }
 
-fn build_calendar(f: &Fields) -> Result<Calendar, CreateError> {
-    Ok(Calendar {
-        service_id: req_id::<ServiceId>(f, "service_id"),
-        monday: req_bool(f, "monday"),
-        tuesday: req_bool(f, "tuesday"),
-        wednesday: req_bool(f, "wednesday"),
-        thursday: req_bool(f, "thursday"),
-        friday: req_bool(f, "friday"),
-        saturday: req_bool(f, "saturday"),
-        sunday: req_bool(f, "sunday"),
-        start_date: req_parse(f, "start_date", "date YYYYMMDD")?,
-        end_date: req_parse(f, "end_date", "date YYYYMMDD")?,
-    })
+build_record! {
+    build_calendar -> Calendar {
+        service_id: req_id<ServiceId>,
+        monday: req_bool,
+        tuesday: req_bool,
+        wednesday: req_bool,
+        thursday: req_bool,
+        friday: req_bool,
+        saturday: req_bool,
+        sunday: req_bool,
+        start_date: req_parse("date YYYYMMDD"),
+        end_date: req_parse("date YYYYMMDD"),
+    }
 }
 
-fn build_calendar_date(f: &Fields) -> Result<CalendarDate, CreateError> {
-    Ok(CalendarDate {
-        service_id: req_id::<ServiceId>(f, "service_id"),
-        date: req_parse(f, "date", "date YYYYMMDD")?,
-        exception_type: req_enum(f, "exception_type", ExceptionType::from_i32, "1 or 2")?,
-    })
+build_record! {
+    build_calendar_date -> CalendarDate {
+        service_id: req_id<ServiceId>,
+        date: req_parse("date YYYYMMDD"),
+        exception_type: req_enum(ExceptionType::from_i32, "1 or 2"),
+    }
 }
 
-fn build_shape(f: &Fields) -> Result<Shape, CreateError> {
-    Ok(Shape {
-        shape_id: req_id::<ShapeId>(f, "shape_id"),
-        shape_pt_lat: Latitude(req_parse(f, "shape_pt_lat", "number")?),
-        shape_pt_lon: Longitude(req_parse(f, "shape_pt_lon", "number")?),
-        shape_pt_sequence: req_parse(f, "shape_pt_sequence", "integer")?,
-        shape_dist_traveled: opt_parse(f, "shape_dist_traveled", "number")?,
-    })
+build_record! {
+    build_shape -> Shape {
+        shape_id: req_id<ShapeId>,
+        shape_pt_lat: req_parse<f64>("number") as Latitude,
+        shape_pt_lon: req_parse<f64>("number") as Longitude,
+        shape_pt_sequence: req_parse("integer"),
+        shape_dist_traveled: opt_parse("number"),
+    }
 }
 
-fn build_frequency(f: &Fields) -> Result<Frequency, CreateError> {
-    Ok(Frequency {
-        trip_id: req_id::<TripId>(f, "trip_id"),
-        start_time: req_parse(f, "start_time", "time HH:MM:SS")?,
-        end_time: req_parse(f, "end_time", "time HH:MM:SS")?,
-        headway_secs: req_parse(f, "headway_secs", "integer")?,
-        exact_times: opt_enum(f, "exact_times", ExactTimes::from_i32, "0-1")?,
-    })
+build_record! {
+    build_frequency -> Frequency {
+        trip_id: req_id<TripId>,
+        start_time: req_parse("time HH:MM:SS"),
+        end_time: req_parse("time HH:MM:SS"),
+        headway_secs: req_parse("integer"),
+        exact_times: opt_enum(ExactTimes::from_i32, "0-1"),
+    }
 }
 
-fn build_transfer(f: &Fields) -> Result<Transfer, CreateError> {
-    Ok(Transfer {
-        from_stop_id: opt_id::<StopId>(f, "from_stop_id"),
-        to_stop_id: opt_id::<StopId>(f, "to_stop_id"),
-        from_route_id: opt_id::<RouteId>(f, "from_route_id"),
-        to_route_id: opt_id::<RouteId>(f, "to_route_id"),
-        from_trip_id: opt_id::<TripId>(f, "from_trip_id"),
-        to_trip_id: opt_id::<TripId>(f, "to_trip_id"),
-        transfer_type: req_enum(f, "transfer_type", TransferType::from_i32, "0-3")?,
-        min_transfer_time: opt_parse(f, "min_transfer_time", "integer")?,
-    })
+build_record! {
+    build_transfer -> Transfer {
+        from_stop_id: opt_id<StopId>,
+        to_stop_id: opt_id<StopId>,
+        from_route_id: opt_id<RouteId>,
+        to_route_id: opt_id<RouteId>,
+        from_trip_id: opt_id<TripId>,
+        to_trip_id: opt_id<TripId>,
+        transfer_type: req_enum(TransferType::from_i32, "0-3"),
+        min_transfer_time: opt_parse("integer"),
+    }
 }
 
-fn build_pathway(f: &Fields) -> Result<Pathway, CreateError> {
-    Ok(Pathway {
-        pathway_id: req_id::<PathwayId>(f, "pathway_id"),
-        from_stop_id: req_id::<StopId>(f, "from_stop_id"),
-        to_stop_id: req_id::<StopId>(f, "to_stop_id"),
-        pathway_mode: req_enum(f, "pathway_mode", PathwayMode::from_i32, "1-7")?,
-        is_bidirectional: req_enum(f, "is_bidirectional", IsBidirectional::from_i32, "0-1")?,
-        length: opt_parse(f, "length", "number")?,
-        traversal_time: opt_parse(f, "traversal_time", "integer")?,
-        stair_count: opt_parse(f, "stair_count", "integer")?,
-        max_slope: opt_parse(f, "max_slope", "number")?,
-        min_width: opt_parse(f, "min_width", "number")?,
-        signposted_as: opt_str(f, "signposted_as"),
-        reversed_signposted_as: opt_str(f, "reversed_signposted_as"),
-    })
+build_record! {
+    build_pathway -> Pathway {
+        pathway_id: req_id<PathwayId>,
+        from_stop_id: req_id<StopId>,
+        to_stop_id: req_id<StopId>,
+        pathway_mode: req_enum(PathwayMode::from_i32, "1-7"),
+        is_bidirectional: req_enum(IsBidirectional::from_i32, "0-1"),
+        length: opt_parse("number"),
+        traversal_time: opt_parse("integer"),
+        stair_count: opt_parse("integer"),
+        max_slope: opt_parse("number"),
+        min_width: opt_parse("number"),
+        signposted_as: opt_str,
+        reversed_signposted_as: opt_str,
+    }
 }
 
-fn build_level(f: &Fields) -> Result<Level, CreateError> {
-    Ok(Level {
-        level_id: req_id::<LevelId>(f, "level_id"),
-        level_index: req_parse(f, "level_index", "number")?,
-        level_name: opt_str(f, "level_name"),
-    })
+build_record! {
+    build_level -> Level {
+        level_id: req_id<LevelId>,
+        level_index: req_parse("number"),
+        level_name: opt_str,
+    }
 }
 
-fn build_feed_info(f: &Fields) -> Result<FeedInfo, CreateError> {
-    Ok(FeedInfo {
-        feed_publisher_name: req_str(f, "feed_publisher_name"),
-        feed_publisher_url: req_id::<Url>(f, "feed_publisher_url"),
-        feed_lang: req_id::<LanguageCode>(f, "feed_lang"),
-        default_lang: opt_id::<LanguageCode>(f, "default_lang"),
-        feed_start_date: opt_parse(f, "feed_start_date", "date YYYYMMDD")?,
-        feed_end_date: opt_parse(f, "feed_end_date", "date YYYYMMDD")?,
-        feed_version: opt_str(f, "feed_version"),
-        feed_contact_email: opt_id::<Email>(f, "feed_contact_email"),
-        feed_contact_url: opt_id::<Url>(f, "feed_contact_url"),
-    })
+build_record! {
+    build_feed_info -> FeedInfo {
+        feed_publisher_name: req_str,
+        feed_publisher_url: req_id<Url>,
+        feed_lang: req_id<LanguageCode>,
+        default_lang: opt_id<LanguageCode>,
+        feed_start_date: opt_parse("date YYYYMMDD"),
+        feed_end_date: opt_parse("date YYYYMMDD"),
+        feed_version: opt_str,
+        feed_contact_email: opt_id<Email>,
+        feed_contact_url: opt_id<Url>,
+    }
 }
 
-fn build_fare_attribute(f: &Fields) -> Result<FareAttribute, CreateError> {
-    Ok(FareAttribute {
-        fare_id: req_id::<FareId>(f, "fare_id"),
-        price: req_parse(f, "price", "number")?,
-        currency_type: req_id::<CurrencyCode>(f, "currency_type"),
-        payment_method: req_parse(f, "payment_method", "0 or 1")?,
-        transfers: opt_parse(f, "transfers", "integer")?,
-        agency_id: opt_id::<AgencyId>(f, "agency_id"),
-        transfer_duration: opt_parse(f, "transfer_duration", "integer")?,
-    })
+build_record! {
+    build_fare_attribute -> FareAttribute {
+        fare_id: req_id<FareId>,
+        price: req_parse("number"),
+        currency_type: req_id<CurrencyCode>,
+        payment_method: req_parse("0 or 1"),
+        transfers: opt_parse("integer"),
+        agency_id: opt_id<AgencyId>,
+        transfer_duration: opt_parse("integer"),
+    }
 }
 
-#[allow(clippy::unnecessary_wraps)]
-fn build_fare_rule(f: &Fields) -> Result<FareRule, CreateError> {
-    Ok(FareRule {
-        fare_id: req_id::<FareId>(f, "fare_id"),
-        route_id: opt_id::<RouteId>(f, "route_id"),
-        origin_id: opt_str(f, "origin_id"),
-        destination_id: opt_str(f, "destination_id"),
-        contains_id: opt_str(f, "contains_id"),
-    })
+build_record_plain! {
+    build_fare_rule -> FareRule {
+        fare_id: req_id<FareId>,
+        route_id: opt_id<RouteId>,
+        origin_id: opt_str,
+        destination_id: opt_str,
+        contains_id: opt_str,
+    }
 }
 
-#[allow(clippy::unnecessary_wraps)]
-fn build_translation(f: &Fields) -> Result<Translation, CreateError> {
-    Ok(Translation {
-        table_name: req_str(f, "table_name"),
-        field_name: req_str(f, "field_name"),
-        language: req_id::<LanguageCode>(f, "language"),
-        translation: req_str(f, "translation"),
-        record_id: opt_str(f, "record_id"),
-        record_sub_id: opt_str(f, "record_sub_id"),
-        field_value: opt_str(f, "field_value"),
-    })
+build_record_plain! {
+    build_translation -> Translation {
+        table_name: req_str,
+        field_name: req_str,
+        language: req_id<LanguageCode>,
+        translation: req_str,
+        record_id: opt_str,
+        record_sub_id: opt_str,
+        field_value: opt_str,
+    }
 }
 
-fn build_attribution(f: &Fields) -> Result<Attribution, CreateError> {
-    Ok(Attribution {
-        attribution_id: opt_str(f, "attribution_id"),
-        agency_id: opt_id::<AgencyId>(f, "agency_id"),
-        route_id: opt_id::<RouteId>(f, "route_id"),
-        trip_id: opt_id::<TripId>(f, "trip_id"),
-        organization_name: req_str(f, "organization_name"),
-        is_producer: opt_parse(f, "is_producer", "0 or 1")?,
-        is_operator: opt_parse(f, "is_operator", "0 or 1")?,
-        is_authority: opt_parse(f, "is_authority", "0 or 1")?,
-        attribution_url: opt_id::<Url>(f, "attribution_url"),
-        attribution_email: opt_id::<Email>(f, "attribution_email"),
-        attribution_phone: opt_id::<Phone>(f, "attribution_phone"),
-    })
+build_record! {
+    build_attribution -> Attribution {
+        attribution_id: opt_str,
+        agency_id: opt_id<AgencyId>,
+        route_id: opt_id<RouteId>,
+        trip_id: opt_id<TripId>,
+        organization_name: req_str,
+        is_producer: opt_parse("0 or 1"),
+        is_operator: opt_parse("0 or 1"),
+        is_authority: opt_parse("0 or 1"),
+        attribution_url: opt_id<Url>,
+        attribution_email: opt_id<Email>,
+        attribution_phone: opt_id<Phone>,
+    }
 }

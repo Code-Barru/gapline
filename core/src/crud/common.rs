@@ -157,12 +157,92 @@ pub struct FeedIndex<'a> {
     pub has_feed_info: bool,
 }
 
+// --- Helpers that build individual index sets from a feed. Each helper is
+// called on demand by `FeedIndex::build` based on the target's needs. ---
+
+fn agency_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.agencies
+        .iter()
+        .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
+        .collect()
+}
+
+fn stop_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.stops.iter().map(|s| s.stop_id.as_ref()).collect()
+}
+
+fn route_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.routes.iter().map(|r| r.route_id.as_ref()).collect()
+}
+
+fn trip_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.trips.iter().map(|t| t.trip_id.as_ref()).collect()
+}
+
+fn calendar_service_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.calendars
+        .iter()
+        .map(|c| c.service_id.as_ref())
+        .collect()
+}
+
+fn all_service_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.calendars
+        .iter()
+        .map(|c| c.service_id.as_ref())
+        .chain(feed.calendar_dates.iter().map(|cd| cd.service_id.as_ref()))
+        .collect()
+}
+
+fn pathway_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.pathways
+        .iter()
+        .map(|p| p.pathway_id.as_ref())
+        .collect()
+}
+
+fn level_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.levels.iter().map(|l| l.level_id.as_ref()).collect()
+}
+
+fn fare_ids_set(feed: &GtfsFeed) -> HashSet<&str> {
+    feed.fare_attributes
+        .iter()
+        .map(|fa| fa.fare_id.as_ref())
+        .collect()
+}
+
+fn stop_time_pks_set(feed: &GtfsFeed) -> HashSet<(&str, u32)> {
+    feed.stop_times
+        .iter()
+        .map(|st| (st.trip_id.as_ref(), st.stop_sequence))
+        .collect()
+}
+
+fn calendar_date_pks_set(feed: &GtfsFeed) -> HashSet<(&str, GtfsDate)> {
+    feed.calendar_dates
+        .iter()
+        .map(|cd| (cd.service_id.as_ref(), cd.date))
+        .collect()
+}
+
+fn shape_pks_set(feed: &GtfsFeed) -> HashSet<(&str, u32)> {
+    feed.shapes
+        .iter()
+        .map(|s| (s.shape_id.as_ref(), s.shape_pt_sequence))
+        .collect()
+}
+
+fn frequency_pks_set(feed: &GtfsFeed) -> HashSet<(&str, GtfsTime)> {
+    feed.frequencies
+        .iter()
+        .map(|f| (f.trip_id.as_ref(), f.start_time))
+        .collect()
+}
+
 impl<'a> FeedIndex<'a> {
-    /// Builds only the index sets required for the given `target`.
-    #[allow(clippy::too_many_lines)]
-    #[must_use]
-    pub fn build(feed: &'a GtfsFeed, target: GtfsTarget) -> Self {
-        let mut idx = Self {
+    fn empty() -> Self {
+        Self {
             agency_ids: HashSet::new(),
             stop_ids: HashSet::new(),
             route_ids: HashSet::new(),
@@ -176,133 +256,69 @@ impl<'a> FeedIndex<'a> {
             shape_pks: HashSet::new(),
             frequency_pks: HashSet::new(),
             has_feed_info: false,
-        };
+        }
+    }
 
+    /// Builds only the index sets required for the given `target`.
+    #[must_use]
+    pub fn build(feed: &'a GtfsFeed, target: GtfsTarget) -> Self {
+        let mut idx = Self::empty();
         match target {
-            GtfsTarget::Agency => {
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-            }
+            GtfsTarget::Agency => idx.agency_ids = agency_ids_set(feed),
             GtfsTarget::Stops => {
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-                idx.level_ids = feed.levels.iter().map(|l| l.level_id.as_ref()).collect();
+                idx.stop_ids = stop_ids_set(feed);
+                idx.level_ids = level_ids_set(feed);
             }
             GtfsTarget::Routes => {
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
+                idx.route_ids = route_ids_set(feed);
+                idx.agency_ids = agency_ids_set(feed);
             }
             GtfsTarget::Trips => {
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .chain(feed.calendar_dates.iter().map(|cd| cd.service_id.as_ref()))
-                    .collect();
+                idx.trip_ids = trip_ids_set(feed);
+                idx.route_ids = route_ids_set(feed);
+                idx.service_ids = all_service_ids_set(feed);
             }
             GtfsTarget::StopTimes => {
-                idx.stop_time_pks = feed
-                    .stop_times
-                    .iter()
-                    .map(|st| (st.trip_id.as_ref(), st.stop_sequence))
-                    .collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
+                idx.stop_time_pks = stop_time_pks_set(feed);
+                idx.trip_ids = trip_ids_set(feed);
+                idx.stop_ids = stop_ids_set(feed);
             }
-            GtfsTarget::Calendar => {
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .collect();
-            }
+            GtfsTarget::Calendar => idx.service_ids = calendar_service_ids_set(feed),
             GtfsTarget::CalendarDates => {
-                idx.calendar_date_pks = feed
-                    .calendar_dates
-                    .iter()
-                    .map(|cd| (cd.service_id.as_ref(), cd.date))
-                    .collect();
-                idx.service_ids = feed
-                    .calendars
-                    .iter()
-                    .map(|c| c.service_id.as_ref())
-                    .chain(feed.calendar_dates.iter().map(|cd| cd.service_id.as_ref()))
-                    .collect();
+                idx.calendar_date_pks = calendar_date_pks_set(feed);
+                idx.service_ids = all_service_ids_set(feed);
             }
-            GtfsTarget::Shapes => {
-                idx.shape_pks = feed
-                    .shapes
-                    .iter()
-                    .map(|s| (s.shape_id.as_ref(), s.shape_pt_sequence))
-                    .collect();
-            }
+            GtfsTarget::Shapes => idx.shape_pks = shape_pks_set(feed),
             GtfsTarget::Frequencies => {
-                idx.frequency_pks = feed
-                    .frequencies
-                    .iter()
-                    .map(|f| (f.trip_id.as_ref(), f.start_time))
-                    .collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
+                idx.frequency_pks = frequency_pks_set(feed);
+                idx.trip_ids = trip_ids_set(feed);
             }
             GtfsTarget::Transfers => {
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
+                idx.stop_ids = stop_ids_set(feed);
+                idx.route_ids = route_ids_set(feed);
+                idx.trip_ids = trip_ids_set(feed);
             }
             GtfsTarget::Pathways => {
-                idx.pathway_ids = feed
-                    .pathways
-                    .iter()
-                    .map(|p| p.pathway_id.as_ref())
-                    .collect();
-                idx.stop_ids = feed.stops.iter().map(|s| s.stop_id.as_ref()).collect();
+                idx.pathway_ids = pathway_ids_set(feed);
+                idx.stop_ids = stop_ids_set(feed);
             }
-            GtfsTarget::Levels => {
-                idx.level_ids = feed.levels.iter().map(|l| l.level_id.as_ref()).collect();
-            }
-            GtfsTarget::FeedInfo => {
-                idx.has_feed_info = feed.feed_info.is_some();
-            }
+            GtfsTarget::Levels => idx.level_ids = level_ids_set(feed),
+            GtfsTarget::FeedInfo => idx.has_feed_info = feed.feed_info.is_some(),
             GtfsTarget::FareAttributes => {
-                idx.fare_ids = feed
-                    .fare_attributes
-                    .iter()
-                    .map(|fa| fa.fare_id.as_ref())
-                    .collect();
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
+                idx.fare_ids = fare_ids_set(feed);
+                idx.agency_ids = agency_ids_set(feed);
             }
             GtfsTarget::FareRules => {
-                idx.fare_ids = feed
-                    .fare_attributes
-                    .iter()
-                    .map(|fa| fa.fare_id.as_ref())
-                    .collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
+                idx.fare_ids = fare_ids_set(feed);
+                idx.route_ids = route_ids_set(feed);
             }
             GtfsTarget::Translations => {}
             GtfsTarget::Attributions => {
-                idx.agency_ids = feed
-                    .agencies
-                    .iter()
-                    .filter_map(|a| a.agency_id.as_ref().map(std::convert::AsRef::as_ref))
-                    .collect();
-                idx.route_ids = feed.routes.iter().map(|r| r.route_id.as_ref()).collect();
-                idx.trip_ids = feed.trips.iter().map(|t| t.trip_id.as_ref()).collect();
+                idx.agency_ids = agency_ids_set(feed);
+                idx.route_ids = route_ids_set(feed);
+                idx.trip_ids = trip_ids_set(feed);
             }
         }
-
         idx
     }
 }

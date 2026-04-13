@@ -6,10 +6,37 @@ use std::process;
 use std::sync::Arc;
 
 use headway_core::config::Config;
+use headway_core::crud::update::UpdatePlan;
 use headway_core::parser::FeedLoader;
 
 use super::super::parser::CrudTarget;
 use super::{resolve_feed, resolve_output};
+
+fn confirm_update_plan(plan: &UpdatePlan) -> bool {
+    eprint!(
+        "Update {} record{} in {}",
+        plan.matched_count,
+        if plan.matched_count > 1 { "s" } else { "" },
+        plan.file_name
+    );
+    if let Some(ref cascade_plan) = plan.cascade {
+        eprintln!(" and cascade to:");
+        for entry in &cascade_plan.entries {
+            eprintln!(
+                "  - {} record{} in {} ({})",
+                entry.count,
+                if entry.count > 1 { "s" } else { "" },
+                entry.dependent.file_name(),
+                entry.fk_fields.join(", ")
+            );
+        }
+        eprint!("Proceed? [y/N] ");
+    } else {
+        eprint!("? [y/N] ");
+    }
+    let mut answer = String::new();
+    std::io::stdin().read_line(&mut answer).is_ok() && answer.trim().eq_ignore_ascii_case("y")
+}
 
 #[allow(clippy::too_many_arguments)] // CRUD update needs all of these from the CLI
 pub fn run_update(
@@ -68,38 +95,18 @@ pub fn run_update(
         process::exit(0);
     }
 
-    if !confirm {
-        eprint!(
-            "Update {} record{} in {}",
-            plan.matched_count,
-            if plan.matched_count > 1 { "s" } else { "" },
-            plan.file_name
-        );
-        if let Some(ref cascade_plan) = plan.cascade {
-            eprintln!(" and cascade to:");
-            for entry in &cascade_plan.entries {
-                eprintln!(
-                    "  - {} record{} in {} ({})",
-                    entry.count,
-                    if entry.count > 1 { "s" } else { "" },
-                    entry.dependent.file_name(),
-                    entry.fk_fields.join(", ")
-                );
-            }
-            eprint!("Proceed? [y/N] ");
-        } else {
-            eprint!("? [y/N] ");
-        }
-        let mut answer = String::new();
-        if std::io::stdin().read_line(&mut answer).is_err()
-            || !answer.trim().eq_ignore_ascii_case("y")
-        {
-            eprintln!("Aborted.");
-            process::exit(0);
-        }
+    if !confirm && !confirm_update_plan(&plan) {
+        eprintln!("Aborted.");
+        process::exit(0);
     }
 
-    let result = headway_core::crud::update::apply_update(&mut feed_data, &plan);
+    let result = match headway_core::crud::update::apply_update(&mut feed_data, &plan) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(1);
+        }
+    };
 
     let write_path = output.unwrap_or_else(|| feed.clone());
     if let Err(e) = headway_core::writer::write_modified_targets(

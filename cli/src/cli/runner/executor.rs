@@ -284,7 +284,11 @@ fn exec_update(
     }
 
     let feed = state.require_feed_mut(line)?;
-    let result = headway_core::crud::update::apply_update(feed, &plan);
+    let result =
+        headway_core::crud::update::apply_update(feed, &plan).map_err(|e| RunError::Command {
+            line,
+            message: e.to_string(),
+        })?;
     state
         .modified_targets
         .extend(result.modified_targets.iter().copied());

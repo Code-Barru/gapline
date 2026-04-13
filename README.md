@@ -18,19 +18,13 @@ Transit data engineers and application developers face:
 
 ### Key Features
 
-**Available now:**
-
 - **Comprehensive validation**: 6-section gated pipeline with 60+ rules covering file structure, CSV formatting, field types, field definitions, foreign keys, and primary key uniqueness
 - **17 GTFS file types parsed**: agency, stops, routes, trips, stop_times, calendar, calendar_dates, shapes, frequencies, transfers, pathways, levels, feed_info, fare_attributes, fare_rules, translations, attributions
-- **Multi-format output**: colored text (default) and JSON
-- **Performance**: parallel rule execution and file parsing via rayon
+- **Multi-format output**: colored text (default), JSON, CSV, XML and HTML supported
+- **Performance**: parallel rule execution and file parsing via multi-threading
 - **Integrity protection**: bidirectional referential integrity index with recursive dependency tracking
-
-**Coming soon:**
-
 - **CRUD operations**: create, read, update, and delete on core GTFS files
 - **Batch processing**: `.hw` files to automate GTFS workflows
-- **CSV and XML output formats**
 - **TOML configuration system**: three-tier config (project > user > defaults)
 
 ## Installation
@@ -81,7 +75,7 @@ headway validate -f ./feed.zip
 headway validate -f ./feed.zip --format json -o report.json
 ```
 
-### CRUD operations (coming soon)
+### CRUD operations
 
 ```bash
 # Read data
@@ -97,7 +91,7 @@ headway update stops -f ./feed.zip --where stop_id=S01 --set stop_name="New Stat
 headway delete stop_times -f ./feed.zip --where "trip_id=OLD AND stop_sequence>10"
 ```
 
-### Batch execution (coming soon)
+### Batch execution
 
 ```bash
 headway run weekly-fix.hw
