@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use super::{
-    HtmlDest, announce_html_dest, csv_to_io, html_escape, open_html_sink, open_writer,
+    HtmlDest, announce_html_dest, html_escape, open_html_sink, open_writer, write_csv_table,
     xml_writer_to_io,
 };
 use crate::cli::OutputFormat;
@@ -81,15 +81,12 @@ fn render_json(result: &ReadResult, output_dest: Option<&Path>) -> io::Result<()
 }
 
 fn render_csv(result: &ReadResult, output_dest: Option<&Path>) -> io::Result<()> {
-    let writer = open_writer(output_dest)?;
-    let mut csv_w = csv::Writer::from_writer(writer);
-    csv_w.write_record(&result.headers).map_err(csv_to_io)?;
-    for row in &result.rows {
-        let cells: Vec<&str> = row.iter().map(|c| c.as_deref().unwrap_or("")).collect();
-        csv_w.write_record(&cells).map_err(csv_to_io)?;
-    }
-    csv_w.flush()?;
-    Ok(())
+    let rows = result.rows.iter().map(|row| {
+        row.iter()
+            .map(|c| c.as_deref().unwrap_or(""))
+            .collect::<Vec<&str>>()
+    });
+    write_csv_table(output_dest, result.headers.iter().copied(), rows)
 }
 
 fn render_xml(result: &ReadResult, output_dest: Option<&Path>) -> io::Result<()> {

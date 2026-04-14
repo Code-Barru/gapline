@@ -115,6 +115,29 @@ pub(super) fn html_escape(s: &str) -> String {
     out
 }
 
+/// Writes a table to `output_dest` as CSV: one header row then one record per
+/// element of `rows`. Encapsulates the boilerplate shared by tabular renderers
+/// (`read.rs`, `rules.rs`) so they stay focused on building their rows.
+pub(super) fn write_csv_table<'a, H, R, I>(
+    output_dest: Option<&Path>,
+    headers: H,
+    rows: I,
+) -> io::Result<()>
+where
+    H: IntoIterator<Item = &'a str>,
+    R: IntoIterator<Item = &'a str>,
+    I: IntoIterator<Item = R>,
+{
+    let writer = open_writer(output_dest)?;
+    let mut csv_w = csv::Writer::from_writer(writer);
+    csv_w.write_record(headers).map_err(csv_to_io)?;
+    for row in rows {
+        csv_w.write_record(row).map_err(csv_to_io)?;
+    }
+    csv_w.flush()?;
+    Ok(())
+}
+
 fn csv_to_io(err: csv::Error) -> io::Error {
     match err.into_kind() {
         csv::ErrorKind::Io(e) => e,

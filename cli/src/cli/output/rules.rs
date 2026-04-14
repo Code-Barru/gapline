@@ -6,7 +6,8 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use super::{
-    HtmlDest, announce_html_dest, csv_to_io, html_escape, open_html_sink, open_writer, xml_to_io,
+    HtmlDest, announce_html_dest, html_escape, open_html_sink, open_writer, write_csv_table,
+    xml_to_io,
 };
 use crate::cli::OutputFormat;
 use headway_core::validation::Severity;
@@ -102,22 +103,16 @@ fn render_json(entries: &[RuleEntry], output_dest: Option<&Path>) -> io::Result<
 }
 
 fn render_csv(entries: &[RuleEntry], output_dest: Option<&Path>) -> io::Result<()> {
-    let writer = open_writer(output_dest)?;
-    let mut csv_w = csv::Writer::from_writer(writer);
-    csv_w
-        .write_record(["rule_id", "severity", "stage"])
-        .map_err(csv_to_io)?;
-    for entry in entries {
-        csv_w
-            .write_record([
-                entry.rule_id,
-                &entry.severity.to_string().to_lowercase(),
-                entry.stage.as_str(),
-            ])
-            .map_err(csv_to_io)?;
-    }
-    csv_w.flush()?;
-    Ok(())
+    // Precompute lowercase severities so we can hand the helper a borrow slice.
+    let sev_lower: Vec<String> = entries
+        .iter()
+        .map(|e| e.severity.to_string().to_lowercase())
+        .collect();
+    let rows = entries
+        .iter()
+        .enumerate()
+        .map(|(i, e)| vec![e.rule_id, sev_lower[i].as_str(), e.stage.as_str()]);
+    write_csv_table(output_dest, ["rule_id", "severity", "stage"], rows)
 }
 
 #[derive(Serialize)]
