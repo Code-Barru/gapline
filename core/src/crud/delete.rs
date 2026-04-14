@@ -106,49 +106,41 @@ fn direct_dependent_files(target: GtfsTarget) -> Vec<GtfsFiles> {
     }
 }
 
-fn target_to_gtfs_file(target: GtfsTarget) -> GtfsFiles {
-    match target {
-        GtfsTarget::Agency => GtfsFiles::Agency,
-        GtfsTarget::Stops => GtfsFiles::Stops,
-        GtfsTarget::Routes => GtfsFiles::Routes,
-        GtfsTarget::Trips => GtfsFiles::Trips,
-        GtfsTarget::StopTimes => GtfsFiles::StopTimes,
-        GtfsTarget::Calendar => GtfsFiles::Calendar,
-        GtfsTarget::CalendarDates => GtfsFiles::CalendarDates,
-        GtfsTarget::Shapes => GtfsFiles::Shapes,
-        GtfsTarget::Frequencies => GtfsFiles::Frequencies,
-        GtfsTarget::Transfers => GtfsFiles::Transfers,
-        GtfsTarget::Pathways => GtfsFiles::Pathways,
-        GtfsTarget::Levels => GtfsFiles::Levels,
-        GtfsTarget::FeedInfo => GtfsFiles::FeedInfo,
-        GtfsTarget::FareAttributes => GtfsFiles::FareAttributes,
-        GtfsTarget::FareRules => GtfsFiles::FareRules,
-        GtfsTarget::Translations => GtfsFiles::Translations,
-        GtfsTarget::Attributions => GtfsFiles::Attributions,
-    }
+macro_rules! gtfs_target_file_map {
+    ( $( $variant:ident ),* $(,)? ) => {
+        fn target_to_gtfs_file(target: GtfsTarget) -> GtfsFiles {
+            match target {
+                $( GtfsTarget::$variant => GtfsFiles::$variant, )*
+            }
+        }
+
+        fn gtfs_file_to_target(file: GtfsFiles) -> Option<GtfsTarget> {
+            match file {
+                $( GtfsFiles::$variant => Some(GtfsTarget::$variant), )*
+                _ => None, // Fares v2 files not yet in CrudTarget
+            }
+        }
+    };
 }
 
-fn gtfs_file_to_target(file: GtfsFiles) -> Option<GtfsTarget> {
-    match file {
-        GtfsFiles::Agency => Some(GtfsTarget::Agency),
-        GtfsFiles::Stops => Some(GtfsTarget::Stops),
-        GtfsFiles::Routes => Some(GtfsTarget::Routes),
-        GtfsFiles::Trips => Some(GtfsTarget::Trips),
-        GtfsFiles::StopTimes => Some(GtfsTarget::StopTimes),
-        GtfsFiles::Calendar => Some(GtfsTarget::Calendar),
-        GtfsFiles::CalendarDates => Some(GtfsTarget::CalendarDates),
-        GtfsFiles::Shapes => Some(GtfsTarget::Shapes),
-        GtfsFiles::Frequencies => Some(GtfsTarget::Frequencies),
-        GtfsFiles::Transfers => Some(GtfsTarget::Transfers),
-        GtfsFiles::Pathways => Some(GtfsTarget::Pathways),
-        GtfsFiles::Levels => Some(GtfsTarget::Levels),
-        GtfsFiles::FeedInfo => Some(GtfsTarget::FeedInfo),
-        GtfsFiles::FareAttributes => Some(GtfsTarget::FareAttributes),
-        GtfsFiles::FareRules => Some(GtfsTarget::FareRules),
-        GtfsFiles::Translations => Some(GtfsTarget::Translations),
-        GtfsFiles::Attributions => Some(GtfsTarget::Attributions),
-        _ => None, // Fares v2 files not yet in CrudTarget
-    }
+gtfs_target_file_map! {
+    Agency,
+    Stops,
+    Routes,
+    Trips,
+    StopTimes,
+    Calendar,
+    CalendarDates,
+    Shapes,
+    Frequencies,
+    Transfers,
+    Pathways,
+    Levels,
+    FeedInfo,
+    FareAttributes,
+    FareRules,
+    Translations,
+    Attributions,
 }
 
 /// Validates a delete operation and builds a [`DeletePlan`] without mutating
