@@ -4,6 +4,15 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.14.0] - 2026-04-14
+
+### Features
+
+- feat: html reports
+- feat: csv & xml output format
+- feat: autocompletion
+- feat: LIKE syntax in --where clause
+
 ## [0.13.0] - 2026-04-10
 
 ### Features
