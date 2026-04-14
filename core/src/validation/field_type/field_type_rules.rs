@@ -28,10 +28,10 @@ const ISO_4217_CODES: &[&str; 157] = &[
 ];
 
 static BCP47_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$").unwrap());
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$").expect("invalid regex"));
 
 static EMAIL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").unwrap());
+    LazyLock::new(|| Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").expect("invalid regex"));
 
 #[must_use]
 pub fn is_valid_url(value: &str) -> bool {
@@ -63,7 +63,8 @@ pub fn is_valid_email(value: &str) -> bool {
     EMAIL_RE.is_match(value)
 }
 
-static PHONE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9+\-.()\s]{5,}$").unwrap());
+static PHONE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[0-9+\-.()\s]{5,}$").expect("invalid regex"));
 
 #[must_use]
 pub fn is_valid_phone(value: &str) -> bool {

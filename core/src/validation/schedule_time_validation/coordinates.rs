@@ -153,14 +153,13 @@ impl ValidationRule for DuplicateCoordinatesRule {
         }
 
         let mut errors = Vec::new();
-        for entries in by_coords.values() {
+        for ((lat_bits, lon_bits), entries) in &by_coords {
             if entries.len() < 2 {
                 continue;
             }
-            let (first_idx, _) = entries[0];
-            let stop = &feed.stops[first_idx];
-            let lat = stop.stop_lat.unwrap().0;
-            let lon = stop.stop_lon.unwrap().0;
+            let lat = f64::from_bits(*lat_bits);
+            let lon = f64::from_bits(*lon_bits);
+            let first_idx = entries[0].0;
             let ids: Vec<&str> = entries.iter().map(|(_, id)| *id).collect();
             errors.push(
                 ValidationError::new("duplicate_coordinates", SECTION, Severity::Warning)

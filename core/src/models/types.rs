@@ -15,7 +15,7 @@ pub struct GtfsDate(pub NaiveDate);
 
 impl Default for GtfsDate {
     fn default() -> Self {
-        Self(NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
+        Self(NaiveDate::from_ymd_opt(1970, 1, 1).expect("1970-01-01 is a valid date"))
     }
 }
 
