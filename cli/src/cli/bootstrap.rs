@@ -11,6 +11,7 @@ use headway_core::config::{CliOverrides, Config, Verbosity};
 use tracing_subscriber::{EnvFilter, fmt};
 
 use super::exit;
+use super::output::ColorMode;
 use super::parser::{Cli, Commands, SeverityArg};
 
 /// Build the runtime config from the parsed CLI args, configure the global
@@ -93,17 +94,21 @@ fn apply_runtime(config: &Config) {
 
     // Color override precedence (POSIX NO_COLOR wins over everything):
     // 1. `NO_COLOR` env var set (any value) → force off
-    // 2. `[output] no_color = true` or `--no-color` → force off
-    // 3. `[output] force_color = true` or `--force-color` → force on
-    // 4. otherwise: fall back to `colored`'s auto-detection (TTY check)
+    // 2. `ColorMode::ForceOff` (`--no-color` / `[output] no_color`)   → force off
+    // 3. `ColorMode::ForceOn`  (`--force-color` / `[output] force_color`) → on
+    // 4. `ColorMode::Auto`     → fall back to `colored`'s auto-detection.
     //
     // `colored::control::set_override` is process-global. clap's
     // `conflicts_with` prevents `--no-color` and `--force-color` being set at
     // the same time, but a config file with both true is resolved by
-    // `no_color` winning.
-    if std::env::var_os("NO_COLOR").is_some() || config.output.no_color {
+    // `ColorMode::from_config` (no_color wins).
+    if std::env::var_os("NO_COLOR").is_some() {
         colored::control::set_override(false);
-    } else if config.output.force_color {
-        colored::control::set_override(true);
+        return;
+    }
+    match ColorMode::from_config(&config.output) {
+        ColorMode::ForceOff => colored::control::set_override(false),
+        ColorMode::ForceOn => colored::control::set_override(true),
+        ColorMode::Auto => {}
     }
 }
