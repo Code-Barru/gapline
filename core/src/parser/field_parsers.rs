@@ -1,3 +1,18 @@
+//! Low-level helpers used by every per-file GTFS parser.
+//!
+//! Each function reads a single field from a [`CsvRow`], converts it to the
+//! target type, and — on failure — pushes a structured [`ParseError`] into the
+//! caller's error buffer before returning a default value. This keeps the
+//! per-file parsers (`core/src/parser/file_parsers/*.rs`) uniform: they walk
+//! the rows, call one helper per column, and collect every error in a single
+//! pass instead of short-circuiting on the first problem.
+//!
+//! All `required_*` helpers emit a `MissingRequired` error when the column is
+//! absent or empty. All `optional_*` helpers return `None` silently in that
+//! case. Conversion failures (parse/enum) emit the caller-supplied
+//! [`ParseErrorKind`] so different columns can be reported with appropriate
+//! taxonomy.
+
 use std::str::FromStr;
 
 use crate::parser::csv_parser::CsvRow;
@@ -27,6 +42,8 @@ fn push_error(
     });
 }
 
+/// Reads a required string column, returning an empty `String` and emitting
+/// `MissingRequired` when the column is absent.
 pub fn required_str(
     row: &CsvRow,
     field: &str,
@@ -49,11 +66,15 @@ pub fn required_str(
     }
 }
 
+/// Reads an optional string column. Returns `None` when the column is absent.
 #[must_use]
 pub fn optional_str(row: &CsvRow, field: &str) -> Option<String> {
     get(row, field).map(str::to_owned)
 }
 
+/// Parses a required typed column with `T::from_str`. On missing or invalid
+/// input, emits an error (`MissingRequired` or the supplied `err_kind`) and
+/// returns `T::default()`.
 pub fn required_parse<T: FromStr + Default>(
     row: &CsvRow,
     field: &str,
@@ -82,6 +103,8 @@ pub fn required_parse<T: FromStr + Default>(
     }
 }
 
+/// Parses an optional typed column. Missing columns silently return `None`.
+/// Invalid values emit `err_kind` and also return `None`.
 pub fn optional_parse<T: FromStr>(
     row: &CsvRow,
     field: &str,
@@ -99,6 +122,8 @@ pub fn optional_parse<T: FromStr>(
     }
 }
 
+/// Reads a required ID column (anything constructible via `From<String>`).
+/// Missing values produce `MissingRequired` and return `T::from(String::new())`.
 pub fn required_id<T: From<String>>(
     row: &CsvRow,
     field: &str,
@@ -121,11 +146,15 @@ pub fn required_id<T: From<String>>(
     }
 }
 
+/// Reads an optional ID column. Returns `None` when the column is absent.
 #[must_use]
 pub fn optional_id<T: From<String>>(row: &CsvRow, field: &str) -> Option<T> {
     get(row, field).map(|v| T::from(v.to_owned()))
 }
 
+/// Parses a required enum column encoded as an `i32` code. `from_i32` maps
+/// valid codes to enum variants; unknown codes emit `InvalidEnum` and return
+/// `default`. Missing columns emit `MissingRequired` and also return `default`.
 pub fn required_enum<T>(
     row: &CsvRow,
     field: &str,
@@ -155,6 +184,8 @@ pub fn required_enum<T>(
     }
 }
 
+/// Parses an optional enum column encoded as an `i32` code. Missing columns
+/// return `None` silently; unknown codes emit `InvalidEnum` and return `None`.
 pub fn optional_enum<T>(
     row: &CsvRow,
     field: &str,
@@ -172,6 +203,8 @@ pub fn optional_enum<T>(
     }
 }
 
+/// Reads a GTFS boolean column: `"1"` → `true`, anything else (including
+/// absent) → `false`. No error is emitted for this column type.
 #[must_use]
 pub fn bool_field(row: &CsvRow, field: &str) -> bool {
     get(row, field).is_some_and(|v| v == "1")
