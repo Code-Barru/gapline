@@ -31,7 +31,7 @@ impl StructuralValidationRule for InvalidRowLengthRule {
         let mut errors = Vec::new();
 
         for file in source.file_names() {
-            let Ok(Some(columns)) = read_header(source, file) else {
+            let Ok(columns) = read_header(source, file) else {
                 continue;
             };
             let expected = columns.len();

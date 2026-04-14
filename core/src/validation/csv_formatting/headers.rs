@@ -28,7 +28,7 @@ impl StructuralValidationRule for MissingHeaderRule {
         let mut errors = Vec::new();
 
         for file in source.file_names() {
-            let Ok(Some(columns)) = helpers::read_header(source, file) else {
+            let Ok(columns) = helpers::read_header(source, file) else {
                 continue;
             };
 
