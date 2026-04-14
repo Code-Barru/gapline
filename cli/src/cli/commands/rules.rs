@@ -8,6 +8,7 @@ use std::sync::Arc;
 use headway_core::config::Config;
 use headway_core::validation::engine::ValidationEngine;
 
+use super::super::exit;
 use super::super::output::{RuleEntry, Stage, render_rules_list};
 use super::super::parser::{OutputFormat, SeverityArg};
 use super::{resolve_format, resolve_output};
@@ -52,6 +53,6 @@ pub fn run_rules_list(
 
     if let Err(e) = render_rules_list(&entries, fmt, output.as_deref()) {
         eprintln!("Error rendering rules list: {e}");
-        process::exit(1);
+        process::exit(exit::COMMAND_FAILED);
     }
 }

@@ -9,6 +9,7 @@ use headway_core::config::Config;
 use headway_core::crud::update::UpdatePlan;
 use headway_core::parser::FeedLoader;
 
+use super::super::exit;
 use super::super::parser::CrudTarget;
 use super::{resolve_feed, resolve_output};
 
@@ -58,7 +59,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::INPUT_ERROR);
         }
     };
 
@@ -66,7 +67,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         Ok(parsed) => parsed,
         Err(e) => {
             eprintln!("Invalid query: {e}");
-            process::exit(1);
+            process::exit(exit::COMMAND_FAILED);
         }
     };
 
@@ -89,25 +90,25 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::COMMAND_FAILED);
         }
     };
 
     if plan.matched_count == 0 {
-        eprintln!("0 records matched filter. Nothing to update.");
-        process::exit(0);
+        tracing::info!("0 records matched filter. Nothing to update.");
+        process::exit(exit::NO_CHANGES);
     }
 
     if !args.confirm && !confirm_update_plan(&plan) {
         eprintln!("Aborted.");
-        process::exit(0);
+        process::exit(exit::SUCCESS);
     }
 
     let result = match headway_core::crud::update::apply_update(&mut feed_data, &plan) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::COMMAND_FAILED);
         }
     };
 
@@ -119,10 +120,10 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         &write_path,
     ) {
         eprintln!("{e}");
-        process::exit(1);
+        process::exit(exit::INPUT_ERROR);
     }
 
-    eprintln!(
+    tracing::info!(
         "Updated {} record{} in {}",
         result.count,
         if result.count > 1 { "s" } else { "" },
@@ -130,7 +131,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     );
     if let Some(ref cascade_plan) = plan.cascade {
         for entry in &cascade_plan.entries {
-            eprintln!(
+            tracing::info!(
                 "Cascaded to {} record{} in {}",
                 entry.count,
                 if entry.count > 1 { "s" } else { "" },

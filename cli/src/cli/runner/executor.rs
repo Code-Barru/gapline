@@ -67,7 +67,7 @@ pub fn execute(directives: &[HwDirective], parent_config: &Arc<Config>) -> Resul
     };
 
     for (i, directive) in directives.iter().enumerate() {
-        eprintln!("[{}] {}", i + 1, directive.raw_line);
+        tracing::info!("[{}] {}", i + 1, directive.raw_line);
 
         match &directive.kind {
             DirectiveKind::Feed { path } => exec_feed(&mut state, path, directive.line_number)?,
@@ -252,7 +252,7 @@ fn exec_create(
     headway_core::crud::create::apply_create(feed, plan);
     state.modified_targets.insert(target.to_target());
 
-    eprintln!("  Created 1 record in {}", target.to_target().file_name());
+    tracing::info!("  Created 1 record in {}", target.to_target().file_name());
     Ok(())
 }
 
@@ -279,7 +279,7 @@ fn exec_update(
             .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
-        eprintln!("  0 records matched. Nothing to update.");
+        tracing::info!("  0 records matched. Nothing to update.");
         return Ok(());
     }
 
@@ -293,7 +293,7 @@ fn exec_update(
         .modified_targets
         .extend(result.modified_targets.iter().copied());
 
-    eprintln!(
+    tracing::info!(
         "  Updated {} record{} in {}",
         result.count,
         if result.count > 1 { "s" } else { "" },
@@ -325,7 +325,7 @@ fn exec_delete(
         .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
-        eprintln!("  0 records matched. Nothing to delete.");
+        tracing::info!("  0 records matched. Nothing to delete.");
         return Ok(());
     }
 
@@ -335,7 +335,7 @@ fn exec_delete(
         .modified_targets
         .extend(result.modified_targets.iter().copied());
 
-    eprintln!(
+    tracing::info!(
         "  Deleted {} record{} from {}",
         result.primary_count,
         if result.primary_count > 1 { "s" } else { "" },

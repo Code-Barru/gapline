@@ -7,19 +7,48 @@
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::{CliOverrides, Config};
+use headway_core::config::{CliOverrides, Config, Verbosity};
+use tracing_subscriber::{EnvFilter, fmt};
 
+use super::exit;
 use super::parser::{Cli, Commands, SeverityArg};
 
 /// Build the runtime config from the parsed CLI args, configure the global
-/// thread pool and color override, and return the loaded config.
+/// thread pool, color override, and logging, and return the loaded config.
 ///
 /// Exits with code 2 on config-loading errors.
 pub fn init(args: &mut Cli) -> Arc<Config> {
     let overrides = build_overrides(args);
     let config = load_config(overrides);
+    init_logging(&config);
     apply_runtime(&config);
     config
+}
+
+/// Installs a `tracing` subscriber whose default level is derived from
+/// `[output] verbosity` (`quiet`→warn, `normal`→info, `verbose`→debug).
+/// `HEADWAY_LOG` overrides this if set — same syntax as `RUST_LOG`.
+///
+/// The formatter is minimal: no timestamp, level, target or span, so that
+/// `tracing::info!("Updated 5 records")` prints exactly `Updated 5 records\n`
+/// — identical to the previous `eprintln!` behaviour, but now gated by a
+/// level filter the user can control.
+fn init_logging(config: &Config) {
+    let default = match config.output.verbosity {
+        Verbosity::Quiet => "warn",
+        Verbosity::Normal => "info",
+        Verbosity::Verbose => "debug",
+    };
+    let filter = EnvFilter::try_from_env("HEADWAY_LOG").unwrap_or_else(|_| EnvFilter::new(default));
+    // `try_init` is a no-op if a subscriber is already installed (e.g. during
+    // tests that repeatedly call `bootstrap::init`).
+    let _ = fmt()
+        .with_writer(std::io::stderr)
+        .with_level(false)
+        .with_target(false)
+        .without_time()
+        .with_env_filter(filter)
+        .try_init();
 }
 
 fn build_overrides(args: &mut Cli) -> CliOverrides {
@@ -47,7 +76,7 @@ fn load_config(overrides: CliOverrides) -> Arc<Config> {
         Ok(c) => Arc::new(c),
         Err(e) => {
             eprintln!("{e}");
-            process::exit(2);
+            process::exit(exit::CONFIG_ERROR);
         }
     }
 }
@@ -59,7 +88,7 @@ fn apply_runtime(config: &Config) {
             .num_threads(n)
             .build_global()
     {
-        eprintln!("Warning: failed to configure thread pool: {e}");
+        tracing::warn!("failed to configure thread pool: {e}");
     }
 
     // Color override precedence (POSIX NO_COLOR wins over everything):

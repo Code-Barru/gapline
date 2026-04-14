@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use headway_core::config::Config;
 
+use super::super::exit;
 use super::super::output::render_report;
 use super::super::parser::OutputFormat;
 use super::{resolve_feed, resolve_format, resolve_output};
@@ -24,16 +25,16 @@ pub fn run_validate(
         Ok(r) => r,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::INPUT_ERROR);
         }
     };
 
     if let Err(e) = render_report(&report, fmt, &feed, output.as_deref(), config) {
         eprintln!("Error while rendering report: {e}");
-        process::exit(1);
+        process::exit(exit::COMMAND_FAILED);
     }
 
     if report.has_errors() {
-        process::exit(1);
+        process::exit(exit::COMMAND_FAILED);
     }
 }

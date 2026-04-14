@@ -7,6 +7,7 @@ use std::sync::Arc;
 use headway_core::config::Config;
 use headway_core::parser::FeedLoader;
 
+use super::super::exit;
 use super::super::parser::CrudTarget;
 use super::{resolve_feed, resolve_output};
 
@@ -25,7 +26,7 @@ pub fn run_create(
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::INPUT_ERROR);
         }
     };
     let files: std::collections::HashSet<_> =
@@ -39,7 +40,7 @@ pub fn run_create(
             Ok(p) => p,
             Err(e) => {
                 eprintln!("{e}");
-                process::exit(1);
+                process::exit(exit::COMMAND_FAILED);
             }
         };
 
@@ -55,7 +56,7 @@ pub fn run_create(
             || !answer.trim().eq_ignore_ascii_case("y")
         {
             eprintln!("Aborted.");
-            process::exit(0);
+            process::exit(exit::SUCCESS);
         }
     }
 
@@ -66,8 +67,8 @@ pub fn run_create(
         headway_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
     {
         eprintln!("{e}");
-        process::exit(1);
+        process::exit(exit::INPUT_ERROR);
     }
 
-    eprintln!("Created 1 record in {}", target.to_target().file_name());
+    tracing::info!("Created 1 record in {}", target.to_target().file_name());
 }

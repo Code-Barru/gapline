@@ -7,6 +7,7 @@ use std::sync::Arc;
 use headway_core::config::Config;
 use headway_core::parser::FeedLoader;
 
+use super::super::exit;
 use super::super::output::render_read_results;
 use super::super::parser::{CrudTarget, OutputFormat};
 use super::{resolve_feed, resolve_format, resolve_output};
@@ -27,12 +28,12 @@ pub fn run_read(
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::INPUT_ERROR);
         }
     };
     if let Err(e) = source.preload() {
         eprintln!("{e}");
-        process::exit(1);
+        process::exit(exit::INPUT_ERROR);
     }
     let (feed_data, _parse_errors) = FeedLoader::load(&source);
 
@@ -41,7 +42,7 @@ pub fn run_read(
             Ok(parsed) => Some(parsed),
             Err(e) => {
                 eprintln!("Invalid query: {e}");
-                process::exit(1);
+                process::exit(exit::COMMAND_FAILED);
             }
         },
         None => None,
@@ -55,12 +56,12 @@ pub fn run_read(
         Ok(r) => r,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::COMMAND_FAILED);
         }
     };
 
     if let Err(e) = render_read_results(&result, fmt, output.as_deref()) {
         eprintln!("Error while rendering results: {e}");
-        process::exit(1);
+        process::exit(exit::COMMAND_FAILED);
     }
 }

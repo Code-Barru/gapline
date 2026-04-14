@@ -8,6 +8,7 @@ use std::sync::Arc;
 use headway_core::config::Config;
 use headway_core::parser::FeedLoader;
 
+use super::super::exit;
 use super::super::parser::CrudTarget;
 use super::{resolve_feed, resolve_output};
 
@@ -26,7 +27,7 @@ pub fn run_delete(
         Ok(s) => s,
         Err(e) => {
             eprintln!("{e}");
-            process::exit(1);
+            process::exit(exit::INPUT_ERROR);
         }
     };
 
@@ -34,7 +35,7 @@ pub fn run_delete(
         Ok(parsed) => parsed,
         Err(e) => {
             eprintln!("Invalid query: {e}");
-            process::exit(1);
+            process::exit(exit::COMMAND_FAILED);
         }
     };
 
@@ -49,13 +50,13 @@ pub fn run_delete(
             Ok(p) => p,
             Err(e) => {
                 eprintln!("{e}");
-                process::exit(1);
+                process::exit(exit::COMMAND_FAILED);
             }
         };
 
     if plan.matched_count == 0 {
-        eprintln!("0 records matched filter. Nothing to delete.");
-        process::exit(0);
+        tracing::info!("0 records matched filter. Nothing to delete.");
+        process::exit(exit::NO_CHANGES);
     }
 
     if !confirm {
@@ -72,7 +73,7 @@ pub fn run_delete(
         &write_path,
     ) {
         eprintln!("{e}");
-        process::exit(1);
+        process::exit(exit::INPUT_ERROR);
     }
 
     let mut parts = vec![format!(
@@ -85,7 +86,7 @@ pub fn run_delete(
     }
     let total: usize =
         result.primary_count + result.cascade_counts.iter().map(|(_, c)| c).sum::<usize>();
-    eprintln!(
+    tracing::info!(
         "Deleted {} ({total} record{} total)",
         parts.join(" + "),
         if total > 1 { "s" } else { "" }
@@ -125,6 +126,6 @@ fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) {
     if std::io::stdin().read_line(&mut answer).is_err() || !answer.trim().eq_ignore_ascii_case("y")
     {
         eprintln!("Aborted.");
-        process::exit(0);
+        process::exit(exit::SUCCESS);
     }
 }

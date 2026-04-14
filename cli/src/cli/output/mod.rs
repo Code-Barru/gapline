@@ -94,7 +94,7 @@ pub(super) fn open_html_sink(output_dest: Option<&Path>) -> io::Result<(Box<dyn 
 /// stdout (nothing to announce).
 pub(super) fn announce_html_dest(dest: &HtmlDest) {
     if let HtmlDest::TempFile(path) = dest {
-        eprintln!("HTML report written to: {}", path.display());
+        tracing::info!("HTML report written to: {}", path.display());
     }
 }
 

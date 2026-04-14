@@ -239,17 +239,18 @@ fn cli_validate_output_to_file() {
 }
 
 #[test]
-fn cli_validate_nonexistent_feed_exit_1() {
+fn cli_validate_nonexistent_feed_exit_input_error() {
     let output = Command::new(headway_bin())
         .args(["validate", "-f", "/tmp/nonexistent_feed_xyz.zip"])
         .output()
         .expect("failed to run headway");
 
-    assert_eq!(output.status.code(), Some(1));
+    // INPUT_ERROR (3): file not found, cannot read archive.
+    assert_eq!(output.status.code(), Some(3));
 }
 
 #[test]
-fn cli_validate_corrupted_zip_exit_1() {
+fn cli_validate_corrupted_zip_exit_input_error() {
     let tmp = NamedTempFile::new().unwrap();
     std::fs::write(tmp.path(), b"this is not a zip file").unwrap();
 
@@ -258,7 +259,8 @@ fn cli_validate_corrupted_zip_exit_1() {
         .output()
         .expect("failed to run headway");
 
-    assert_eq!(output.status.code(), Some(1));
+    // INPUT_ERROR (3): malformed archive is an I/O-level failure.
+    assert_eq!(output.status.code(), Some(3));
 }
 
 /// Creates a feed that passes structural gate but has an invalid date in calendar.txt.

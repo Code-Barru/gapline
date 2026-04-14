@@ -15,6 +15,7 @@
 pub mod bootstrap;
 pub mod commands;
 mod completion_install;
+pub mod exit;
 mod output;
 mod parser;
 pub mod runner;

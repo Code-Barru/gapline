@@ -97,6 +97,19 @@ headway delete stop_times -f ./feed.zip --where "trip_id=OLD AND stop_sequence>1
 headway run weekly-fix.hw
 ```
 
+### Exit codes
+
+Every subcommand sets one of these exit codes so wrapper scripts can react
+precisely:
+
+| Code | Meaning                                                               |
+|------|-----------------------------------------------------------------------|
+| `0`  | Success. Also set when the user aborted an interactive confirmation.  |
+| `1`  | Command failed: invalid `--where`, validation errors, render failure. |
+| `2`  | Configuration error: malformed `headway.toml`, unknown key, etc.      |
+| `3`  | Input/output error: feed not found, cannot read archive, write fail.  |
+| `4`  | No changes: the operation matched 0 records and nothing was written.  |
+
 ## Development
 
 ### Run in development mode

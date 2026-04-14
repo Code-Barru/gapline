@@ -6,6 +6,7 @@ use std::process;
 use clap_complete::Shell;
 
 use super::super::completion_install::{InstallReport, install_completion};
+use super::super::exit;
 
 /// Writes the clap-generated completion script for `shell` into `writer`.
 /// Exposed for integration tests so they can capture output without a
@@ -25,14 +26,14 @@ pub fn run_completion(shell: Shell, install: bool) {
     if install {
         match install_completion(shell) {
             Ok(InstallReport { path, hint }) => {
-                eprintln!("Installed headway {shell} completion to {}", path.display());
+                tracing::info!("Installed headway {shell} completion to {}", path.display());
                 if let Some(h) = hint {
-                    eprintln!("{h}");
+                    tracing::info!("{h}");
                 }
             }
             Err(e) => {
                 eprintln!("Failed to install completion: {e}");
-                process::exit(2);
+                process::exit(exit::COMMAND_FAILED);
             }
         }
     } else {

@@ -10,6 +10,7 @@ use std::process;
 
 use headway_core::config::Config;
 
+use super::exit;
 use super::parser::OutputFormat;
 
 mod completion;
@@ -42,7 +43,7 @@ pub(super) fn resolve_feed(cli_feed: Option<&Path>, config: &Config) -> PathBuf 
     eprintln!(
         "Missing feed path. Pass --feed PATH or set [default] feed = \"...\" in your config."
     );
-    process::exit(1);
+    process::exit(exit::COMMAND_FAILED);
 }
 
 /// Resolves the output format from CLI flag then `[default] format`,
