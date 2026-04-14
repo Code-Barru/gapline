@@ -7,9 +7,31 @@ mod validation;
 use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
+use headway_core::config::OutputSection;
+
 pub use read::render_read_results;
 pub use rules::{RuleEntry, Stage, render_rules_list};
 pub use validation::render_report;
+
+/// Single source of truth for "should this invocation emit ANSI color?".
+///
+/// Precedence: explicit `--force-color` / `[output] force_color = true` wins,
+/// then `--no-color` / `[output] no_color = true`, otherwise auto-detect based
+/// on whether stdout is a TTY *and* the output isn't being redirected to a
+/// file (`-o PATH`).
+///
+/// The POSIX `NO_COLOR` env var is honored earlier, in `bootstrap::init`, via
+/// `colored::control::set_override(false)` — that override wins over every
+/// caller path, so this function doesn't need to re-check it.
+pub(super) fn should_use_color(cfg: &OutputSection, output_dest: Option<&Path>) -> bool {
+    if cfg.force_color {
+        return true;
+    }
+    if cfg.no_color {
+        return false;
+    }
+    output_dest.is_none() && io::stdout().is_terminal()
+}
 
 fn create_output_file(path: &Path) -> io::Result<std::fs::File> {
     std::fs::File::create(path).map_err(|e| {

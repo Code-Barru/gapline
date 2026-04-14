@@ -2,7 +2,7 @@ use colored::{Color, Colorize};
 use serde::Serialize;
 use serde_json::{json, to_string_pretty};
 use std::fmt::Write as _;
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, Write};
 use std::path::Path;
 
 use super::{announce_html_dest, csv_to_io, html_escape, open_html_sink, open_writer, xml_to_io};
@@ -75,13 +75,7 @@ pub fn render_report(
     config: &Config,
 ) -> io::Result<()> {
     let view = FilteredView::new(report, config.validation.min_severity);
-    let use_color = if config.output.force_color {
-        true
-    } else if config.output.no_color {
-        false
-    } else {
-        io::stdout().is_terminal() && output_dest.is_none()
-    };
+    let use_color = super::should_use_color(&config.output, output_dest);
     match format {
         OutputFormat::Text => render_text(&view, output_dest, use_color),
         OutputFormat::Json => render_json(&view, output_dest),

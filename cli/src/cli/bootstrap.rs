@@ -62,11 +62,17 @@ fn apply_runtime(config: &Config) {
         eprintln!("Warning: failed to configure thread pool: {e}");
     }
 
-    // `colored::control::set_override` is process-global. `no_color` wins if
-    // both flags somehow ended up set (clap's `conflicts_with` already
-    // prevents that on the CLI side, but a config file with both true would
-    // otherwise be ambiguous).
-    if config.output.no_color {
+    // Color override precedence (POSIX NO_COLOR wins over everything):
+    // 1. `NO_COLOR` env var set (any value) → force off
+    // 2. `[output] no_color = true` or `--no-color` → force off
+    // 3. `[output] force_color = true` or `--force-color` → force on
+    // 4. otherwise: fall back to `colored`'s auto-detection (TTY check)
+    //
+    // `colored::control::set_override` is process-global. clap's
+    // `conflicts_with` prevents `--no-color` and `--force-color` being set at
+    // the same time, but a config file with both true is resolved by
+    // `no_color` winning.
+    if std::env::var_os("NO_COLOR").is_some() || config.output.no_color {
         colored::control::set_override(false);
     } else if config.output.force_color {
         colored::control::set_override(true);
