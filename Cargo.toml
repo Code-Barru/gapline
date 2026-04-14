@@ -3,7 +3,6 @@ members = ["core", "cli"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
@@ -11,7 +10,7 @@ edition = "2024"
 chrono     = { version = "0.4", features = ["serde"] }
 chrono-tz  = "0.10"
 csv        = "1.4.0"
-dirs       = "5"
+dirs       = "6"
 rayon      = "1.11.0"
 url        = "2"
 serde      = { version = "1.0.228", features = ["derive", "rc"] }

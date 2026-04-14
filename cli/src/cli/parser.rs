@@ -1,3 +1,4 @@
+use std::fmt;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
@@ -271,6 +272,18 @@ pub enum OutputFormat {
     Html,
     /// Human-readable colored terminal text (default).
     Text,
+}
+
+impl fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Json => "json",
+            Self::Csv => "csv",
+            Self::Xml => "xml",
+            Self::Html => "html",
+            Self::Text => "text",
+        })
+    }
 }
 
 impl OutputFormat {
