@@ -33,10 +33,6 @@ pub struct Config {
     pub experimental: ExperimentalSection,
 }
 
-// ============================================================================
-// [default]
-// ============================================================================
-
 /// Default values for CLI arguments that can be omitted from the command line.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
