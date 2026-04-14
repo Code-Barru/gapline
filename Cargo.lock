@@ -666,7 +666,7 @@ checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
 
 [[package]]
 name = "headway"
-version = "0.14.1"
+version = "0.15.0"
 dependencies = [
  "chrono",
  "clap",
@@ -689,7 +689,7 @@ dependencies = [
 
 [[package]]
 name = "headway-core"
-version = "0.14.1"
+version = "0.15.0"
 dependencies = [
  "chrono",
  "chrono-tz",
