@@ -83,98 +83,19 @@ fn err(rule_id: &str, file: &str, field: &str, value: &str, line: usize) -> Vali
         .message(format!("Invalid {field}: '{value}'"))
 }
 
-macro_rules! check_url {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
+macro_rules! check_field {
+    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr, $validator:ident, $rule_id:literal) => {
         let s: &str = $val.as_ref();
-        if !is_valid_url(s) {
-            $errors.push(err("invalid_url", $file, $field, s, $line));
+        if !$validator(s) {
+            $errors.push(err($rule_id, $file, $field, s, $line));
         }
     };
 }
 
-macro_rules! check_opt_url {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
+macro_rules! check_opt_field {
+    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr, $validator:ident, $rule_id:literal) => {
         if let Some(ref v) = $val {
-            check_url!($errors, $file, $field, v, $line);
-        }
-    };
-}
-
-macro_rules! check_tz {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        let s: &str = $val.as_ref();
-        if !is_valid_timezone(s) {
-            $errors.push(err("invalid_timezone", $file, $field, s, $line));
-        }
-    };
-}
-
-macro_rules! check_opt_tz {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        if let Some(ref v) = $val {
-            check_tz!($errors, $file, $field, v, $line);
-        }
-    };
-}
-
-macro_rules! check_opt_color {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        if let Some(ref v) = $val {
-            let s: &str = v.as_ref();
-            if !is_valid_color(s) {
-                $errors.push(err("invalid_color", $file, $field, s, $line));
-            }
-        }
-    };
-}
-
-macro_rules! check_opt_lang {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        if let Some(ref v) = $val {
-            let s: &str = v.as_ref();
-            if !is_valid_language_code(s) {
-                $errors.push(err("invalid_language_code", $file, $field, s, $line));
-            }
-        }
-    };
-}
-
-macro_rules! check_lang {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        let s: &str = $val.as_ref();
-        if !is_valid_language_code(s) {
-            $errors.push(err("invalid_language_code", $file, $field, s, $line));
-        }
-    };
-}
-
-macro_rules! check_opt_email {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        if let Some(ref v) = $val {
-            let s: &str = v.as_ref();
-            if !is_valid_email(s) {
-                $errors.push(err("invalid_email", $file, $field, s, $line));
-            }
-        }
-    };
-}
-
-macro_rules! check_opt_phone {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        if let Some(ref v) = $val {
-            let s: &str = v.as_ref();
-            if !is_valid_phone(s) {
-                $errors.push(err("invalid_phone_number", $file, $field, s, $line));
-            }
-        }
-    };
-}
-
-macro_rules! check_currency {
-    ($errors:expr, $file:expr, $field:expr, $val:expr, $line:expr) => {
-        let s: &str = $val.as_ref();
-        if !is_valid_currency(s) {
-            $errors.push(err("invalid_currency", $file, $field, s, $line));
+            check_field!($errors, $file, $field, v, $line, $validator, $rule_id);
         }
     };
 }
@@ -184,23 +105,59 @@ pub struct FieldTypeValidator;
 fn check_agencies(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
     for (i, a) in feed.agencies.iter().enumerate() {
         let line = i + 2;
-        check_url!(errors, "agency.txt", "agency_url", a.agency_url, line);
-        check_tz!(
+        check_field!(
+            errors,
+            "agency.txt",
+            "agency_url",
+            a.agency_url,
+            line,
+            is_valid_url,
+            "invalid_url"
+        );
+        check_field!(
             errors,
             "agency.txt",
             "agency_timezone",
             a.agency_timezone,
-            line
+            line,
+            is_valid_timezone,
+            "invalid_timezone"
         );
-        check_opt_lang!(errors, "agency.txt", "agency_lang", a.agency_lang, line);
-        check_opt_email!(errors, "agency.txt", "agency_email", a.agency_email, line);
-        check_opt_phone!(errors, "agency.txt", "agency_phone", a.agency_phone, line);
-        check_opt_url!(
+        check_opt_field!(
+            errors,
+            "agency.txt",
+            "agency_lang",
+            a.agency_lang,
+            line,
+            is_valid_language_code,
+            "invalid_language_code"
+        );
+        check_opt_field!(
+            errors,
+            "agency.txt",
+            "agency_email",
+            a.agency_email,
+            line,
+            is_valid_email,
+            "invalid_email"
+        );
+        check_opt_field!(
+            errors,
+            "agency.txt",
+            "agency_phone",
+            a.agency_phone,
+            line,
+            is_valid_phone,
+            "invalid_phone_number"
+        );
+        check_opt_field!(
             errors,
             "agency.txt",
             "agency_fare_url",
             a.agency_fare_url,
-            line
+            line,
+            is_valid_url,
+            "invalid_url"
         );
     }
 }
@@ -208,22 +165,56 @@ fn check_agencies(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
 fn check_stops(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
     for (i, s) in feed.stops.iter().enumerate() {
         let line = i + 2;
-        check_opt_url!(errors, "stops.txt", "stop_url", s.stop_url, line);
-        check_opt_tz!(errors, "stops.txt", "stop_timezone", s.stop_timezone, line);
+        check_opt_field!(
+            errors,
+            "stops.txt",
+            "stop_url",
+            s.stop_url,
+            line,
+            is_valid_url,
+            "invalid_url"
+        );
+        check_opt_field!(
+            errors,
+            "stops.txt",
+            "stop_timezone",
+            s.stop_timezone,
+            line,
+            is_valid_timezone,
+            "invalid_timezone"
+        );
     }
 }
 
 fn check_routes(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
     for (i, r) in feed.routes.iter().enumerate() {
         let line = i + 2;
-        check_opt_url!(errors, "routes.txt", "route_url", r.route_url, line);
-        check_opt_color!(errors, "routes.txt", "route_color", r.route_color, line);
-        check_opt_color!(
+        check_opt_field!(
+            errors,
+            "routes.txt",
+            "route_url",
+            r.route_url,
+            line,
+            is_valid_url,
+            "invalid_url"
+        );
+        check_opt_field!(
+            errors,
+            "routes.txt",
+            "route_color",
+            r.route_color,
+            line,
+            is_valid_color,
+            "invalid_color"
+        );
+        check_opt_field!(
             errors,
             "routes.txt",
             "route_text_color",
             r.route_text_color,
-            line
+            line,
+            is_valid_color,
+            "invalid_color"
         );
     }
 }
@@ -231,34 +222,50 @@ fn check_routes(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
 fn check_feed_info(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
     if let Some(ref fi) = feed.feed_info {
         let line = 2;
-        check_url!(
+        check_field!(
             errors,
             "feed_info.txt",
             "feed_publisher_url",
             fi.feed_publisher_url,
-            line
+            line,
+            is_valid_url,
+            "invalid_url"
         );
-        check_lang!(errors, "feed_info.txt", "feed_lang", fi.feed_lang, line);
-        check_opt_lang!(
+        check_field!(
+            errors,
+            "feed_info.txt",
+            "feed_lang",
+            fi.feed_lang,
+            line,
+            is_valid_language_code,
+            "invalid_language_code"
+        );
+        check_opt_field!(
             errors,
             "feed_info.txt",
             "default_lang",
             fi.default_lang,
-            line
+            line,
+            is_valid_language_code,
+            "invalid_language_code"
         );
-        check_opt_email!(
+        check_opt_field!(
             errors,
             "feed_info.txt",
             "feed_contact_email",
             fi.feed_contact_email,
-            line
+            line,
+            is_valid_email,
+            "invalid_email"
         );
-        check_opt_url!(
+        check_opt_field!(
             errors,
             "feed_info.txt",
             "feed_contact_url",
             fi.feed_contact_url,
-            line
+            line,
+            is_valid_url,
+            "invalid_url"
         );
     }
 }
@@ -266,42 +273,58 @@ fn check_feed_info(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
 fn check_fares_translations_attributions(feed: &GtfsFeed, errors: &mut Vec<ValidationError>) {
     for (i, fa) in feed.fare_attributes.iter().enumerate() {
         let line = i + 2;
-        check_currency!(
+        check_field!(
             errors,
             "fare_attributes.txt",
             "currency_type",
             fa.currency_type,
-            line
+            line,
+            is_valid_currency,
+            "invalid_currency"
         );
     }
 
     for (i, t) in feed.translations.iter().enumerate() {
         let line = i + 2;
-        check_lang!(errors, "translations.txt", "language", t.language, line);
+        check_field!(
+            errors,
+            "translations.txt",
+            "language",
+            t.language,
+            line,
+            is_valid_language_code,
+            "invalid_language_code"
+        );
     }
 
     for (i, a) in feed.attributions.iter().enumerate() {
         let line = i + 2;
-        check_opt_url!(
+        check_opt_field!(
             errors,
             "attributions.txt",
             "attribution_url",
             a.attribution_url,
-            line
+            line,
+            is_valid_url,
+            "invalid_url"
         );
-        check_opt_email!(
+        check_opt_field!(
             errors,
             "attributions.txt",
             "attribution_email",
             a.attribution_email,
-            line
+            line,
+            is_valid_email,
+            "invalid_email"
         );
-        check_opt_phone!(
+        check_opt_field!(
             errors,
             "attributions.txt",
             "attribution_phone",
             a.attribution_phone,
-            line
+            line,
+            is_valid_phone,
+            "invalid_phone_number"
         );
     }
 }
