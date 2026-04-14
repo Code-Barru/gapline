@@ -100,7 +100,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     }
 
     if !args.confirm && !confirm_update_plan(&plan) {
-        eprintln!("Aborted.");
+        tracing::info!("Aborted.");
         process::exit(exit::SUCCESS);
     }
 

@@ -59,8 +59,9 @@ pub fn run_delete(
         process::exit(exit::NO_CHANGES);
     }
 
-    if !confirm {
-        confirm_delete(&plan);
+    if !confirm && !confirm_delete(&plan) {
+        tracing::info!("Aborted.");
+        process::exit(exit::SUCCESS);
     }
 
     let result = headway_core::crud::delete::apply_delete(&mut feed_data, &plan);
@@ -93,20 +94,20 @@ pub fn run_delete(
     );
 }
 
-fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) {
-    eprintln!("Records to delete from {}:", plan.file_name);
+fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) -> bool {
+    tracing::info!("Records to delete from {}:", plan.file_name);
     let display_limit = 20;
     for pk in plan.matched_pks.iter().take(display_limit) {
-        eprintln!("  {pk}");
+        tracing::info!("  {pk}");
     }
     if plan.matched_count > display_limit {
-        eprintln!("  ... and {} more", plan.matched_count - display_limit);
+        tracing::info!("  ... and {} more", plan.matched_count - display_limit);
     }
 
     if let Some(ref cascade) = plan.cascade {
-        eprintln!("Deleting would also delete:");
+        tracing::info!("Deleting would also delete:");
         for entry in &cascade.entries {
-            eprintln!(
+            tracing::info!(
                 "  - {} record{} in {}",
                 entry.count,
                 if entry.count > 1 { "s" } else { "" },
@@ -123,9 +124,5 @@ fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) {
         );
     }
     let mut answer = String::new();
-    if std::io::stdin().read_line(&mut answer).is_err() || !answer.trim().eq_ignore_ascii_case("y")
-    {
-        eprintln!("Aborted.");
-        process::exit(exit::SUCCESS);
-    }
+    std::io::stdin().read_line(&mut answer).is_ok() && answer.trim().eq_ignore_ascii_case("y")
 }
