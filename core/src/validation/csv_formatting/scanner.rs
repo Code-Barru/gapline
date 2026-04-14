@@ -10,20 +10,12 @@
 //! - `superfluous_whitespace` (CA9)
 //! - `new_line_in_value` (section 1)
 
-use std::sync::LazyLock;
-
-use regex::Regex;
-
 use crate::parser::feed_source::GtfsFiles;
+use crate::validation::csv_formatting::patterns::{
+    HTML_COMMENT_RE, HTML_TAG_RE, LITERAL_ESCAPE_RE,
+};
 use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, ValidationError};
-
-static HTML_TAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<[a-zA-Z/][^>]*>").expect("invalid regex"));
-static HTML_COMMENT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<!--.*?-->").expect("invalid regex"));
-static LITERAL_ESCAPE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\\[ntr]").expect("invalid regex"));
 
 /// Quote-tracking state machine (RFC 4180).
 #[derive(Clone, Copy, PartialEq)]

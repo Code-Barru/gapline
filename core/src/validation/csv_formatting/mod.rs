@@ -10,6 +10,7 @@ mod content;
 mod delimiter;
 mod encoding;
 mod headers;
+mod patterns;
 mod quoting;
 pub mod scanner;
 mod whitespace;

@@ -3,21 +3,13 @@
 //! sequences in field values.
 
 use std::io::Read;
-use std::sync::LazyLock;
-
-use regex::Regex;
 
 use crate::parser::FeedSource;
+use crate::validation::csv_formatting::patterns::{
+    HTML_COMMENT_RE, HTML_TAG_RE, LITERAL_ESCAPE_RE,
+};
 use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
-
-static HTML_TAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<[a-zA-Z/][^>]*>").expect("invalid regex"));
-static HTML_COMMENT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<!--.*?-->").expect("invalid regex"));
-/// Matches literal backslash followed by n, t, or r (the text `\n`, not the byte 0x0A).
-static LITERAL_ESCAPE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\\[ntr]").expect("invalid regex"));
 
 /// Checks for control characters (CA7) and forbidden content (CA8).
 pub struct InvalidContentRule;
