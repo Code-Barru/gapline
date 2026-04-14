@@ -4,6 +4,12 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.14.1] - 2026-04-14
+
+### Bug Fixes
+
+- perf: remove unnecessary String allocations in CRUD create
+
 ## [0.14.0] - 2026-04-14
 
 ### Features
