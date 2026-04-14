@@ -314,3 +314,71 @@ fn min_severity_loaded_from_file() {
     let config = load_local(&dir);
     assert_eq!(config.validation.min_severity, Some(Severity::Error));
 }
+
+// ---------------------------------------------------------------------------
+// Semantic validation (Config::validate)
+// ---------------------------------------------------------------------------
+
+fn load_expecting_invalid(dir: &TempDir) -> String {
+    let local = dir.path().join("headway.toml");
+    let cli = CliOverrides {
+        config_path: Some(local),
+        ..CliOverrides::default()
+    };
+    match Config::load_from(Some(dir.path()), cli) {
+        Err(headway_core::config::ConfigError::Invalid(msg)) => msg,
+        Err(other) => panic!("expected Invalid, got {other:?}"),
+        Ok(_) => panic!("expected Invalid, got Ok"),
+    }
+}
+
+#[test]
+fn validate_rejects_negative_speed_limit() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        "
+            [validation.thresholds.speed_limits]
+            tram_kmh = -100.0
+        ",
+    );
+    let msg = load_expecting_invalid(&dir);
+    assert!(msg.contains("tram_kmh"), "got: {msg}");
+}
+
+#[test]
+fn validate_rejects_incoherent_transfer_distances() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        "
+            [validation.thresholds.distances]
+            max_transfer_distance_m = 500.0
+            transfer_distance_warning_m = 1000.0
+        ",
+    );
+    let msg = load_expecting_invalid(&dir);
+    assert!(msg.contains("transfer_distance_warning_m"), "got: {msg}");
+}
+
+#[test]
+fn validate_rejects_zero_coverage_days() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(
+        &dir,
+        "
+            [validation.thresholds.calendar]
+            min_feed_coverage_days = 0
+        ",
+    );
+    let msg = load_expecting_invalid(&dir);
+    assert!(msg.contains("min_feed_coverage_days"), "got: {msg}");
+}
+
+#[test]
+fn validate_accepts_default_config() {
+    let dir = tempfile::tempdir().unwrap();
+    write_local(&dir, "");
+    // Should not return ConfigError::Invalid.
+    let _ = load_local(&dir);
+}

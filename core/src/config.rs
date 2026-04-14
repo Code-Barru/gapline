@@ -392,6 +392,11 @@ pub enum ConfigError {
     /// to include the path and (when available) the line number.
     #[error("Config error in {path}: {message}")]
     Parse { path: PathBuf, message: String },
+    /// Config deserialized cleanly but contains semantically invalid values
+    /// (e.g. negative speed limit, incoherent thresholds). Caught after
+    /// merge so the message can cite the specific field.
+    #[error("Invalid config: {0}")]
+    Invalid(String),
 }
 
 impl Config {
@@ -452,7 +457,116 @@ impl Config {
         })?;
 
         config.apply_cli_overrides(cli);
+        config.validate()?;
         Ok(config)
+    }
+
+    /// Checks the merged config for semantically impossible values that the
+    /// TOML deserializer cannot catch on its own (e.g. negative speed limits,
+    /// 0-day calendar coverage, incoherent distance thresholds).
+    ///
+    /// Called automatically by [`Config::load_from`] after CLI overrides are
+    /// applied. Exposed so tests and custom loaders can re-check.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ConfigError::Invalid`] on the first violated invariant.
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        let t = &self.validation.thresholds;
+
+        let speed_checks: [(&str, f64); 11] = [
+            ("tram_kmh", t.speed_limits.tram_kmh),
+            ("subway_kmh", t.speed_limits.subway_kmh),
+            ("rail_kmh", t.speed_limits.rail_kmh),
+            ("bus_kmh", t.speed_limits.bus_kmh),
+            ("ferry_kmh", t.speed_limits.ferry_kmh),
+            ("cable_tram_kmh", t.speed_limits.cable_tram_kmh),
+            ("aerial_lift_kmh", t.speed_limits.aerial_lift_kmh),
+            ("funicular_kmh", t.speed_limits.funicular_kmh),
+            ("trolleybus_kmh", t.speed_limits.trolleybus_kmh),
+            ("monorail_kmh", t.speed_limits.monorail_kmh),
+            ("default_kmh", t.speed_limits.default_kmh),
+        ];
+        for (name, v) in speed_checks {
+            if !v.is_finite() || v <= 0.0 {
+                return Err(ConfigError::Invalid(format!(
+                    "[validation.thresholds.speed_limits] {name} must be > 0 (got {v})"
+                )));
+            }
+        }
+
+        let dist_checks: [(&str, f64); 5] = [
+            (
+                "max_stop_to_shape_distance_m",
+                t.distances.max_stop_to_shape_distance_m,
+            ),
+            (
+                "min_shape_point_distance_m",
+                t.distances.min_shape_point_distance_m,
+            ),
+            (
+                "shape_dist_incoherence_ratio",
+                t.distances.shape_dist_incoherence_ratio,
+            ),
+            (
+                "max_transfer_distance_m",
+                t.distances.max_transfer_distance_m,
+            ),
+            (
+                "transfer_distance_warning_m",
+                t.distances.transfer_distance_warning_m,
+            ),
+        ];
+        for (name, v) in dist_checks {
+            if !v.is_finite() || v < 0.0 {
+                return Err(ConfigError::Invalid(format!(
+                    "[validation.thresholds.distances] {name} must be ≥ 0 (got {v})"
+                )));
+            }
+        }
+        if t.distances.shape_dist_incoherence_ratio > 1.0 {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.distances] shape_dist_incoherence_ratio must be ≤ 1.0"
+                    .into(),
+            ));
+        }
+        if t.distances.transfer_distance_warning_m > t.distances.max_transfer_distance_m {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.distances] transfer_distance_warning_m must be ≤ \
+                 max_transfer_distance_m"
+                    .into(),
+            ));
+        }
+
+        if let Some(h) = t.time.max_trip_duration_hours
+            && h == 0
+        {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.time] max_trip_duration_hours must be > 0 when set".into(),
+            ));
+        }
+
+        if t.coordinates.min_distance_from_origin_m < 0.0
+            || t.coordinates.min_distance_from_poles_m < 0.0
+        {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.coordinates] distances must be ≥ 0".into(),
+            ));
+        }
+
+        if t.calendar.min_feed_coverage_days == 0 {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.calendar] min_feed_coverage_days must be > 0".into(),
+            ));
+        }
+
+        if t.naming.max_route_short_name_length == 0 {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.naming] max_route_short_name_length must be > 0".into(),
+            ));
+        }
+
+        Ok(())
     }
 
     /// Applies CLI overrides on top of an already-loaded config.
