@@ -10,7 +10,7 @@ use headway_core::parser::FeedLoader;
 use super::super::exit;
 use super::super::output::render_read_results;
 use super::super::parser::{CrudTarget, OutputFormat};
-use super::{resolve_feed, resolve_format, resolve_output};
+use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_format, resolve_output};
 
 pub fn run_read(
     config: &Arc<Config>,
@@ -24,29 +24,14 @@ pub fn run_read(
     let fmt = resolve_format(format, config);
     let output = resolve_output(output, config);
 
-    let mut source = match FeedLoader::open(&feed) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(exit::INPUT_ERROR);
-        }
-    };
+    let mut source = load_feed_or_exit(&feed);
     if let Err(e) = source.preload() {
-        eprintln!("{e}");
+        tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
     let (feed_data, _parse_errors) = FeedLoader::load(&source);
 
-    let query = match where_query {
-        Some(q) => match headway_core::crud::query::parse(q) {
-            Ok(parsed) => Some(parsed),
-            Err(e) => {
-                eprintln!("Invalid query: {e}");
-                process::exit(exit::COMMAND_FAILED);
-            }
-        },
-        None => None,
-    };
+    let query = where_query.map(|q| parse_query_or_exit(q));
 
     let result = match headway_core::crud::read::read_records(
         &feed_data,
@@ -55,13 +40,13 @@ pub fn run_read(
     ) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("{e}");
+            tracing::error!("{e}");
             process::exit(exit::COMMAND_FAILED);
         }
     };
 
     if let Err(e) = render_read_results(&result, fmt, output.as_deref()) {
-        eprintln!("Error while rendering results: {e}");
+        tracing::error!("Error while rendering results: {e}");
         process::exit(exit::COMMAND_FAILED);
     }
 }

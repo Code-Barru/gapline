@@ -10,7 +10,7 @@ use headway_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{resolve_feed, resolve_output};
+use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output};
 
 pub fn run_delete(
     config: &Arc<Config>,
@@ -23,21 +23,8 @@ pub fn run_delete(
     let feed = resolve_feed(feed, config);
     let output = resolve_output(output, config);
 
-    let source = match FeedLoader::open(&feed) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(exit::INPUT_ERROR);
-        }
-    };
-
-    let query = match headway_core::crud::query::parse(where_query) {
-        Ok(parsed) => parsed,
-        Err(e) => {
-            eprintln!("Invalid query: {e}");
-            process::exit(exit::COMMAND_FAILED);
-        }
-    };
+    let source = load_feed_or_exit(&feed);
+    let query = parse_query_or_exit(where_query);
 
     let files: std::collections::HashSet<_> =
         headway_core::crud::delete::required_files(target.to_target())
@@ -49,7 +36,7 @@ pub fn run_delete(
         match headway_core::crud::delete::validate_delete(&feed_data, target.to_target(), &query) {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("{e}");
+                tracing::error!("{e}");
                 process::exit(exit::COMMAND_FAILED);
             }
         };
@@ -73,7 +60,7 @@ pub fn run_delete(
         &result.modified_targets,
         &write_path,
     ) {
-        eprintln!("{e}");
+        tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
 

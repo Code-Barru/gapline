@@ -11,7 +11,7 @@ use headway_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{resolve_feed, resolve_output};
+use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output};
 
 /// Parameters for [`run_update`]. Bundled into a struct to keep the call site
 /// readable and to avoid `#[allow(clippy::too_many_arguments)]`.
@@ -26,16 +26,16 @@ pub struct UpdateArgs<'a> {
 }
 
 fn confirm_update_plan(plan: &UpdatePlan) -> bool {
-    eprint!(
+    tracing::info!(
         "Update {} record{} in {}",
         plan.matched_count,
         if plan.matched_count > 1 { "s" } else { "" },
         plan.file_name
     );
     if let Some(ref cascade_plan) = plan.cascade {
-        eprintln!(" and cascade to:");
+        tracing::info!("Will cascade to:");
         for entry in &cascade_plan.entries {
-            eprintln!(
+            tracing::info!(
                 "  - {} record{} in {} ({})",
                 entry.count,
                 if entry.count > 1 { "s" } else { "" },
@@ -43,9 +43,9 @@ fn confirm_update_plan(plan: &UpdatePlan) -> bool {
                 entry.fk_fields.join(", ")
             );
         }
-        eprint!("Proceed? [y/N] ");
+        eprint!("Proceed with cascade update? [y/N] ");
     } else {
-        eprint!("? [y/N] ");
+        eprint!("Proceed? [y/N] ");
     }
     let mut answer = String::new();
     std::io::stdin().read_line(&mut answer).is_ok() && answer.trim().eq_ignore_ascii_case("y")
@@ -55,21 +55,8 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     let feed = resolve_feed(args.feed, config);
     let output = resolve_output(args.output, config);
 
-    let source = match FeedLoader::open(&feed) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(exit::INPUT_ERROR);
-        }
-    };
-
-    let query = match headway_core::crud::query::parse(args.where_query) {
-        Ok(parsed) => parsed,
-        Err(e) => {
-            eprintln!("Invalid query: {e}");
-            process::exit(exit::COMMAND_FAILED);
-        }
-    };
+    let source = load_feed_or_exit(&feed);
+    let query = parse_query_or_exit(args.where_query);
 
     let target = args.target.to_target();
     let needs_dependents =
@@ -89,7 +76,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     ) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("{e}");
+            tracing::error!("{e}");
             process::exit(exit::COMMAND_FAILED);
         }
     };
@@ -107,7 +94,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     let result = match headway_core::crud::update::apply_update(&mut feed_data, &plan) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("{e}");
+            tracing::error!("{e}");
             process::exit(exit::COMMAND_FAILED);
         }
     };
@@ -119,7 +106,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         &result.modified_targets,
         &write_path,
     ) {
-        eprintln!("{e}");
+        tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
 

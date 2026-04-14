@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 
 use headway_core::config::Config;
+use headway_core::crud::query::Query;
+use headway_core::parser::{FeedLoader, FeedSource};
 
 use super::exit;
 use super::parser::OutputFormat;
@@ -40,10 +42,32 @@ pub(super) fn resolve_feed(cli_feed: Option<&Path>, config: &Config) -> PathBuf 
     if let Some(p) = config.default.feed.as_ref() {
         return p.clone();
     }
-    eprintln!(
+    tracing::error!(
         "Missing feed path. Pass --feed PATH or set [default] feed = \"...\" in your config."
     );
     process::exit(exit::COMMAND_FAILED);
+}
+
+/// Opens a GTFS feed for reading, exiting with `INPUT_ERROR` on failure.
+pub(super) fn load_feed_or_exit(feed: &Path) -> FeedSource {
+    match FeedLoader::open(feed) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("{e}");
+            process::exit(exit::INPUT_ERROR);
+        }
+    }
+}
+
+/// Parses a `--where` filter string, exiting with `COMMAND_FAILED` on failure.
+pub(super) fn parse_query_or_exit(where_query: &str) -> Query {
+    match headway_core::crud::query::parse(where_query) {
+        Ok(q) => q,
+        Err(e) => {
+            tracing::error!("Invalid query: {e}");
+            process::exit(exit::COMMAND_FAILED);
+        }
+    }
 }
 
 /// Resolves the output format from CLI flag then `[default] format`,

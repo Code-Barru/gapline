@@ -9,7 +9,7 @@ use headway_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{resolve_feed, resolve_output};
+use super::{load_feed_or_exit, resolve_feed, resolve_output};
 
 pub fn run_create(
     config: &Arc<Config>,
@@ -22,13 +22,7 @@ pub fn run_create(
     let feed = resolve_feed(feed, config);
     let output = resolve_output(output, config);
 
-    let source = match FeedLoader::open(&feed) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(exit::INPUT_ERROR);
-        }
-    };
+    let source = load_feed_or_exit(&feed);
     let files: std::collections::HashSet<_> =
         headway_core::crud::create::required_files(target.to_target())
             .into_iter()
@@ -39,14 +33,14 @@ pub fn run_create(
         match headway_core::crud::create::validate_create(&feed_data, target.to_target(), set) {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("{e}");
+                tracing::error!("{e}");
                 process::exit(exit::COMMAND_FAILED);
             }
         };
 
-    eprintln!("Fields to create in {}:", plan.file_name);
+    tracing::info!("Fields to create in {}:", plan.file_name);
     for a in &plan.assignments {
-        eprintln!("  {} = {}", a.field, a.value);
+        tracing::info!("  {} = {}", a.field, a.value);
     }
 
     if !confirm {
@@ -55,7 +49,7 @@ pub fn run_create(
         if std::io::stdin().read_line(&mut answer).is_err()
             || !answer.trim().eq_ignore_ascii_case("y")
         {
-            eprintln!("Aborted.");
+            tracing::info!("Aborted.");
             process::exit(exit::SUCCESS);
         }
     }
@@ -66,7 +60,7 @@ pub fn run_create(
     if let Err(e) =
         headway_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
     {
-        eprintln!("{e}");
+        tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
 
