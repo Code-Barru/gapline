@@ -57,13 +57,15 @@ fn main() {
             output,
         } => commands::run_update(
             &config,
-            feed.as_deref(),
-            where_query,
-            set,
-            *target,
-            *confirm,
-            *cascade,
-            output.as_deref(),
+            &commands::UpdateArgs {
+                feed: feed.as_deref(),
+                where_query,
+                set,
+                target: *target,
+                confirm: *confirm,
+                cascade: *cascade,
+                output: output.as_deref(),
+            },
         ),
         Commands::Delete {
             feed,

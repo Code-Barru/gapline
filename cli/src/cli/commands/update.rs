@@ -12,6 +12,18 @@ use headway_core::parser::FeedLoader;
 use super::super::parser::CrudTarget;
 use super::{resolve_feed, resolve_output};
 
+/// Parameters for [`run_update`]. Bundled into a struct to keep the call site
+/// readable and to avoid `#[allow(clippy::too_many_arguments)]`.
+pub struct UpdateArgs<'a> {
+    pub feed: Option<&'a Path>,
+    pub where_query: &'a str,
+    pub set: &'a [String],
+    pub target: CrudTarget,
+    pub confirm: bool,
+    pub cascade: bool,
+    pub output: Option<&'a Path>,
+}
+
 fn confirm_update_plan(plan: &UpdatePlan) -> bool {
     eprint!(
         "Update {} record{} in {}",
@@ -38,19 +50,9 @@ fn confirm_update_plan(plan: &UpdatePlan) -> bool {
     std::io::stdin().read_line(&mut answer).is_ok() && answer.trim().eq_ignore_ascii_case("y")
 }
 
-#[allow(clippy::too_many_arguments)] // CRUD update needs all of these from the CLI
-pub fn run_update(
-    config: &Arc<Config>,
-    feed: Option<&Path>,
-    where_query: &str,
-    set: &[String],
-    target: CrudTarget,
-    confirm: bool,
-    cascade: bool,
-    output: Option<&Path>,
-) {
-    let feed = resolve_feed(feed, config);
-    let output = resolve_output(output, config);
+pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
+    let feed = resolve_feed(args.feed, config);
+    let output = resolve_output(args.output, config);
 
     let source = match FeedLoader::open(&feed) {
         Ok(s) => s,
@@ -60,7 +62,7 @@ pub fn run_update(
         }
     };
 
-    let query = match headway_core::crud::query::parse(where_query) {
+    let query = match headway_core::crud::query::parse(args.where_query) {
         Ok(parsed) => parsed,
         Err(e) => {
             eprintln!("Invalid query: {e}");
@@ -68,20 +70,21 @@ pub fn run_update(
         }
     };
 
+    let target = args.target.to_target();
     let needs_dependents =
-        cascade || headway_core::crud::update::has_pk_assignments(target.to_target(), set);
+        args.cascade || headway_core::crud::update::has_pk_assignments(target, args.set);
     let files: std::collections::HashSet<_> =
-        headway_core::crud::update::required_files(target.to_target(), needs_dependents)
+        headway_core::crud::update::required_files(target, needs_dependents)
             .into_iter()
             .collect();
     let (mut feed_data, _parse_errors) = FeedLoader::load_only(&source, &files);
 
     let plan = match headway_core::crud::update::validate_update(
         &feed_data,
-        target.to_target(),
+        target,
         &query,
-        set,
-        cascade,
+        args.set,
+        args.cascade,
     ) {
         Ok(p) => p,
         Err(e) => {
@@ -95,7 +98,7 @@ pub fn run_update(
         process::exit(0);
     }
 
-    if !confirm && !confirm_update_plan(&plan) {
+    if !args.confirm && !confirm_update_plan(&plan) {
         eprintln!("Aborted.");
         process::exit(0);
     }
@@ -123,7 +126,7 @@ pub fn run_update(
         "Updated {} record{} in {}",
         result.count,
         if result.count > 1 { "s" } else { "" },
-        target.to_target().file_name()
+        target.file_name()
     );
     if let Some(ref cascade_plan) = plan.cascade {
         for entry in &cascade_plan.entries {

@@ -27,7 +27,7 @@ pub use delete::run_delete;
 pub use read::run_read;
 pub use rules::run_rules_list;
 pub use run::run_run;
-pub use update::run_update;
+pub use update::{UpdateArgs, run_update};
 pub use validate::run_validate;
 
 /// Resolves the GTFS feed path from CLI flags then `[default] feed`.
