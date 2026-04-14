@@ -4,6 +4,53 @@
 //! accessibility information that improve feed quality but are not
 //! specification violations.
 
+/// Generates a `ValidationRule` impl that flags every record in a feed
+/// collection where an `Option`-typed field is `None`. Used by the handful of
+/// missing-field best-practice rules that all share the same filter-map
+/// shape.
+macro_rules! missing_field_rule {
+    (
+        $struct_name:ident,
+        rule_id = $rule_id:literal,
+        file = $file:literal,
+        collection = $coll:ident,
+        field = $field:ident,
+        severity = $severity:expr,
+        message = $message:literal $(,)?
+    ) => {
+        pub struct $struct_name;
+
+        impl $crate::validation::ValidationRule for $struct_name {
+            fn rule_id(&self) -> &'static str {
+                $rule_id
+            }
+            fn section(&self) -> &'static str {
+                "8"
+            }
+            fn severity(&self) -> $crate::validation::Severity {
+                $severity
+            }
+            fn validate(
+                &self,
+                feed: &$crate::models::GtfsFeed,
+            ) -> Vec<$crate::validation::ValidationError> {
+                feed.$coll
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, item)| item.$field.is_none())
+                    .map(|(i, _)| {
+                        $crate::validation::ValidationError::new($rule_id, "8", $severity)
+                            .message($message)
+                            .file($file)
+                            .line(i + 2)
+                            .field(stringify!($field))
+                    })
+                    .collect()
+            }
+        }
+    };
+}
+
 pub mod missing_agency_email;
 pub mod missing_bikes_info;
 pub mod missing_direction_id;
