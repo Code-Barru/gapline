@@ -115,7 +115,7 @@ fn create_stop_success() {
     .unwrap();
 
     assert_eq!(plan.file_name, "stops.txt");
-    assert_eq!(plan.display_fields.len(), 4);
+    assert_eq!(plan.assignments.len(), 4);
 
     apply_create(&mut feed, plan);
     assert_eq!(feed.stops.len(), 1);

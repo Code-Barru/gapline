@@ -107,7 +107,8 @@ pub struct CreatePlan {
     pub target: GtfsTarget,
     pub file_name: &'static str,
     pub record: CreatedRecord,
-    pub display_fields: Vec<(String, String)>,
+    /// The original field assignments, kept for confirmation-prompt display.
+    pub assignments: Vec<FieldAssignment>,
 }
 
 /// A built record, ready to be inserted into the feed.
@@ -147,10 +148,6 @@ pub fn validate_create(
 ) -> Result<CreatePlan, CreateError> {
     let assignments = parse_assignments(raw_assignments)?;
     let fields = to_field_map(&assignments, target)?;
-    let display_fields: Vec<(String, String)> = assignments
-        .iter()
-        .map(|a| (a.field.clone(), a.value.clone()))
-        .collect();
 
     // Required fields + conditional checks (including forbidden fields) run first
     check_required_for(feed, target, &fields)?;
@@ -166,7 +163,7 @@ pub fn validate_create(
         target,
         file_name,
         record,
-        display_fields,
+        assignments,
     })
 }
 
@@ -537,11 +534,11 @@ macro_rules! build_record_plain {
 }
 
 fn req_str(fields: &Fields, name: &str) -> String {
-    fields.get(name).unwrap_or(&"").to_string()
+    fields.get(name).copied().unwrap_or("").to_owned()
 }
 
 fn opt_str(fields: &Fields, name: &str) -> Option<String> {
-    fields.get(name).map(|v| (*v).to_string())
+    fields.get(name).copied().map(str::to_owned)
 }
 
 fn req_id<T: From<String>>(fields: &Fields, name: &str) -> T {
@@ -549,7 +546,7 @@ fn req_id<T: From<String>>(fields: &Fields, name: &str) -> T {
 }
 
 fn opt_id<T: From<String>>(fields: &Fields, name: &str) -> Option<T> {
-    fields.get(name).map(|v| T::from((*v).to_string()))
+    fields.get(name).copied().map(|v| T::from(v.to_owned()))
 }
 
 fn req_parse<T: std::str::FromStr>(

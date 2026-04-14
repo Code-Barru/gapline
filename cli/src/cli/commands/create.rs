@@ -44,8 +44,8 @@ pub fn run_create(
         };
 
     eprintln!("Fields to create in {}:", plan.file_name);
-    for (field, value) in &plan.display_fields {
-        eprintln!("  {field} = {value}");
+    for a in &plan.assignments {
+        eprintln!("  {} = {}", a.field, a.value);
     }
 
     if !confirm {
