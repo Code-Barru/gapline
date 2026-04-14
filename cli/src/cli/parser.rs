@@ -78,7 +78,7 @@ pub enum Commands {
     Validate {
         /// Path to the GTFS feed (`.zip` archive or decompressed directory).
         /// May be omitted if `[default] feed` is set in the config file.
-        #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
+        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
         feed: Option<PathBuf>,
         /// Output format for the validation report.
         #[arg(
@@ -115,7 +115,7 @@ pub enum Commands {
     #[command(about = "Read and query GTFS fields")]
     Read {
         /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
+        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
         feed: Option<PathBuf>,
         /// Filter expression using the mini query language.
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
@@ -141,7 +141,7 @@ pub enum Commands {
     #[command(about = "Insert GTFS fields into a feed")]
     Create {
         /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
+        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
         feed: Option<PathBuf>,
         /// Field values to set on the new record (e.g. `stop_id=NEW_01`).
         #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
@@ -163,7 +163,7 @@ pub enum Commands {
     #[command(about = "Update GTFS field in a feed")]
     Update {
         /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
+        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
         feed: Option<PathBuf>,
         /// Filter expression to select records to update (required).
         #[arg(
@@ -197,7 +197,7 @@ pub enum Commands {
     #[command(about = "Delete GTFS records from a feed")]
     Delete {
         /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
+        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
         feed: Option<PathBuf>,
         /// Filter expression to select records to delete (required).
         #[arg(
