@@ -4,6 +4,18 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.16.0] - 2026-04-14
+
+### Features
+
+- feat(cli): log gtfs parse errors at warn level
+
+### Bug Fixes
+
+- perf(core): drop unnecessary clones in csv_formatting rules
+- fix(cli): correct --feed help text grammar
+- fix(core): remove unwrap() from validation rules and default date
+
 ## [0.15.0] - 2026-04-14
 
 ### Features
