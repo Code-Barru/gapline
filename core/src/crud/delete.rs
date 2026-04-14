@@ -20,9 +20,6 @@ use crate::parser::feed_source::GtfsFiles;
 /// Errors that can occur during record deletion.
 #[derive(Debug, Error)]
 pub enum DeleteError {
-    #[error("Missing --where filter. Refusing to delete without filter.")]
-    MissingWhereFilter,
-
     #[error("{0}")]
     QueryError(#[from] QueryError),
 }

@@ -14,18 +14,13 @@ use super::{resolve_feed, resolve_output};
 pub fn run_delete(
     config: &Arc<Config>,
     feed: Option<&Path>,
-    where_query: Option<&String>,
+    where_query: &str,
     target: CrudTarget,
     confirm: bool,
     output: Option<&Path>,
 ) {
     let feed = resolve_feed(feed, config);
     let output = resolve_output(output, config);
-
-    let Some(where_query) = where_query else {
-        eprintln!("Missing --where filter. Refusing to delete without filter.");
-        process::exit(1);
-    };
 
     let source = match FeedLoader::open(&feed) {
         Ok(s) => s,

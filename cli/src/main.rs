@@ -74,7 +74,7 @@ fn main() {
         } => commands::run_delete(
             &config,
             feed.as_deref(),
-            where_query.as_ref(),
+            where_query,
             *target,
             *confirm,
             output.as_deref(),

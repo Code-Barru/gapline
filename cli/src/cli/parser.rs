@@ -187,7 +187,7 @@ pub enum Commands {
         feed: Option<PathBuf>,
         /// Filter expression to select records to delete.
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
-        where_query: Option<String>,
+        where_query: String,
         /// Which GTFS file to delete from.
         #[arg(
             help = "GTFS file (e.g. calendar, calendar-dates, stops, stop-times)",

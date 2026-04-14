@@ -1,4 +1,4 @@
-use headway_core::crud::delete::{DeleteError, apply_delete, validate_delete};
+use headway_core::crud::delete::{apply_delete, validate_delete};
 use headway_core::crud::query::parse;
 use headway_core::crud::read::GtfsTarget;
 use headway_core::models::*;
@@ -245,15 +245,6 @@ fn validate_delete_accepts_all_targets() {
     let q = parse("fare_id=NOPE").unwrap();
     assert!(validate_delete(&feed, GtfsTarget::FareAttributes, &q).is_ok());
     assert!(validate_delete(&feed, GtfsTarget::FareRules, &q).is_ok());
-}
-
-#[test]
-fn delete_error_missing_where_variant_exists() {
-    let err = DeleteError::MissingWhereFilter;
-    assert_eq!(
-        err.to_string(),
-        "Missing --where filter. Refusing to delete without filter."
-    );
 }
 
 #[test]
