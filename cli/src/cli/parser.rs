@@ -100,7 +100,15 @@ pub enum Commands {
         min_severity: Option<SeverityArg>,
         /// Disable a validation rule by ID. May be passed multiple times.
         /// Appends to the `disabled_rules` list from the config file.
-        #[arg(long = "disable-rule", value_name = "RULE_ID", num_args = 1..)]
+        /// Shell completion suggests every registered rule ID.
+        #[arg(
+            long = "disable-rule",
+            value_name = "RULE_ID",
+            num_args = 1..,
+            value_parser = clap::builder::PossibleValuesParser::new(
+                headway_core::validation::all_rule_ids().iter().copied(),
+            ),
+        )]
         disable_rule: Vec<String>,
     },
     /// Read and query data from a GTFS file.

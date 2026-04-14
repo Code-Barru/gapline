@@ -37,3 +37,30 @@ pub use report::ValidationReport;
 pub use rules::ValidationRule;
 pub use structural_rule::StructuralValidationRule;
 pub use validate::validate;
+
+/// Returns every rule ID registered in a default-configured validation
+/// engine, sorted and deduplicated. Intended for CLI completion and
+/// discoverability (`--disable-rule <TAB>`).
+///
+/// Built once on first call via [`std::sync::LazyLock`]: the underlying
+/// engine instantiation allocates a few dozen `Box<dyn Rule>` but is cheap
+/// compared to actually running validation, and the result is cached for
+/// the lifetime of the process.
+#[must_use]
+pub fn all_rule_ids() -> &'static [&'static str] {
+    use std::sync::{Arc, LazyLock};
+
+    static IDS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+        let engine = engine::ValidationEngine::new(Arc::new(crate::config::Config::default()));
+        let mut ids: Vec<&'static str> = engine
+            .pre_rules()
+            .iter()
+            .map(|r| r.rule_id())
+            .chain(engine.post_rules().iter().map(|r| r.rule_id()))
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        ids
+    });
+    &IDS
+}
