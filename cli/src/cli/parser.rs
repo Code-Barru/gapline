@@ -166,7 +166,13 @@ pub enum Commands {
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
         feed: Option<PathBuf>,
         /// Filter expression to select records to update (required).
-        #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
+        #[arg(
+            short,
+            long = "where",
+            value_name = "QUERY",
+            required = true,
+            help = "SQL-like query (required)"
+        )]
         where_query: String,
         /// Field values to set on matched records (required).
         #[arg(short, long, num_args = 1.., required = true, help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
@@ -193,8 +199,14 @@ pub enum Commands {
         /// Path to the GTFS feed. Optional when `[default] feed` is set.
         #[arg(short, long, value_name = "FEED", help = "GTFS path feed")]
         feed: Option<PathBuf>,
-        /// Filter expression to select records to delete.
-        #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
+        /// Filter expression to select records to delete (required).
+        #[arg(
+            short,
+            long = "where",
+            value_name = "QUERY",
+            required = true,
+            help = "SQL-like query (required)"
+        )]
         where_query: String,
         /// Which GTFS file to delete from.
         #[arg(
