@@ -42,3 +42,26 @@ pub use unknown_file::UnknownFileRule;
 
 // Re-export the shared trait for backward compatibility.
 pub use crate::validation::StructuralValidationRule;
+
+/// Returns every pre-parsing rule owned by this module, ready to be appended
+/// to `ValidationEngine::pre_rules`. `max_rows` parameterizes
+/// [`TooManyRowsRule`] which is the only configurable structural rule here.
+#[must_use]
+pub fn pre_rules(max_rows: Option<usize>) -> Vec<Box<dyn StructuralValidationRule>> {
+    vec![
+        Box::new(MissingRequiredFileRule),
+        Box::new(MissingRecommendedFileRule),
+        Box::new(MissingCalendarFilesRule),
+        Box::new(EmptyFileRule),
+        Box::new(EmptyColumnNameRule),
+        Box::new(DuplicatedColumnRule),
+        Box::new(InvalidRowLengthRule),
+        Box::new(InvalidInputFilesInSubfolderRule),
+        Box::new(CsvParsingFailedRule),
+        Box::new(TooManyRowsRule::new(max_rows)),
+        Box::new(EmptyRowRule),
+        Box::new(UnknownFileRule),
+        Box::new(UnknownColumnRule),
+        Box::new(MissingRequiredColumnRule),
+    ]
+}

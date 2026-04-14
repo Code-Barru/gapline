@@ -26,13 +26,10 @@ use crate::models::GtfsFeed;
 use crate::parser::FeedSource;
 use crate::parser::error::ParseError;
 use crate::validation::csv_formatting::scanner;
-use crate::validation::csv_formatting::{CaseSensitiveRule, MissingHeaderRule};
 use crate::validation::field_type::parse_error_converter;
-use crate::validation::file_structure::{
-    CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
-    InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
-    MissingRecommendedFileRule, MissingRequiredColumnRule, MissingRequiredFileRule,
-    TooManyRowsRule, UnknownColumnRule, UnknownFileRule,
+use crate::validation::schedule_time_validation::{
+    CalendarThresholds, DistanceThresholds, SpeedThresholds, TransferThresholds,
+    service_dates::ServiceDateCache,
 };
 use crate::validation::{
     StructuralValidationRule, ValidationError, ValidationReport, ValidationRule,
@@ -84,71 +81,72 @@ pub struct ValidationEngine {
     rules: Vec<Box<dyn ValidationRule>>,
 }
 
+/// Bundle of every threshold struct needed to register rules — built once in
+/// [`ValidationEngine::new`] from the global [`Config`].
+struct Thresholds {
+    max_trip_duration_hours: Option<u32>,
+    max_route_short_name_length: usize,
+    distance: DistanceThresholds,
+    calendar: CalendarThresholds,
+    transfer: TransferThresholds,
+    speed: SpeedThresholds,
+    service_cache: Arc<ServiceDateCache>,
+}
+
+impl Thresholds {
+    fn from_config(config: &Config) -> Self {
+        let t = &config.validation.thresholds;
+        Self {
+            max_trip_duration_hours: t.time.max_trip_duration_hours,
+            max_route_short_name_length: t.naming.max_route_short_name_length,
+            distance: DistanceThresholds {
+                max_stop_to_shape_distance_m: t.distances.max_stop_to_shape_distance_m,
+                min_shape_point_distance_m: t.distances.min_shape_point_distance_m,
+                shape_dist_incoherence_ratio: t.distances.shape_dist_incoherence_ratio,
+                min_distance_from_origin_m: t.coordinates.min_distance_from_origin_m,
+                min_distance_from_poles_m: t.coordinates.min_distance_from_poles_m,
+            },
+            calendar: CalendarThresholds {
+                min_feed_coverage_days: t.calendar.min_feed_coverage_days,
+                feed_expiration_warning_days: t.calendar.feed_expiration_warning_days,
+                min_trip_activity_days: t.calendar.min_trip_activity_days,
+                reference_date: t.calendar.reference_date,
+            },
+            transfer: TransferThresholds {
+                max_transfer_distance_m: t.distances.max_transfer_distance_m,
+                transfer_distance_warning_m: t.distances.transfer_distance_warning_m,
+            },
+            speed: SpeedThresholds {
+                tram_kmh: t.speed_limits.tram_kmh,
+                subway_kmh: t.speed_limits.subway_kmh,
+                rail_kmh: t.speed_limits.rail_kmh,
+                bus_kmh: t.speed_limits.bus_kmh,
+                ferry_kmh: t.speed_limits.ferry_kmh,
+                cable_tram_kmh: t.speed_limits.cable_tram_kmh,
+                aerial_lift_kmh: t.speed_limits.aerial_lift_kmh,
+                funicular_kmh: t.speed_limits.funicular_kmh,
+                trolleybus_kmh: t.speed_limits.trolleybus_kmh,
+                monorail_kmh: t.speed_limits.monorail_kmh,
+                default_kmh: t.speed_limits.default_kmh,
+            },
+            service_cache: Arc::new(ServiceDateCache::new()),
+        }
+    }
+}
+
 impl ValidationEngine {
     /// Creates a new engine pre-loaded with all registered rules.
     #[must_use]
-    #[allow(clippy::too_many_lines)] // section-by-section rule registration
     pub fn new(config: Arc<Config>) -> Self {
         let max_rows = config.validation.max_rows;
-        let thresholds = &config.validation.thresholds;
-        let max_trip_duration_hours = thresholds.time.max_trip_duration_hours;
-        let max_route_short_name_length = thresholds.naming.max_route_short_name_length;
-        let distance_thresholds = crate::validation::schedule_time_validation::DistanceThresholds {
-            max_stop_to_shape_distance_m: thresholds.distances.max_stop_to_shape_distance_m,
-            min_shape_point_distance_m: thresholds.distances.min_shape_point_distance_m,
-            shape_dist_incoherence_ratio: thresholds.distances.shape_dist_incoherence_ratio,
-            min_distance_from_origin_m: thresholds.coordinates.min_distance_from_origin_m,
-            min_distance_from_poles_m: thresholds.coordinates.min_distance_from_poles_m,
-        };
-        let calendar_thresholds = crate::validation::schedule_time_validation::CalendarThresholds {
-            min_feed_coverage_days: thresholds.calendar.min_feed_coverage_days,
-            feed_expiration_warning_days: thresholds.calendar.feed_expiration_warning_days,
-            min_trip_activity_days: thresholds.calendar.min_trip_activity_days,
-            reference_date: thresholds.calendar.reference_date,
-        };
-        let transfer_thresholds = crate::validation::schedule_time_validation::TransferThresholds {
-            max_transfer_distance_m: thresholds.distances.max_transfer_distance_m,
-            transfer_distance_warning_m: thresholds.distances.transfer_distance_warning_m,
-        };
-        let speed_thresholds = crate::validation::schedule_time_validation::SpeedThresholds {
-            tram_kmh: thresholds.speed_limits.tram_kmh,
-            subway_kmh: thresholds.speed_limits.subway_kmh,
-            rail_kmh: thresholds.speed_limits.rail_kmh,
-            bus_kmh: thresholds.speed_limits.bus_kmh,
-            ferry_kmh: thresholds.speed_limits.ferry_kmh,
-            cable_tram_kmh: thresholds.speed_limits.cable_tram_kmh,
-            aerial_lift_kmh: thresholds.speed_limits.aerial_lift_kmh,
-            funicular_kmh: thresholds.speed_limits.funicular_kmh,
-            trolleybus_kmh: thresholds.speed_limits.trolleybus_kmh,
-            monorail_kmh: thresholds.speed_limits.monorail_kmh,
-            default_kmh: thresholds.speed_limits.default_kmh,
-        };
-        let service_cache = Arc::new(
-            crate::validation::schedule_time_validation::service_dates::ServiceDateCache::new(),
-        );
+        let t = Thresholds::from_config(&config);
 
-        // Rules that remain as individual StructuralValidationRule instances.
-        // The 6 content-scanning rules (encoding, delimiter, quoting, content,
-        // whitespace, new_line_in_value) are handled by the single-pass scanner
-        // in validate_structural().
-        let pre_rules: Vec<Box<dyn StructuralValidationRule>> = vec![
-            Box::new(MissingRequiredFileRule),
-            Box::new(MissingRecommendedFileRule),
-            Box::new(MissingCalendarFilesRule),
-            Box::new(EmptyFileRule),
-            Box::new(EmptyColumnNameRule),
-            Box::new(DuplicatedColumnRule),
-            Box::new(InvalidRowLengthRule),
-            Box::new(InvalidInputFilesInSubfolderRule),
-            Box::new(CsvParsingFailedRule),
-            Box::new(TooManyRowsRule::new(max_rows)),
-            Box::new(EmptyRowRule),
-            Box::new(UnknownFileRule),
-            Box::new(UnknownColumnRule),
-            Box::new(MissingRequiredColumnRule),
-            Box::new(MissingHeaderRule),
-            Box::new(CaseSensitiveRule),
-        ];
+        // Aggregate pre-parsing rules from each owning module. The 6
+        // content-scanning rules (encoding, delimiter, quoting, content,
+        // whitespace, new_line_in_value) are handled by the single-pass
+        // scanner in validate_structural() and are not listed here.
+        let mut pre_rules = crate::validation::file_structure::pre_rules(max_rows);
+        pre_rules.extend(crate::validation::csv_formatting::pre_rules());
 
         let mut engine = Self {
             config,
@@ -161,15 +159,15 @@ impl ValidationEngine {
         crate::validation::foreign_key::register_rules(&mut engine);
         crate::validation::schedule_time_validation::register_rules(
             &mut engine,
-            max_trip_duration_hours,
-            distance_thresholds,
-            calendar_thresholds,
-            transfer_thresholds,
-            speed_thresholds,
-            service_cache,
+            t.max_trip_duration_hours,
+            t.distance,
+            t.calendar,
+            t.transfer,
+            t.speed,
+            t.service_cache,
         );
         let naming_thresholds = crate::validation::best_practices::NamingThresholds {
-            max_route_short_name_length,
+            max_route_short_name_length: t.max_route_short_name_length,
         };
         crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
         crate::validation::third_party::register_rules(&mut engine);

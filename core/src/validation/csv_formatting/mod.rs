@@ -21,3 +21,14 @@ pub use encoding::InvalidEncodingRule;
 pub use headers::MissingHeaderRule;
 pub use quoting::InvalidQuotingRule;
 pub use whitespace::SuperfluousWhitespaceRule;
+
+use crate::validation::StructuralValidationRule;
+
+/// Returns every pre-parsing rule owned by this module. The 6 content-scanning
+/// rules (`encoding`, `delimiter`, `quoting`, `content`, `whitespace`,
+/// `new_line_in_value`) are handled by [`scanner::scan`] in a single pass and
+/// are not listed here.
+#[must_use]
+pub fn pre_rules() -> Vec<Box<dyn StructuralValidationRule>> {
+    vec![Box::new(MissingHeaderRule), Box::new(CaseSensitiveRule)]
+}
