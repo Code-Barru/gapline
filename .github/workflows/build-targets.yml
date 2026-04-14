@@ -1,0 +1,95 @@
+name: Build Targets
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Ref to check out (defaults to the caller's ref)
+        type: string
+        required: false
+      upload:
+        description: Package and upload build artifacts
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+          - target: aarch64-pc-windows-msvc
+            runner: windows-latest
+            archive: zip
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        shell: bash
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --target ${{ matrix.target }} -p headway
+
+      - name: Package (tar.gz)
+        if: inputs.upload && matrix.archive == 'tar.gz'
+        run: |
+          staging="headway-${{ matrix.target }}"
+          mkdir "$staging"
+          cp target/${{ matrix.target }}/release/headway "$staging/"
+          cp LICENSE README.md "$staging/"
+          tar czf "$staging.tar.gz" "$staging"
+
+      - name: Package (zip)
+        if: inputs.upload && matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $staging = "headway-${{ matrix.target }}"
+          New-Item -ItemType Directory -Path $staging
+          Copy-Item "target/${{ matrix.target }}/release/headway.exe" "$staging/"
+          Copy-Item LICENSE, README.md "$staging/"
+          Compress-Archive -Path "$staging/*" -DestinationPath "$staging.zip"
+
+      - name: Upload artifact
+        if: inputs.upload
+        uses: actions/upload-artifact@v6
+        with:
+          name: headway-${{ matrix.target }}
+          path: |
+            headway-${{ matrix.target }}.tar.gz
+            headway-${{ matrix.target }}.zip
+          if-no-files-found: error
