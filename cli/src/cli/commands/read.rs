@@ -10,7 +10,10 @@ use headway_core::parser::FeedLoader;
 use super::super::exit;
 use super::super::output::render_read_results;
 use super::super::parser::{CrudTarget, OutputFormat};
-use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_format, resolve_output};
+use super::{
+    load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_format, resolve_output,
+    warn_parse_errors,
+};
 
 pub fn run_read(
     config: &Arc<Config>,
@@ -29,7 +32,8 @@ pub fn run_read(
         tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
-    let (feed_data, _parse_errors) = FeedLoader::load(&source);
+    let (feed_data, parse_errors) = FeedLoader::load(&source);
+    warn_parse_errors(&parse_errors);
 
     let query = where_query.map(|q| parse_query_or_exit(q));
 

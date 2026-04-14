@@ -10,7 +10,9 @@ use headway_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output};
+use super::{
+    load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output, warn_parse_errors,
+};
 
 pub fn run_delete(
     config: &Arc<Config>,
@@ -30,7 +32,8 @@ pub fn run_delete(
         headway_core::crud::delete::required_files(target.to_target())
             .into_iter()
             .collect();
-    let (mut feed_data, _parse_errors) = FeedLoader::load_only(&source, &files);
+    let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
+    warn_parse_errors(&parse_errors);
 
     let plan =
         match headway_core::crud::delete::validate_delete(&feed_data, target.to_target(), &query) {

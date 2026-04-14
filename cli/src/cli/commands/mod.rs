@@ -10,7 +10,7 @@ use std::process;
 
 use headway_core::config::Config;
 use headway_core::crud::query::Query;
-use headway_core::parser::{FeedLoader, FeedSource};
+use headway_core::parser::{FeedLoader, FeedSource, ParseError};
 
 use super::exit;
 use super::parser::OutputFormat;
@@ -56,6 +56,16 @@ pub(super) fn load_feed_or_exit(feed: &Path) -> FeedSource {
             tracing::error!("{e}");
             process::exit(exit::INPUT_ERROR);
         }
+    }
+}
+
+/// Emits a `warn!` log line for every GTFS parse error collected while
+/// loading a feed. CRUD commands are non-fatal on parse errors — the caller
+/// may still operate on the partially-loaded data — but the errors should not
+/// be swallowed silently.
+pub(super) fn warn_parse_errors(parse_errors: &[ParseError]) {
+    for err in parse_errors {
+        tracing::warn!("parse error: {err}");
     }
 }
 

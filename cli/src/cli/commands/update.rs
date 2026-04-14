@@ -11,7 +11,9 @@ use headway_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output};
+use super::{
+    load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_output, warn_parse_errors,
+};
 
 /// Parameters for [`run_update`]. Bundled into a struct to keep the call site
 /// readable and to avoid `#[allow(clippy::too_many_arguments)]`.
@@ -65,7 +67,8 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         headway_core::crud::update::required_files(target, needs_dependents)
             .into_iter()
             .collect();
-    let (mut feed_data, _parse_errors) = FeedLoader::load_only(&source, &files);
+    let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
+    warn_parse_errors(&parse_errors);
 
     let plan = match headway_core::crud::update::validate_update(
         &feed_data,
