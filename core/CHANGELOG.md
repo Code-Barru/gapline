@@ -4,6 +4,16 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0] - 2026-04-14
+
+### Breaking Changes
+
+- feat!: 1.0.0 release
+
+### Features
+
+- feat! 1.0.0 release
+
 ## [0.16.1] - 2026-04-14
 
 ### Bug Fixes
