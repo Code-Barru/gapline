@@ -5,6 +5,9 @@
 //! target file. Violations produce `foreign_key_violation` errors with full
 //! context (file, line, field, orphan value).
 
+#[macro_use]
+mod macros;
+
 // Core FK rules (HW-017)
 pub mod calendar_dates_service;
 pub mod frequencies_trip;
