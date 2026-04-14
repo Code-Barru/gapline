@@ -8,8 +8,8 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 use crate::crud::common::{
-    CascadeEntry, CrudError, FeedIndex, FieldAssignment, find_matching_indices, get_pk_value,
-    make_entity_ref, parse_assignments, primary_key_fields, to_field_map, validate_foreign_keys,
+    CascadeEntry, FeedIndex, FieldAssignment, find_matching_indices, get_pk_value, make_entity_ref,
+    parse_assignments, primary_key_fields, to_field_map, validate_foreign_keys,
 };
 use crate::crud::query::Filterable;
 use crate::crud::query::{Query, QueryError};
@@ -70,37 +70,7 @@ pub enum UpdateError {
     QueryError(#[from] QueryError),
 }
 
-impl From<CrudError> for UpdateError {
-    fn from(e: CrudError) -> Self {
-        match e {
-            CrudError::InvalidAssignment(s) => Self::InvalidAssignment(s),
-            CrudError::DuplicateAssignment(s) => Self::DuplicateAssignment(s),
-            CrudError::UnknownField { field, valid } => Self::UnknownField { field, valid },
-            CrudError::InvalidFieldValue {
-                field,
-                value,
-                expected,
-            } => Self::InvalidFieldValue {
-                field,
-                value,
-                expected,
-            },
-            CrudError::DuplicatePrimaryKey { field, value, file } => {
-                Self::DuplicatePrimaryKey { field, value, file }
-            }
-            CrudError::ForeignKeyViolation {
-                field,
-                value,
-                referenced_file,
-            } => Self::ForeignKeyViolation {
-                field,
-                value,
-                referenced_file,
-            },
-            CrudError::EmptyAssignments => Self::EmptyAssignments,
-        }
-    }
-}
+crate::impl_from_crud_error!(UpdateError);
 
 /// The validated update plan ready to be applied to the feed.
 #[derive(Debug)]

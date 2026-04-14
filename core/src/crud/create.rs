@@ -6,7 +6,7 @@
 use thiserror::Error;
 
 use crate::crud::common::{
-    self, CrudError, FeedIndex, Fields, parse_assignments, to_field_map, validate_foreign_keys,
+    self, FeedIndex, Fields, parse_assignments, to_field_map, validate_foreign_keys,
 };
 use crate::crud::read::GtfsTarget;
 use crate::models::{
@@ -69,37 +69,7 @@ pub enum CreateError {
     FeedInfoAlreadyExists,
 }
 
-impl From<CrudError> for CreateError {
-    fn from(e: CrudError) -> Self {
-        match e {
-            CrudError::InvalidAssignment(s) => Self::InvalidAssignment(s),
-            CrudError::DuplicateAssignment(s) => Self::DuplicateAssignment(s),
-            CrudError::UnknownField { field, valid } => Self::UnknownField { field, valid },
-            CrudError::InvalidFieldValue {
-                field,
-                value,
-                expected,
-            } => Self::InvalidFieldValue {
-                field,
-                value,
-                expected,
-            },
-            CrudError::DuplicatePrimaryKey { field, value, file } => {
-                Self::DuplicatePrimaryKey { field, value, file }
-            }
-            CrudError::ForeignKeyViolation {
-                field,
-                value,
-                referenced_file,
-            } => Self::ForeignKeyViolation {
-                field,
-                value,
-                referenced_file,
-            },
-            CrudError::EmptyAssignments => Self::EmptyAssignments,
-        }
-    }
-}
+crate::impl_from_crud_error!(CreateError);
 
 /// The validated plan ready to be applied to the feed.
 #[derive(Debug)]

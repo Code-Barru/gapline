@@ -14,6 +14,49 @@ use crate::models::{
     Translation, Trip,
 };
 
+/// Generates an `impl From<CrudError>` for an error enum whose variants
+/// mirror the 7 shared `CrudError` variants by name and shape. Used by
+/// [`CreateError`](crate::crud::create::CreateError) and
+/// [`UpdateError`](crate::crud::update::UpdateError), which extend the
+/// shared set with operation-specific variants.
+#[macro_export]
+macro_rules! impl_from_crud_error {
+    ($target:ty) => {
+        impl ::std::convert::From<$crate::crud::common::CrudError> for $target {
+            fn from(e: $crate::crud::common::CrudError) -> Self {
+                use $crate::crud::common::CrudError;
+                match e {
+                    CrudError::InvalidAssignment(s) => Self::InvalidAssignment(s),
+                    CrudError::DuplicateAssignment(s) => Self::DuplicateAssignment(s),
+                    CrudError::UnknownField { field, valid } => Self::UnknownField { field, valid },
+                    CrudError::InvalidFieldValue {
+                        field,
+                        value,
+                        expected,
+                    } => Self::InvalidFieldValue {
+                        field,
+                        value,
+                        expected,
+                    },
+                    CrudError::DuplicatePrimaryKey { field, value, file } => {
+                        Self::DuplicatePrimaryKey { field, value, file }
+                    }
+                    CrudError::ForeignKeyViolation {
+                        field,
+                        value,
+                        referenced_file,
+                    } => Self::ForeignKeyViolation {
+                        field,
+                        value,
+                        referenced_file,
+                    },
+                    CrudError::EmptyAssignments => Self::EmptyAssignments,
+                }
+            }
+        }
+    };
+}
+
 /// Errors shared across CRUD operations (create, update, delete).
 #[derive(Debug, Error)]
 pub enum CrudError {
