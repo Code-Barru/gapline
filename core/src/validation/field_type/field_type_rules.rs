@@ -50,6 +50,7 @@ pub fn is_valid_color(value: &str) -> bool {
     value.len() == 6 && value.chars().all(|c| c.is_ascii_hexdigit())
 }
 
+#[must_use]
 pub fn is_valid_language_code(value: &str) -> bool {
     BCP47_RE.is_match(value)
 }
@@ -59,6 +60,7 @@ pub fn is_valid_currency(value: &str) -> bool {
     ISO_4217_CODES.contains(&value)
 }
 
+#[must_use]
 pub fn is_valid_email(value: &str) -> bool {
     EMAIL_RE.is_match(value)
 }
