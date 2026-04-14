@@ -4,6 +4,14 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.15.0] - 2026-04-14
+
+### Features
+
+- feat(cli): dynamic --disable-rule completion from registered rules
+- feat(config): semantic validation for threshold values
+- feat(cli): tracing-based logging + structured exit codes
+
 ## [0.14.1] - 2026-04-14
 
 ### Bug Fixes
