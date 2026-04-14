@@ -6,11 +6,11 @@
 
 use std::collections::HashSet;
 
+use super::SECTION;
 use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "calendar_dates.txt";
-const SECTION: &str = "5";
 const RULE_ID: &str = "calendar_dates_service_not_in_calendar";
 
 /// If `calendar.txt` exists, warns about `service_id` values in

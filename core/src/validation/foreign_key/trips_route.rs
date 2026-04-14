@@ -6,8 +6,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "trips.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// Every `route_id` in trips.txt must exist in routes.txt.
 pub struct TripsRouteFkRule;

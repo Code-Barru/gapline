@@ -6,8 +6,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "transfers.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// If `from_stop_id` is non-empty in transfers.txt, it must exist in stops.txt.
 pub struct TransfersFromStopFkRule;

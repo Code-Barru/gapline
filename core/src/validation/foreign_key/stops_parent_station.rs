@@ -6,8 +6,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "stops.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// If `parent_station` is non-empty, it must reference an existing `stop_id`.
 /// Parent type correctness is validated separately in section 7.

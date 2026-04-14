@@ -6,8 +6,7 @@ use crate::models::{GtfsFeed, LocationType};
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "pathways.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// Both `from_stop_id` and `to_stop_id` in pathways.txt must reference existing
 /// stops with `location_type` ∈ {2 (Entrance/Exit), 3 (Generic Node), 4 (Boarding Area)}.

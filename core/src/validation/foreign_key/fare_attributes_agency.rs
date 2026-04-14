@@ -6,8 +6,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "fare_attributes.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// If `agency_id` is non-empty in `fare_attributes.txt`, it must exist in agency.txt.
 pub struct FareAttributesAgencyFkRule;

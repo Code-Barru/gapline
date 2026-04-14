@@ -7,8 +7,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "attributions.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// If `agency_id`, `route_id`, or `trip_id` is non-empty in attributions.txt,
 /// each must exist in its respective table.

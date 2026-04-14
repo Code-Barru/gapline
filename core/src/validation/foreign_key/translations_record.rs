@@ -7,8 +7,7 @@ use crate::models::GtfsFeed;
 use crate::validation::{Severity, ValidationError, ValidationRule};
 
 const FILE: &str = "translations.txt";
-const SECTION: &str = "5";
-const RULE_ID: &str = "foreign_key_violation";
+use super::{RULE_ID, SECTION};
 
 /// If `record_id` is non-empty in translations.txt, it must reference an existing
 /// primary key in the table indicated by `table_name`.

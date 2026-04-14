@@ -34,6 +34,13 @@ pub mod translations_record;
 
 use crate::validation::engine::ValidationEngine;
 
+/// Section number shared by every foreign-key rule.
+pub(super) const SECTION: &str = "5";
+/// Default rule identifier for foreign-key violations. Rules with their own
+/// identifier (e.g. `calendar_dates_service_not_in_calendar`) keep a local
+/// `const RULE_ID`.
+pub(super) const RULE_ID: &str = "foreign_key_violation";
+
 /// Registers all foreign-key validation rules with the engine.
 pub fn register_rules(engine: &mut ValidationEngine) {
     // Core (HW-017)
