@@ -122,9 +122,9 @@ pub fn optional_parse<T: FromStr>(
     }
 }
 
-/// Reads a required ID column (anything constructible via `From<String>`).
-/// Missing values produce `MissingRequired` and return `T::from(String::new())`.
-pub fn required_id<T: From<String>>(
+/// Reads a required ID column (anything constructible via `From<&str>`).
+/// Missing values produce `MissingRequired` and return `T::from("")`.
+pub fn required_id<T: for<'a> From<&'a str>>(
     row: &CsvRow,
     field: &str,
     file: &str,
@@ -132,7 +132,7 @@ pub fn required_id<T: From<String>>(
     errors: &mut Vec<ParseError>,
 ) -> T {
     if let Some(v) = get(row, field) {
-        T::from(v.to_owned())
+        T::from(v)
     } else {
         push_error(
             errors,
@@ -142,14 +142,14 @@ pub fn required_id<T: From<String>>(
             "",
             ParseErrorKind::MissingRequired,
         );
-        T::from(String::new())
+        T::from("")
     }
 }
 
 /// Reads an optional ID column. Returns `None` when the column is absent.
 #[must_use]
-pub fn optional_id<T: From<String>>(row: &CsvRow, field: &str) -> Option<T> {
-    get(row, field).map(|v| T::from(v.to_owned()))
+pub fn optional_id<T: for<'a> From<&'a str>>(row: &CsvRow, field: &str) -> Option<T> {
+    get(row, field).map(T::from)
 }
 
 /// Parses a required enum column encoded as an `i32` code. `from_i32` maps
