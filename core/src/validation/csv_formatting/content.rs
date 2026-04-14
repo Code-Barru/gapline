@@ -63,7 +63,7 @@ impl StructuralValidationRule for InvalidContentRule {
                                 self.severity(),
                             )
                             .message("Tab character (0x09) found in value")
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num),
                         );
                         break;
@@ -75,7 +75,7 @@ impl StructuralValidationRule for InvalidContentRule {
                     errors.push(
                         ValidationError::new("control_character", self.section(), self.severity())
                             .message("Bare carriage return (CR) found within value")
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num),
                     );
                 }
@@ -89,7 +89,7 @@ impl StructuralValidationRule for InvalidContentRule {
                                 self.severity(),
                             )
                             .message(format!("Control character (0x{b:02X}) found in value"))
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num),
                         );
                         break;
@@ -100,7 +100,7 @@ impl StructuralValidationRule for InvalidContentRule {
                     errors.push(
                         ValidationError::new("forbidden_content", self.section(), self.severity())
                             .message("HTML tag found in value")
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num)
                             .value(m.as_str().to_string()),
                     );
@@ -110,7 +110,7 @@ impl StructuralValidationRule for InvalidContentRule {
                     errors.push(
                         ValidationError::new("forbidden_content", self.section(), self.severity())
                             .message("HTML comment found in value")
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num)
                             .value(m.as_str().to_string()),
                     );
@@ -120,7 +120,7 @@ impl StructuralValidationRule for InvalidContentRule {
                     errors.push(
                         ValidationError::new("forbidden_content", self.section(), self.severity())
                             .message("Literal escape sequence found in value")
-                            .file(file_name.clone())
+                            .file(file_name.as_str())
                             .line(line_num)
                             .value(m.as_str().to_string()),
                     );

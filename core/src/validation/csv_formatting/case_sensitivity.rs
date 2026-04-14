@@ -73,8 +73,8 @@ impl StructuralValidationRule for CaseSensitiveRule {
                             .message(format!(
                                 "File name has wrong casing: expected \"{canonical}\", got \"{raw_name}\""
                             ))
-                            .file(raw_name.clone())
-                            .value(raw_name.clone()),
+                            .file(raw_name.as_str())
+                            .value(raw_name.as_str()),
                     );
                 }
             }
