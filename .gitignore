@@ -8,3 +8,6 @@ agile
 /gtfs
 
 /.claude
+
+/scripts/bench-data
+/scripts/bench-results

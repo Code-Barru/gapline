@@ -110,6 +110,34 @@ precisely:
 | `3`  | Input/output error: feed not found, cannot read archive, write fail.  |
 | `4`  | No changes: the operation matched 0 records and nothing was written.  |
 
+## Benchmarks
+
+Comparison against [gtfs-validator](https://github.com/MobilityData/gtfs-validator) (MobilityData) across four feed sizes, measured with [`hyperfine`](https://github.com/sharkdp/hyperfine). Each tier is run against both a zipped archive and an extracted directory.
+
+You can reproduce these numbers locally with:
+
+```bash
+scripts/bench_compare.sh
+```
+
+**Zipped archive:**
+
+| tier   | headway            | gtfs-validator         | speedup |
+|--------|--------------------|------------------------|---------|
+| small  | 37.5ms ± 0.9ms     | 2080.2ms ± 218.1ms     | 55.4x   |
+| medium | 5814.0ms ± 31.8ms  | 13366.5ms ± 252.3ms    | 2.3x    |
+| large  | 1130.1ms ± 23.1ms  | 8641.0ms ± 164.2ms     | 7.6x    |
+| huge   | 8704.9ms ± 140.4ms | 60623.2ms ± 1045.0ms   | 7.0x    |
+
+**Extracted directory:**
+
+| tier   | headway            | gtfs-validator         | speedup |
+|--------|--------------------|------------------------|---------|
+| small  | 19.2ms ± 0.4ms     | 1842.5ms ± 83.0ms      | 95.7x   |
+| medium | 5552.7ms ± 53.3ms  | 12512.8ms ± 258.1ms    | 2.3x    |
+| large  | 958.0ms ± 7.6ms    | 8686.4ms ± 131.5ms     | 9.1x    |
+| huge   | 7064.8ms ± 85.5ms  | 57875.0ms ± 2198.6ms   | 8.2x    |
+
 ## Development
 
 ### Run in development mode
