@@ -82,7 +82,7 @@ impl ValidationRule for UnusedShapeRule {
             if !referenced.contains(shape_id) {
                 errors.push(
                     ValidationError::new("unused_shape", SECTION, Severity::Warning)
-                        .message(format!("shape '{shape_id}' is not referenced by any trip",))
+                        .message(format!("shape '{shape_id}' is not referenced by any trip"))
                         .file("shapes.txt")
                         .line(first_line_idx + 2)
                         .field("shape_id")
@@ -131,7 +131,7 @@ impl ValidationRule for UnusedServiceRule {
             if !referenced.contains(sid) {
                 errors.push(
                     ValidationError::new("unused_service", SECTION, Severity::Warning)
-                        .message(format!("service '{sid}' is not referenced by any trip",))
+                        .message(format!("service '{sid}' is not referenced by any trip"))
                         .file(file)
                         .line(line)
                         .field("service_id")
@@ -180,7 +180,7 @@ impl ValidationRule for UnusedAgencyRule {
             if !referenced.contains(aid.as_ref()) {
                 errors.push(
                     ValidationError::new("unused_agency", SECTION, Severity::Warning)
-                        .message(format!("agency '{aid}' is not referenced by any route",))
+                        .message(format!("agency '{aid}' is not referenced by any route"))
                         .file("agency.txt")
                         .line(i + 2)
                         .field("agency_id")

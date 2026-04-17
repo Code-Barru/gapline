@@ -60,7 +60,7 @@ impl ValidationRule for TransferValidationRule {
             if is_self && let Some(stop_id) = transfer.from_stop_id.as_ref() {
                 errors.push(
                     ValidationError::new("self_transfer", SECTION, Severity::Warning)
-                        .message(format!("Transfer from stop '{stop_id}' to itself",))
+                        .message(format!("Transfer from stop '{stop_id}' to itself"))
                         .file(FILE)
                         .line(line)
                         .field("from_stop_id")

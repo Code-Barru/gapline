@@ -35,9 +35,7 @@ static EMAIL_RE: LazyLock<Regex> =
 
 #[must_use]
 pub fn is_valid_url(value: &str) -> bool {
-    url::Url::parse(value)
-        .map(|u| u.scheme() == "http" || u.scheme() == "https")
-        .unwrap_or(false)
+    url::Url::parse(value).is_ok_and(|u| u.scheme() == "http" || u.scheme() == "https")
 }
 
 #[must_use]

@@ -368,10 +368,8 @@ fn validate_primary_key(
         GtfsTarget::Levels => {
             common::pk_check_simple(fields, "level_id", &idx.level_ids, "levels.txt")?;
         }
-        GtfsTarget::FeedInfo => {
-            if idx.has_feed_info {
-                return Err(CreateError::FeedInfoAlreadyExists);
-            }
+        GtfsTarget::FeedInfo if idx.has_feed_info => {
+            return Err(CreateError::FeedInfoAlreadyExists);
         }
         GtfsTarget::FareAttributes => {
             common::pk_check_simple(fields, "fare_id", &idx.fare_ids, "fare_attributes.txt")?;

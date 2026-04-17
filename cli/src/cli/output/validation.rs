@@ -283,7 +283,7 @@ fn build_html_body(view: &FilteredView<'_>) -> String {
             );
             if let (Some(file), Some(line)) = (&err.file_name, err.line_number) {
                 let file_esc = html_escape(file);
-                let _ = write!(out, r#"<span class="loc">— {file_esc}:{line}</span>"#,);
+                let _ = write!(out, r#"<span class="loc">— {file_esc}:{line}</span>"#);
             }
             if let (Some(field), Some(value)) = (&err.field_name, &err.value) {
                 let field_esc = html_escape(field);
