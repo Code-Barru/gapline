@@ -142,7 +142,7 @@ jobs:
       - name: Generate checksums
         run: |
           checksums_file="checksums.sha256"
-          for dir in artifacts/headway-*; do
+          for dir in artifacts/gapline-*; do
             file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
             if [ -n "$file" ]; then
               hash=$(sha256sum "$file" | cut -d ' ' -f 1)
@@ -157,7 +157,7 @@ jobs:
         run: |
           tag="${{ needs.release.outputs.cli_tag }}"
           echo "Uploading assets to release: $tag"
-          for dir in artifacts/headway-*; do
+          for dir in artifacts/gapline-*; do
             file=$(find "$dir" -type f \( -name '*.tar.gz' -o -name '*.zip' \))
             if [ -n "$file" ]; then
               gh release upload "$tag" "$file" --clobber

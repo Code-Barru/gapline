@@ -1,12 +1,12 @@
-//! `headway delete` — remove records matching a `--where` filter, with
+//! `gapline delete` — remove records matching a `--where` filter, with
 //! optional cascade to PK-dependent files.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::parser::FeedLoader;
+use gapline_core::config::Config;
+use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
@@ -29,14 +29,14 @@ pub fn run_delete(
     let query = parse_query_or_exit(where_query);
 
     let files: std::collections::HashSet<_> =
-        headway_core::crud::delete::required_files(target.to_target())
+        gapline_core::crud::delete::required_files(target.to_target())
             .into_iter()
             .collect();
     let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
     warn_parse_errors(&parse_errors);
 
     let plan =
-        match headway_core::crud::delete::validate_delete(&feed_data, target.to_target(), &query) {
+        match gapline_core::crud::delete::validate_delete(&feed_data, target.to_target(), &query) {
             Ok(p) => p,
             Err(e) => {
                 tracing::error!("{e}");
@@ -54,10 +54,10 @@ pub fn run_delete(
         process::exit(exit::SUCCESS);
     }
 
-    let result = headway_core::crud::delete::apply_delete(&mut feed_data, &plan);
+    let result = gapline_core::crud::delete::apply_delete(&mut feed_data, &plan);
 
     let write_path = output.unwrap_or_else(|| feed.clone());
-    if let Err(e) = headway_core::writer::write_modified_targets(
+    if let Err(e) = gapline_core::writer::write_modified_targets(
         &feed_data,
         &source,
         &result.modified_targets,
@@ -84,7 +84,7 @@ pub fn run_delete(
     );
 }
 
-fn confirm_delete(plan: &headway_core::crud::delete::DeletePlan) -> bool {
+fn confirm_delete(plan: &gapline_core::crud::delete::DeletePlan) -> bool {
     tracing::info!("Records to delete from {}:", plan.file_name);
     let display_limit = 20;
     for pk in plan.matched_pks.iter().take(display_limit) {

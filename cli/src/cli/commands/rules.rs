@@ -1,19 +1,19 @@
-//! `headway rules list` — discoverability listing of every registered
+//! `gapline rules list` — discoverability listing of every registered
 //! validation rule.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::validation::engine::ValidationEngine;
+use gapline_core::config::Config;
+use gapline_core::validation::engine::ValidationEngine;
 
 use super::super::exit;
 use super::super::output::{RuleEntry, Stage, render_rules_list};
 use super::super::parser::{OutputFormat, SeverityArg};
 use super::{resolve_format, resolve_output};
 
-/// `headway rules list` — prints every registered validation rule.
+/// `gapline rules list` — prints every registered validation rule.
 ///
 /// The listing always uses a fresh `Config::default()` engine so that the
 /// user's `[validation] disabled_rules` / `enabled_rules` do **not** hide

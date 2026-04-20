@@ -1,15 +1,15 @@
 //! Tests for section 13 — third-party validator compatibility rules.
 
-use headway_core::models::*;
-use headway_core::validation::third_party::conveyal::ConveyalTripWithoutShapeRule;
-use headway_core::validation::third_party::etalab::EtalabMissingContactRule;
-use headway_core::validation::third_party::google::{
+use gapline_core::models::*;
+use gapline_core::validation::third_party::conveyal::ConveyalTripWithoutShapeRule;
+use gapline_core::validation::third_party::etalab::EtalabMissingContactRule;
+use gapline_core::validation::third_party::google::{
     GoogleCoordinatesInStopNameRule, GoogleIdenticalRouteColorsRule,
 };
-use headway_core::validation::third_party::otp::{
+use gapline_core::validation::third_party::otp::{
     OtpMissingFeedVersionRule, OtpTripTooFewStopsRule,
 };
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers

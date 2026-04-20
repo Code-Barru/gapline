@@ -1,6 +1,6 @@
 //! Structured exit codes for scripting.
 //!
-//! Scripts wrapping headway need to distinguish "validation found errors"
+//! Scripts wrapping gapline need to distinguish "validation found errors"
 //! from "failed to open the feed" from "user aborted". Each constant below
 //! corresponds to one of those categories. The README documents the contract
 //! under the "Exit Codes" section — keep both in sync.
@@ -13,7 +13,7 @@ pub const SUCCESS: i32 = 0;
 /// render failure, unknown field in `--set`, PK/FK violation, etc.
 pub const COMMAND_FAILED: i32 = 1;
 
-/// Configuration error: malformed `headway.toml`, unknown key, type
+/// Configuration error: malformed `gapline.toml`, unknown key, type
 /// mismatch. Distinguished so that scripts can surface config issues to the
 /// user separately from runtime failures.
 pub const CONFIG_ERROR: i32 = 2;

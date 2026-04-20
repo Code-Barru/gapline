@@ -14,7 +14,7 @@ use std::fmt::{Display, Formatter};
 /// # Examples
 ///
 /// ```
-/// use headway_core::validation::{ValidationError, Severity};
+/// use gapline_core::validation::{ValidationError, Severity};
 ///
 /// // Structural error (no file/line context needed)
 /// let structural = ValidationError::new("missing_required_file", "1", Severity::Error)

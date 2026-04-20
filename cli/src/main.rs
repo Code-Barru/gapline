@@ -1,12 +1,12 @@
-//! Binary entry point for headway.
+//! Binary entry point for gapline.
 //!
 //! Parses CLI arguments, hands the runtime setup off to
-//! [`headway::cli::bootstrap`], then dispatches to the appropriate handler
-//! in [`headway::cli::commands`].
+//! [`gapline::cli::bootstrap`], then dispatches to the appropriate handler
+//! in [`gapline::cli::commands`].
 
 use clap::Parser;
 
-use headway::cli::{Cli, Commands, RulesCommand, bootstrap, commands};
+use gapline::cli::{Cli, Commands, RulesCommand, bootstrap, commands};
 
 fn main() {
     let mut args = Cli::parse();

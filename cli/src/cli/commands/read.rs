@@ -1,11 +1,11 @@
-//! `headway read` — query records from a single GTFS file.
+//! `gapline read` — query records from a single GTFS file.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::parser::FeedLoader;
+use gapline_core::config::Config;
+use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::output::render_read_results;
@@ -37,7 +37,7 @@ pub fn run_read(
 
     let query = where_query.map(|q| parse_query_or_exit(q));
 
-    let result = match headway_core::crud::read::read_records(
+    let result = match gapline_core::crud::read::read_records(
         &feed_data,
         target.to_target(),
         query.as_ref(),

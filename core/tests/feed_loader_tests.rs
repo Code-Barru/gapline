@@ -1,7 +1,7 @@
 use std::io::{BufRead, Write};
 use std::path::Path;
 
-use headway_core::parser::{FeedLoader, FeedSource, GtfsFiles, ParserError};
+use gapline_core::parser::{FeedLoader, FeedSource, GtfsFiles, ParserError};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -170,12 +170,12 @@ fn test_directory_filters_non_gtfs() {
 
 #[test]
 fn test_path_not_found() {
-    let result = FeedLoader::open(Path::new("/tmp/headway_nonexistent_path_12345.zip"));
+    let result = FeedLoader::open(Path::new("/tmp/gapline_nonexistent_path_12345.zip"));
 
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        matches!(err, ParserError::FileNotFound(ref p) if p.to_string_lossy().contains("headway_nonexistent")),
+        matches!(err, ParserError::FileNotFound(ref p) if p.to_string_lossy().contains("gapline_nonexistent")),
         "Expected FileNotFound, got: {err}"
     );
 }

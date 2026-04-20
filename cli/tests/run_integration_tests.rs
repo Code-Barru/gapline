@@ -3,8 +3,8 @@ use std::process::Command;
 
 use tempfile::NamedTempFile;
 
-fn headway_bin() -> String {
-    env!("CARGO_BIN_EXE_headway").to_string()
+fn gapline_bin() -> String {
+    env!("CARGO_BIN_EXE_gapline").to_string()
 }
 
 fn create_valid_feed() -> NamedTempFile {
@@ -55,10 +55,10 @@ fn run_feed_and_read() {
     let feed = create_valid_feed();
     let hw = write_hw_file(&format!("feed {}\nread stops\n", feed.path().display()));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -77,10 +77,10 @@ fn run_comments_and_blank_lines_ignored() {
         feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -94,10 +94,10 @@ fn run_echo_commands() {
     let feed = create_valid_feed();
     let hw = write_hw_file(&format!("feed {}\nread stops\n", feed.path().display()));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("[1] feed"), "First command must be echoed");
@@ -111,10 +111,10 @@ fn run_echo_commands() {
 fn run_no_feed_before_command() {
     let hw = write_hw_file("read stops\n");
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -132,10 +132,10 @@ fn run_delete_without_confirm() {
         feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -153,10 +153,10 @@ fn run_create_without_confirm() {
         feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -165,10 +165,10 @@ fn run_create_without_confirm() {
 
 #[test]
 fn run_nonexistent_hw_file() {
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", "/tmp/nonexistent_test_file.hw"])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -182,10 +182,10 @@ fn run_nonexistent_hw_file() {
 fn run_unknown_command() {
     let hw = write_hw_file("foobar some args\n");
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -206,10 +206,10 @@ fn run_save_without_path_overwrites_original() {
         tmp_feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -222,10 +222,10 @@ fn run_save_without_path_overwrites_original() {
         tmp_feed.path().display()
     ));
 
-    let verify = Command::new(headway_bin())
+    let verify = Command::new(gapline_bin())
         .args(["run", verify_hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     let stdout = String::from_utf8_lossy(&verify.stdout);
     assert!(
@@ -245,10 +245,10 @@ fn run_save_with_path() {
         output_feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -261,10 +261,10 @@ fn run_save_with_path() {
         output_feed.path().display()
     ));
 
-    let verify = Command::new(headway_bin())
+    let verify = Command::new(gapline_bin())
         .args(["run", verify_hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     let stdout = String::from_utf8_lossy(&verify.stdout);
     assert!(
@@ -281,10 +281,10 @@ fn run_stop_on_first_error() {
         feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(output.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -307,10 +307,10 @@ fn run_multiple_feed_directives() {
         feed_b.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -335,10 +335,10 @@ fn run_delete_with_confirm_and_save() {
         output_feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -351,10 +351,10 @@ fn run_delete_with_confirm_and_save() {
         output_feed.path().display()
     ));
 
-    let verify = Command::new(headway_bin())
+    let verify = Command::new(gapline_bin())
         .args(["run", verify_hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     let stdout = String::from_utf8_lossy(&verify.stdout);
     assert!(stdout.contains("ST1"), "ST1 must still exist");
@@ -372,10 +372,10 @@ fn run_update_with_confirm_and_save() {
         output_feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -388,10 +388,10 @@ fn run_update_with_confirm_and_save() {
         output_feed.path().display()
     ));
 
-    let verify = Command::new(headway_bin())
+    let verify = Command::new(gapline_bin())
         .args(["run", verify_hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     let stdout = String::from_utf8_lossy(&verify.stdout);
     assert!(
@@ -415,10 +415,10 @@ fn run_full_workflow_validate_create_validate_save() {
         output_feed.path().display()
     ));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -437,10 +437,10 @@ fn run_validate_in_batch() {
 
     let hw = write_hw_file(&format!("feed {}\nvalidate\n", feed.path().display()));
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["run", hw.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),

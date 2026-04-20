@@ -1,16 +1,16 @@
 #!/bin/sh
-# Headway CLI installer for Linux and macOS
-# Usage: curl -fsSL https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.sh | sh
+# Gapline CLI installer for Linux and macOS
+# Usage: curl -fsSL https://raw.githubusercontent.com/Code-Barru/gapline/main/scripts/install.sh | sh
 set -eu
 
-REPO="Code-Barru/headway"
-BINARY_NAME="headway"
+REPO="Code-Barru/gapline"
+BINARY_NAME="gapline"
 GITHUB_API="https://api.github.com/repos/${REPO}/releases"
 GITHUB_DOWNLOAD="https://github.com/${REPO}/releases/download"
 
 # --- Defaults ---
-INSTALL_DIR="${HEADWAY_INSTALL_DIR:-/usr/local/bin}"
-VERSION="${HEADWAY_VERSION:-}"
+INSTALL_DIR="${GAPLINE_INSTALL_DIR:-/usr/local/bin}"
+VERSION="${GAPLINE_VERSION:-}"
 YES="false"
 
 # --- Color helpers ---
@@ -54,7 +54,7 @@ die() {
 # --- Usage ---
 usage() {
     cat <<EOF
-Headway CLI installer
+Gapline CLI installer
 
 Usage:
     install.sh [OPTIONS]
@@ -66,8 +66,8 @@ Options:
     -h, --help          Show this help message
 
 Environment variables:
-    HEADWAY_VERSION       Same as --version
-    HEADWAY_INSTALL_DIR   Same as --dir
+    GAPLINE_VERSION       Same as --version
+    GAPLINE_INSTALL_DIR   Same as --dir
 
 Examples:
     curl -fsSL .../install.sh | sh
@@ -243,7 +243,7 @@ install_binary() {
 
 # --- Main ---
 main() {
-    printf "${BOLD}Headway CLI Installer${RESET}\n\n"
+    printf "${BOLD}Gapline CLI Installer${RESET}\n\n"
 
     detect_platform
     detect_downloader
@@ -280,10 +280,10 @@ main() {
         installed_version=$("${INSTALL_DIR}/${BINARY_NAME}" --version 2>&1)
         success "Installed ${installed_version} to ${INSTALL_DIR}/${BINARY_NAME}"
     else
-        success "Installed headway v${VERSION} to ${INSTALL_DIR}/${BINARY_NAME}"
+        success "Installed gapline v${VERSION} to ${INSTALL_DIR}/${BINARY_NAME}"
     fi
 
-    printf "\nRun '${BOLD}headway --help${RESET}' to get started.\n"
+    printf "\nRun '${BOLD}gapline --help${RESET}' to get started.\n"
 }
 
 main

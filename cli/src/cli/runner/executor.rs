@@ -4,11 +4,11 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::crud::read::GtfsTarget;
-use headway_core::models::GtfsFeed;
-use headway_core::parser::{FeedLoader, ParseError};
-use headway_core::validation::engine::ValidationEngine;
+use gapline_core::config::Config;
+use gapline_core::crud::read::GtfsTarget;
+use gapline_core::models::GtfsFeed;
+use gapline_core::parser::{FeedLoader, ParseError};
+use gapline_core::validation::engine::ValidationEngine;
 
 use super::error::RunError;
 use super::parser::{DirectiveKind, HwDirective};
@@ -50,7 +50,7 @@ fn cmd_err(line: usize, message: String) -> RunError {
 /// `parent_config` is the application config loaded by `main.rs`. The
 /// runner reuses it for nested validation (with progress disabled) so the
 /// `.hw` script inherits the same thresholds, disabled rules, and output
-/// preferences as a regular `headway validate` invocation.
+/// preferences as a regular `gapline validate` invocation.
 ///
 /// # Errors
 ///
@@ -169,13 +169,13 @@ fn exec_save(state: &RunnerState, path: Option<&PathBuf>, line: usize) -> Result
     let targets: Vec<GtfsTarget> = state.modified_targets.iter().copied().collect();
 
     let Some(feed_path) = state.feed_path.as_ref().filter(|_| !targets.is_empty()) else {
-        return headway_core::writer::write_feed_atomic(feed, output)
+        return gapline_core::writer::write_feed_atomic(feed, output)
             .map_err(|e| RunError::Write { line, source: e });
     };
 
     let source = FeedLoader::open(feed_path).map_err(|e| cmd_err(line, e.to_string()))?;
 
-    headway_core::writer::write_modified_targets(feed, &source, &targets, output)
+    gapline_core::writer::write_modified_targets(feed, &source, &targets, output)
         .map_err(|e| RunError::Write { line, source: e })
 }
 
@@ -218,11 +218,11 @@ fn exec_read(
     let feed = state.require_feed(line)?;
 
     let query = where_query
-        .map(headway_core::crud::query::parse)
+        .map(gapline_core::crud::query::parse)
         .transpose()
         .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
-    let result = headway_core::crud::read::read_records(feed, target.to_target(), query.as_ref())
+    let result = gapline_core::crud::read::read_records(feed, target.to_target(), query.as_ref())
         .map_err(|e| cmd_err(line, e.to_string()))?;
 
     let fmt = format.unwrap_or(OutputFormat::Text);
@@ -245,11 +245,11 @@ fn exec_create(
 
     let feed = state.require_feed(line)?;
 
-    let plan = headway_core::crud::create::validate_create(feed, target.to_target(), set)
+    let plan = gapline_core::crud::create::validate_create(feed, target.to_target(), set)
         .map_err(|e| cmd_err(line, e.to_string()))?;
 
     let feed = state.require_feed_mut(line)?;
-    headway_core::crud::create::apply_create(feed, plan);
+    gapline_core::crud::create::apply_create(feed, plan);
     state.modified_targets.insert(target.to_target());
 
     tracing::info!("  Created 1 record in {}", target.to_target().file_name());
@@ -271,11 +271,11 @@ fn exec_update(
 
     let feed = state.require_feed(line)?;
 
-    let query = headway_core::crud::query::parse(where_query)
+    let query = gapline_core::crud::query::parse(where_query)
         .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
     let plan =
-        headway_core::crud::update::validate_update(feed, target.to_target(), &query, set, cascade)
+        gapline_core::crud::update::validate_update(feed, target.to_target(), &query, set, cascade)
             .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
@@ -285,7 +285,7 @@ fn exec_update(
 
     let feed = state.require_feed_mut(line)?;
     let result =
-        headway_core::crud::update::apply_update(feed, &plan).map_err(|e| RunError::Command {
+        gapline_core::crud::update::apply_update(feed, &plan).map_err(|e| RunError::Command {
             line,
             message: e.to_string(),
         })?;
@@ -318,10 +318,10 @@ fn exec_delete(
 
     let feed = state.require_feed(line)?;
 
-    let query = headway_core::crud::query::parse(where_query)
+    let query = gapline_core::crud::query::parse(where_query)
         .map_err(|e| cmd_err(line, format!("invalid query: {e}")))?;
 
-    let plan = headway_core::crud::delete::validate_delete(feed, target.to_target(), &query)
+    let plan = gapline_core::crud::delete::validate_delete(feed, target.to_target(), &query)
         .map_err(|e| cmd_err(line, e.to_string()))?;
 
     if plan.matched_count == 0 {
@@ -330,7 +330,7 @@ fn exec_delete(
     }
 
     let feed = state.require_feed_mut(line)?;
-    let result = headway_core::crud::delete::apply_delete(feed, &plan);
+    let result = gapline_core::crud::delete::apply_delete(feed, &plan);
     state
         .modified_targets
         .extend(result.modified_targets.iter().copied());

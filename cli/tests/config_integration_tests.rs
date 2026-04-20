@@ -1,7 +1,7 @@
 //! End-to-end CLI tests for the TOML configuration system.
 //!
-//! These tests spawn the real `headway` binary against a tempdir + a
-//! `headway.toml` file pointed at via `--config`. We avoid changing the
+//! These tests spawn the real `gapline` binary against a tempdir + a
+//! `gapline.toml` file pointed at via `--config`. We avoid changing the
 //! process cwd (`std::env::set_current_dir` is global and would race with
 //! parallel tests) and instead always pass `--config` explicitly.
 //!
@@ -13,8 +13,8 @@ use std::process::Command;
 
 use tempfile::{NamedTempFile, TempDir};
 
-fn headway_bin() -> String {
-    env!("CARGO_BIN_EXE_headway").to_string()
+fn gapline_bin() -> String {
+    env!("CARGO_BIN_EXE_gapline").to_string()
 }
 
 /// Builds a minimal valid GTFS zip on disk and returns its path. Reused
@@ -55,9 +55,9 @@ fn create_valid_feed() -> NamedTempFile {
     tmp
 }
 
-/// Writes `contents` to `<dir>/headway.toml` and returns the absolute path.
+/// Writes `contents` to `<dir>/gapline.toml` and returns the absolute path.
 fn write_config(dir: &TempDir, contents: &str) -> PathBuf {
-    let path = dir.path().join("headway.toml");
+    let path = dir.path().join("gapline.toml");
     std::fs::write(&path, contents).unwrap();
     path
 }
@@ -81,10 +81,10 @@ fn feed_from_config_default_no_dash_f() {
         ),
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["--config", config.to_str().unwrap(), "validate"])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     assert!(
         output.status.success(),
@@ -114,10 +114,10 @@ fn cli_format_overrides_config_format() {
     );
 
     // Without --format, config dictates JSON output → looks like JSON.
-    let json_out = Command::new(headway_bin())
+    let json_out = Command::new(gapline_bin())
         .args(["--config", config.to_str().unwrap(), "validate"])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
     let stdout_json = String::from_utf8_lossy(&json_out.stdout);
     assert!(
         stdout_json.trim_start().starts_with('{'),
@@ -125,7 +125,7 @@ fn cli_format_overrides_config_format() {
     );
 
     // With --format text, the JSON setting is overridden → text summary.
-    let text_out = Command::new(headway_bin())
+    let text_out = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -134,7 +134,7 @@ fn cli_format_overrides_config_format() {
             "text",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
     let stdout_text = String::from_utf8_lossy(&text_out.stdout);
     assert!(
         stdout_text.contains("Status:"),
@@ -157,7 +157,7 @@ fn malformed_config_emits_clear_error() {
         ",
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -166,7 +166,7 @@ fn malformed_config_emits_clear_error() {
             "x.zip",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     assert!(!output.status.success());
     // Exit code 2 = config error (distinct from 1 = validation failure).
@@ -203,7 +203,7 @@ fn min_severity_error_hides_warnings() {
         ),
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -213,7 +213,7 @@ fn min_severity_error_hides_warnings() {
             "text",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     // No `[WARNING]` label should appear in the listing.
@@ -252,7 +252,7 @@ fn disable_rule_via_cli_skips_finding() {
     // so we assert the smoke path: command runs to completion and the
     // listing contains zero `unrealistic_speed` lines (i.e. the rule never
     // had a chance to fire).
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -264,7 +264,7 @@ fn disable_rule_via_cli_skips_finding() {
             "speed_validation",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -295,7 +295,7 @@ fn force_color_emits_ansi_when_piped() {
         ),
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -304,7 +304,7 @@ fn force_color_emits_ansi_when_piped() {
             "text",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     // Stdout is a pipe (from `Command`), so by default the colored crate
     // would auto-disable. With `force_color = true`, ANSI escapes must
@@ -335,7 +335,7 @@ fn threads_flag_accepted_smoke() {
         ),
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -344,7 +344,7 @@ fn threads_flag_accepted_smoke() {
             "validate",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     assert!(
         output.status.success(),

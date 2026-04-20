@@ -7,8 +7,8 @@ use std::path::Path;
 
 use super::{announce_html_dest, csv_to_io, html_escape, open_html_sink, open_writer, xml_to_io};
 use crate::cli::OutputFormat;
-use headway_core::config::Config;
-use headway_core::validation::{Severity, ValidationError, ValidationReport};
+use gapline_core::config::Config;
+use gapline_core::validation::{Severity, ValidationError, ValidationReport};
 
 const VALIDATION_HTML_TEMPLATE: &str = include_str!("validation_template.html");
 

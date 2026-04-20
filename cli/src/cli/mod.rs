@@ -1,8 +1,8 @@
-//! Command-line interface for headway.
+//! Command-line interface for gapline.
 //!
 //! This module handles all user-facing concerns: argument parsing via
 //! [`clap`](https://docs.rs/clap), subcommand routing, output formatting, and
-//! interactive prompts. It depends on [`headway_core`] for business logic but the
+//! interactive prompts. It depends on [`gapline_core`] for business logic but the
 //! reverse dependency is never allowed.
 //!
 //! ## Re-exports

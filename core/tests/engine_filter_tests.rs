@@ -10,9 +10,9 @@
 
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::models::*;
-use headway_core::validation::engine::ValidationEngine;
+use gapline_core::config::Config;
+use gapline_core::models::*;
+use gapline_core::validation::engine::ValidationEngine;
 
 const M_PER_DEG_LAT: f64 = 111_194.93;
 const BASE_LAT: f64 = 45.5017;
@@ -144,7 +144,7 @@ fn disabled_rules_skip_speed_validation() {
 }
 
 /// `pre_rules()` and `post_rules()` getters expose every registered rule
-/// for introspection (used by `headway rules list`). Both lists must be
+/// for introspection (used by `gapline rules list`). Both lists must be
 /// non-empty when constructed from the default config.
 #[test]
 fn engine_exposes_pre_and_post_rules() {

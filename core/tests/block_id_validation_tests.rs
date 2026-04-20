@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use chrono::NaiveDate;
 
-use headway_core::models::*;
-use headway_core::validation::ValidationRule;
-use headway_core::validation::schedule_time_validation::block_id::BlockIdTripOverlapRule;
-use headway_core::validation::schedule_time_validation::service_dates::ServiceDateCache;
+use gapline_core::models::*;
+use gapline_core::validation::ValidationRule;
+use gapline_core::validation::schedule_time_validation::block_id::BlockIdTripOverlapRule;
+use gapline_core::validation::schedule_time_validation::service_dates::ServiceDateCache;
 
 // ---------------------------------------------------------------------------
 // Helpers

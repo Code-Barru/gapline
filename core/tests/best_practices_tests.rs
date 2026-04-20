@@ -1,18 +1,18 @@
 //! Tests for section 8 — best-practice validation rules.
 
-use headway_core::models::*;
-use headway_core::validation::best_practices::NamingThresholds;
-use headway_core::validation::best_practices::missing_agency_email::MissingAgencyEmailRule;
-use headway_core::validation::best_practices::missing_bikes_info::MissingBikesInfoRule;
-use headway_core::validation::best_practices::missing_direction_id::MissingDirectionIdRule;
-use headway_core::validation::best_practices::missing_route_colors::MissingRouteColorsRule;
-use headway_core::validation::best_practices::missing_wheelchair_info::{
+use gapline_core::models::*;
+use gapline_core::validation::best_practices::NamingThresholds;
+use gapline_core::validation::best_practices::missing_agency_email::MissingAgencyEmailRule;
+use gapline_core::validation::best_practices::missing_bikes_info::MissingBikesInfoRule;
+use gapline_core::validation::best_practices::missing_direction_id::MissingDirectionIdRule;
+use gapline_core::validation::best_practices::missing_route_colors::MissingRouteColorsRule;
+use gapline_core::validation::best_practices::missing_wheelchair_info::{
     MissingWheelchairStopsRule, MissingWheelchairTripsRule,
 };
-use headway_core::validation::best_practices::redundant_route_name::RedundantRouteNameRule;
-use headway_core::validation::best_practices::route_short_name_too_long::RouteShortNameTooLongRule;
-use headway_core::validation::best_practices::stop_name_all_caps::StopNameAllCapsRule;
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::validation::best_practices::redundant_route_name::RedundantRouteNameRule;
+use gapline_core::validation::best_practices::route_short_name_too_long::RouteShortNameTooLongRule;
+use gapline_core::validation::best_practices::stop_name_all_caps::StopNameAllCapsRule;
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,6 +1,6 @@
 use std::io::BufReader;
 
-use headway_core::parser::csv_parser::parse_csv;
+use gapline_core::parser::csv_parser::parse_csv;
 
 #[test]
 fn basic_parsing() {

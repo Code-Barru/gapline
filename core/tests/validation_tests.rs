@@ -1,5 +1,5 @@
-use headway_core::models::GtfsFeed;
-use headway_core::validation::{Severity, ValidationError, ValidationReport, ValidationRule};
+use gapline_core::models::GtfsFeed;
+use gapline_core::validation::{Severity, ValidationError, ValidationReport, ValidationRule};
 
 // ---------- Test 1 : Minimal builder ----------
 

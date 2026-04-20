@@ -1,4 +1,4 @@
-//! `headway completion <shell> [--install]` — shell completion script
+//! `gapline completion <shell> [--install]` — shell completion script
 //! generation and installation.
 
 use std::process;
@@ -14,10 +14,10 @@ use super::super::exit;
 pub fn generate_completion(shell: Shell, writer: &mut dyn std::io::Write) {
     use clap::CommandFactory;
     let mut cmd = super::super::parser::Cli::command();
-    clap_complete::generate(shell, &mut cmd, "headway", writer);
+    clap_complete::generate(shell, &mut cmd, "gapline", writer);
 }
 
-/// Dispatch handler for `headway completion <shell> [--install]`.
+/// Dispatch handler for `gapline completion <shell> [--install]`.
 ///
 /// Without `--install`, prints the script to stdout. With `--install`,
 /// writes it to the shell's standard directory (oh-my-zsh aware for zsh)
@@ -26,7 +26,7 @@ pub fn run_completion(shell: Shell, install: bool) {
     if install {
         match install_completion(shell) {
             Ok(InstallReport { path, hint }) => {
-                tracing::info!("Installed headway {shell} completion to {}", path.display());
+                tracing::info!("Installed gapline {shell} completion to {}", path.display());
                 if let Some(h) = hint {
                     tracing::info!("{h}");
                 }

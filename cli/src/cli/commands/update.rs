@@ -1,13 +1,13 @@
-//! `headway update` — modify records matching a `--where` filter, with
+//! `gapline update` — modify records matching a `--where` filter, with
 //! optional cascade to PK-dependent files.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::crud::update::UpdatePlan;
-use headway_core::parser::FeedLoader;
+use gapline_core::config::Config;
+use gapline_core::crud::update::UpdatePlan;
+use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
@@ -62,15 +62,15 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
 
     let target = args.target.to_target();
     let needs_dependents =
-        args.cascade || headway_core::crud::update::has_pk_assignments(target, args.set);
+        args.cascade || gapline_core::crud::update::has_pk_assignments(target, args.set);
     let files: std::collections::HashSet<_> =
-        headway_core::crud::update::required_files(target, needs_dependents)
+        gapline_core::crud::update::required_files(target, needs_dependents)
             .into_iter()
             .collect();
     let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
     warn_parse_errors(&parse_errors);
 
-    let plan = match headway_core::crud::update::validate_update(
+    let plan = match gapline_core::crud::update::validate_update(
         &feed_data,
         target,
         &query,
@@ -94,7 +94,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
         process::exit(exit::SUCCESS);
     }
 
-    let result = match headway_core::crud::update::apply_update(&mut feed_data, &plan) {
+    let result = match gapline_core::crud::update::apply_update(&mut feed_data, &plan) {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("{e}");
@@ -103,7 +103,7 @@ pub fn run_update(config: &Arc<Config>, args: &UpdateArgs<'_>) {
     };
 
     let write_path = output.unwrap_or_else(|| feed.clone());
-    if let Err(e) = headway_core::writer::write_modified_targets(
+    if let Err(e) = gapline_core::writer::write_modified_targets(
         &feed_data,
         &source,
         &result.modified_targets,

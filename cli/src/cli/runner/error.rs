@@ -22,7 +22,7 @@ pub enum RunError {
     Write {
         line: usize,
         #[source]
-        source: headway_core::writer::WriteError,
+        source: gapline_core::writer::WriteError,
     },
 
     #[error("File not found: {path}")]

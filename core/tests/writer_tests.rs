@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use std::io::{Cursor, Read};
 
-use headway_core::models::*;
-use headway_core::parser::FeedLoader;
-use headway_core::writer::write_feed;
+use gapline_core::models::*;
+use gapline_core::parser::FeedLoader;
+use gapline_core::writer::write_feed;
 
 use chrono::NaiveDate;
 use tempfile::TempDir;

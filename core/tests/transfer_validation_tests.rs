@@ -1,9 +1,9 @@
 //! Tests for section 7.9 — transfer validation.
 
-use headway_core::models::*;
-use headway_core::validation::schedule_time_validation::TransferThresholds;
-use headway_core::validation::schedule_time_validation::transfers::TransferValidationRule;
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::models::*;
+use gapline_core::validation::schedule_time_validation::TransferThresholds;
+use gapline_core::validation::schedule_time_validation::transfers::TransferValidationRule;
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Constants

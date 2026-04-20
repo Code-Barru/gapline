@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use headway_core::integrity::{EntityRef, IntegrityIndex, RelationType};
-use headway_core::models::*;
+use gapline_core::integrity::{EntityRef, IntegrityIndex, RelationType};
+use gapline_core::models::*;
 
 // ---------------------------------------------------------------------------
 // Test helpers — small factory functions for GTFS entities

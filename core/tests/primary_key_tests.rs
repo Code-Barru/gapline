@@ -1,9 +1,9 @@
 //! Tests for section 6 — Primary Key Uniqueness.
 
 use chrono::NaiveDate;
-use headway_core::models::*;
-use headway_core::validation::primary_key::PrimaryKeyUniquenessRule;
-use headway_core::validation::{Severity, ValidationError, ValidationRule};
+use gapline_core::models::*;
+use gapline_core::validation::primary_key::PrimaryKeyUniquenessRule;
+use gapline_core::validation::{Severity, ValidationError, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -507,7 +507,7 @@ fn absent_file_no_errors() {
 }
 
 #[test]
-#[ignore = "run with: cargo test --release -p headway-core -- --ignored performance"]
+#[ignore = "run with: cargo test --release -p gapline-core -- --ignored performance"]
 fn performance_stop_times() {
     let mut feed = GtfsFeed::default();
     feed.loaded_files.insert("stop_times.txt".to_string());

@@ -1,26 +1,26 @@
-//! End-to-end tests for `headway rules list`.
+//! End-to-end tests for `gapline rules list`.
 
 use std::process::Command;
 
 use serde_json::Value;
 use tempfile::TempDir;
 
-fn headway_bin() -> String {
-    env!("CARGO_BIN_EXE_headway").to_string()
+fn gapline_bin() -> String {
+    env!("CARGO_BIN_EXE_gapline").to_string()
 }
 
 fn write_config(dir: &TempDir, contents: &str) -> std::path::PathBuf {
-    let path = dir.path().join("headway.toml");
+    let path = dir.path().join("gapline.toml");
     std::fs::write(&path, contents).unwrap();
     path
 }
 
 #[test]
 fn rules_list_text_contains_known_rules() {
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["rules", "list"])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
 
     assert!(
         output.status.success(),
@@ -53,10 +53,10 @@ fn rules_list_text_contains_known_rules() {
 
 #[test]
 fn rules_list_json_count_matches_array_length() {
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["rules", "list", "--format", "json"])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
     assert!(output.status.success());
 
     let json: Value = serde_json::from_slice(&output.stdout).expect("parse json");
@@ -79,10 +79,10 @@ fn rules_list_json_count_matches_array_length() {
 
 #[test]
 fn severity_filter_only_returns_matching() {
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["rules", "list", "--severity", "error", "--format", "json"])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
     assert!(output.status.success());
 
     let json: Value = serde_json::from_slice(&output.stdout).expect("parse json");
@@ -110,7 +110,7 @@ fn rules_list_ignores_disabled_rules_config() {
         "#,
     );
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "--config",
             config.to_str().unwrap(),
@@ -120,7 +120,7 @@ fn rules_list_ignores_disabled_rules_config() {
             "json",
         ])
         .output()
-        .expect("spawn headway");
+        .expect("spawn gapline");
     assert!(output.status.success());
 
     let json: Value = serde_json::from_slice(&output.stdout).expect("parse json");

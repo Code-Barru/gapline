@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 use std::io::BufReader;
 
-use headway_core::models::*;
-use headway_core::parser::file_parsers;
+use gapline_core::models::*;
+use gapline_core::parser::file_parsers;
 
 fn reader(data: &[u8]) -> BufReader<&[u8]> {
     BufReader::new(data)

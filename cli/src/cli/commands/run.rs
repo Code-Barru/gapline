@@ -1,10 +1,10 @@
-//! `headway run <file.hw>` — execute a batch of headway directives.
+//! `gapline run <file.hw>` — execute a batch of gapline directives.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
+use gapline_core::config::Config;
 
 use super::super::exit;
 use super::super::runner;

@@ -1,11 +1,11 @@
-use headway_core::models::{
+use gapline_core::models::{
     GtfsFeed, LocationType, Route, RouteId, RouteType, Stop, StopId, StopTime, TripId,
 };
-use headway_core::validation::schedule_time_validation::route_type_semantics::RouteTypeSemanticsRule;
-use headway_core::validation::schedule_time_validation::stop_hierarchy::{
+use gapline_core::validation::schedule_time_validation::route_type_semantics::RouteTypeSemanticsRule;
+use gapline_core::validation::schedule_time_validation::stop_hierarchy::{
     InvalidParentTypeRule, UnusedStationRule, UnusedStopRule,
 };
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,7 +66,7 @@ fn make_stop_time(trip_id: &str, stop_id: &str, seq: u32) -> StopTime {
     }
 }
 
-fn count(errors: &[headway_core::validation::ValidationError], severity: Severity) -> usize {
+fn count(errors: &[gapline_core::validation::ValidationError], severity: Severity) -> usize {
     errors.iter().filter(|e| e.severity == severity).count()
 }
 

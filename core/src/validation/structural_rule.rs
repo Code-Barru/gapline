@@ -20,9 +20,9 @@ use crate::validation::{Severity, ValidationError};
 /// # Implementing a Rule
 ///
 /// ```no_run
-/// use headway_core::parser::FeedSource;
-/// use headway_core::validation::StructuralValidationRule;
-/// use headway_core::validation::{ValidationError, Severity};
+/// use gapline_core::parser::FeedSource;
+/// use gapline_core::validation::StructuralValidationRule;
+/// use gapline_core::validation::{ValidationError, Severity};
 ///
 /// pub struct MissingRequiredFileRule;
 ///

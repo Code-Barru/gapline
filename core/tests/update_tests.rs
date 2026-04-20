@@ -1,7 +1,7 @@
-use headway_core::crud::query::parse;
-use headway_core::crud::read::GtfsTarget;
-use headway_core::crud::update::{UpdateError, apply_update, validate_update};
-use headway_core::models::*;
+use gapline_core::crud::query::parse;
+use gapline_core::crud::read::GtfsTarget;
+use gapline_core::crud::update::{UpdateError, apply_update, validate_update};
+use gapline_core::models::*;
 
 use chrono::NaiveDate;
 

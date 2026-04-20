@@ -1,18 +1,18 @@
 [package]
-name    = "headway"
+name    = "gapline"
 version = "1.0.1"
 edition.workspace = true
 
 [lib]
-name = "headway"
+name = "gapline"
 path = "src/lib.rs"
 
 [[bin]]
-name = "headway"
+name = "gapline"
 path = "src/main.rs"
 
 [dependencies]
-headway-core = { workspace = true }
+gapline-core = { workspace = true }
 clap          = { workspace = true }
 clap_complete = { workspace = true }
 thiserror    = { workspace = true }

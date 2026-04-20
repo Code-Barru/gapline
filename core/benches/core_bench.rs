@@ -1,19 +1,19 @@
-//! Criterion benchmarks for headway-core.
+//! Criterion benchmarks for gapline-core.
 //!
 //! Covers the two main hot paths:
 //! - **Feed loading** — `FeedLoader::open()` + `FeedLoader::load()` from a ZIP archive.
 //! - **Validation**  — `ValidationEngine::validate_structural()` + `validate_feed()`.
 //!
-//! Run with: `cargo bench -p headway-core`
+//! Run with: `cargo bench -p gapline-core`
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::parser::FeedLoader;
-use headway_core::validation::engine::ValidationEngine;
+use gapline_core::config::Config;
+use gapline_core::parser::FeedLoader;
+use gapline_core::validation::engine::ValidationEngine;
 
 /// Creates a minimal valid GTFS zip on disk and returns its path.
 ///
@@ -115,8 +115,8 @@ fn bench_validation(c: &mut Criterion) {
 
 /// Create a large synthetic feed: 1 agency, 10 routes, 1 calendar,
 /// 200 stops, 1000 trips with 100 `stop_times` each (100k total).
-fn create_large_feed() -> headway_core::models::GtfsFeed {
-    use headway_core::models::{
+fn create_large_feed() -> gapline_core::models::GtfsFeed {
+    use gapline_core::models::{
         Agency, AgencyId, Calendar, GtfsDate, GtfsFeed, Route, RouteId, RouteType, ServiceId, Stop,
         StopId, StopTime, Timezone, Trip, TripId, Url,
     };
@@ -231,7 +231,7 @@ fn bench_integrity_index(c: &mut Criterion) {
     c.bench_function("integrity/build_small", |b| {
         b.iter(|| {
             let index =
-                headway_core::integrity::IntegrityIndex::build_from_feed(black_box(&small_feed));
+                gapline_core::integrity::IntegrityIndex::build_from_feed(black_box(&small_feed));
             black_box(index);
         });
     });
@@ -241,16 +241,16 @@ fn bench_integrity_index(c: &mut Criterion) {
     c.bench_function("integrity/build_100k_stop_times", |b| {
         b.iter(|| {
             let index =
-                headway_core::integrity::IntegrityIndex::build_from_feed(black_box(&large_feed));
+                gapline_core::integrity::IntegrityIndex::build_from_feed(black_box(&large_feed));
             black_box(index);
         });
     });
 
-    let large_index = headway_core::integrity::IntegrityIndex::build_from_feed(&large_feed);
+    let large_index = gapline_core::integrity::IntegrityIndex::build_from_feed(&large_feed);
 
     c.bench_function("integrity/find_dependents", |b| {
         let route =
-            headway_core::integrity::EntityRef::Route(headway_core::models::RouteId::from("R0"));
+            gapline_core::integrity::EntityRef::Route(gapline_core::models::RouteId::from("R0"));
         b.iter(|| {
             let dependents = large_index.find_dependents(black_box(&route));
             black_box(dependents);
@@ -259,7 +259,7 @@ fn bench_integrity_index(c: &mut Criterion) {
 
     c.bench_function("integrity/find_dependents_recursive", |b| {
         let route =
-            headway_core::integrity::EntityRef::Route(headway_core::models::RouteId::from("R0"));
+            gapline_core::integrity::EntityRef::Route(gapline_core::models::RouteId::from("R0"));
         b.iter(|| {
             let dependents = large_index.find_dependents_recursive(black_box(&route));
             black_box(dependents);

@@ -1,17 +1,17 @@
-//! Integration tests for the `headway validate` pipeline.
+//! Integration tests for the `gapline validate` pipeline.
 
 use std::io::Write;
 use std::process::Command;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::parser::{FeedLoader, FeedSource};
-use headway_core::validation::engine::ValidationEngine;
-use headway_core::validation::{Severity, StructuralValidationRule, ValidationError};
+use gapline_core::config::Config;
+use gapline_core::parser::{FeedLoader, FeedSource};
+use gapline_core::validation::engine::ValidationEngine;
+use gapline_core::validation::{Severity, StructuralValidationRule, ValidationError};
 use tempfile::NamedTempFile;
 
-fn headway_bin() -> String {
-    env!("CARGO_BIN_EXE_headway").to_string()
+fn gapline_bin() -> String {
+    env!("CARGO_BIN_EXE_gapline").to_string()
 }
 
 /// Creates a minimal valid GTFS zip with all required files + data rows.
@@ -138,10 +138,10 @@ fn engine_validate_structural_returns_report() {
 #[test]
 fn cli_validate_valid_feed_exit_0() {
     let feed = create_valid_feed();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(
         output.status.success(),
@@ -158,10 +158,10 @@ fn cli_validate_valid_feed_exit_0() {
 #[test]
 fn cli_validate_missing_required_file_exit_1() {
     let feed = create_feed_missing_agency();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(
         output.status.code(),
@@ -178,10 +178,10 @@ fn cli_validate_missing_required_file_exit_1() {
 #[test]
 fn cli_validate_warnings_only_exit_0() {
     let feed = create_valid_feed();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(output.status.success(), "Warnings-only feed should exit 0");
 }
@@ -189,7 +189,7 @@ fn cli_validate_warnings_only_exit_0() {
 #[test]
 fn cli_validate_json_format() {
     let feed = create_valid_feed();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "validate",
             "-f",
@@ -198,7 +198,7 @@ fn cli_validate_json_format() {
             "json",
         ])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -218,7 +218,7 @@ fn cli_validate_json_format() {
 fn cli_validate_output_to_file() {
     let feed = create_valid_feed();
     let tmp = NamedTempFile::new().unwrap();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args([
             "validate",
             "-f",
@@ -229,7 +229,7 @@ fn cli_validate_output_to_file() {
             tmp.path().to_str().unwrap(),
         ])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert!(output.status.success());
     let content = std::fs::read_to_string(tmp.path()).unwrap();
@@ -240,10 +240,10 @@ fn cli_validate_output_to_file() {
 
 #[test]
 fn cli_validate_nonexistent_feed_exit_input_error() {
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", "/tmp/nonexistent_feed_xyz.zip"])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     // INPUT_ERROR (3): file not found, cannot read archive.
     assert_eq!(output.status.code(), Some(3));
@@ -254,10 +254,10 @@ fn cli_validate_corrupted_zip_exit_input_error() {
     let tmp = NamedTempFile::new().unwrap();
     std::fs::write(tmp.path(), b"this is not a zip file").unwrap();
 
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", tmp.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     // INPUT_ERROR (3): malformed archive is an I/O-level failure.
     assert_eq!(output.status.code(), Some(3));
@@ -304,10 +304,10 @@ fn create_feed_with_invalid_date() -> NamedTempFile {
 #[test]
 fn cli_validate_gate_pass_invalid_date_exit_1() {
     let feed = create_feed_with_invalid_date();
-    let output = Command::new(headway_bin())
+    let output = Command::new(gapline_bin())
         .args(["validate", "-f", feed.path().to_str().unwrap()])
         .output()
-        .expect("failed to run headway");
+        .expect("failed to run gapline");
 
     assert_eq!(
         output.status.code(),

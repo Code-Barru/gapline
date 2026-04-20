@@ -64,9 +64,9 @@ fn display_group(progress_group: &str) -> &str {
 ///
 /// ```no_run
 /// use std::sync::Arc;
-/// use headway_core::config::Config;
-/// use headway_core::parser::FeedLoader;
-/// use headway_core::validation::engine::ValidationEngine;
+/// use gapline_core::config::Config;
+/// use gapline_core::parser::FeedLoader;
+/// use gapline_core::validation::engine::ValidationEngine;
 ///
 /// let config = Arc::new(Config::default());
 /// let engine = ValidationEngine::new(config);
@@ -203,7 +203,7 @@ impl ValidationEngine {
     }
 
     /// All pre-parsing (sections 1–2) rules currently registered with
-    /// the engine, in registration order. Used by `headway rules list`
+    /// the engine, in registration order. Used by `gapline rules list`
     /// to enumerate available rule IDs for `disabled_rules` /
     /// `enabled_rules` configuration.
     #[must_use]

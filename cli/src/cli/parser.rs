@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
-use headway_core::validation::Severity;
+use gapline_core::validation::Severity;
 
-/// Top-level CLI argument parser for headway.
+/// Top-level CLI argument parser for gapline.
 ///
 /// Uses [clap](https://docs.rs/clap) derive API with git-style subcommands.
 /// Version is propagated from `Cargo.toml` to all subcommands.
@@ -14,7 +14,7 @@ use headway_core::validation::Severity;
 ///
 /// ```no_run
 /// use clap::Parser;
-/// use headway::cli::Cli;
+/// use gapline::cli::Cli;
 ///
 /// let cli = Cli::parse();
 /// ```
@@ -26,8 +26,8 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
 
-    /// Path to a TOML config file. Overrides `./headway.toml` in the
-    /// lookup chain. The global `~/.config/headway/config.toml` is still
+    /// Path to a TOML config file. Overrides `./gapline.toml` in the
+    /// lookup chain. The global `~/.config/gapline/config.toml` is still
     /// consulted as a lower-priority layer.
     #[arg(long, global = true, value_name = "PATH")]
     pub config: Option<PathBuf>,
@@ -46,10 +46,10 @@ pub struct Cli {
     pub threads: Option<usize>,
 }
 
-/// CLI alias for [`headway_core::validation::Severity`].
+/// CLI alias for [`gapline_core::validation::Severity`].
 ///
 /// Lives here so clap can derive `ValueEnum` without dragging clap into
-/// `headway-core`. Maps 1:1 to the core enum via [`SeverityArg::to_core`].
+/// `gapline-core`. Maps 1:1 to the core enum via [`SeverityArg::to_core`].
 #[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum SeverityArg {
     Error,
@@ -68,9 +68,9 @@ impl SeverityArg {
     }
 }
 
-/// Available subcommands for headway.
+/// Available subcommands for gapline.
 ///
-/// Follows a git-style pattern: `headway <subcommand> [options]`.
+/// Follows a git-style pattern: `gapline <subcommand> [options]`.
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Validate a GTFS feed against the full specification.
@@ -106,7 +106,7 @@ pub enum Commands {
             value_name = "RULE_ID",
             num_args = 1..,
             value_parser = clap::builder::PossibleValuesParser::new(
-                headway_core::validation::all_rule_ids().iter().copied(),
+                gapline_core::validation::all_rule_ids().iter().copied(),
             ),
         )]
         disable_rule: Vec<String>,
@@ -221,11 +221,11 @@ pub enum Commands {
         #[arg(short, long, value_name = "PATH", help = "Output path")]
         output: Option<PathBuf>,
     },
-    /// Execute a sequence of headway commands from a `.hw` batch file.
-    #[command(about = "Execute headway commands from a .hw file")]
+    /// Execute a sequence of gapline commands from a `.hw` batch file.
+    #[command(about = "Execute gapline commands from a .hw file")]
     Run {
         /// Path to the `.hw` batch file.
-        #[arg(value_name = "file.hw", help = "Headway file path")]
+        #[arg(value_name = "file.hw", help = "Gapline file path")]
         file: PathBuf,
     },
     /// Inspect the validation rules registered with this build.
@@ -249,7 +249,7 @@ pub enum Commands {
     },
 }
 
-/// Subcommands of `headway rules`.
+/// Subcommands of `gapline rules`.
 #[derive(Debug, Subcommand)]
 pub enum RulesCommand {
     /// List every validation rule registered with this build.
@@ -368,10 +368,10 @@ pub enum CrudTarget {
 }
 
 impl CrudTarget {
-    /// Converts this CLI target to the core [`GtfsTarget`](headway_core::crud::read::GtfsTarget).
+    /// Converts this CLI target to the core [`GtfsTarget`](gapline_core::crud::read::GtfsTarget).
     #[must_use]
-    pub fn to_target(self) -> headway_core::crud::read::GtfsTarget {
-        use headway_core::crud::read::GtfsTarget;
+    pub fn to_target(self) -> gapline_core::crud::read::GtfsTarget {
+        use gapline_core::crud::read::GtfsTarget;
         match self {
             Self::Agency => GtfsTarget::Agency,
             Self::Stops => GtfsTarget::Stops,

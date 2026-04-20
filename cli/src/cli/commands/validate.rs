@@ -1,10 +1,10 @@
-//! `headway validate` — runs the full validation pipeline.
+//! `gapline validate` — runs the full validation pipeline.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
+use gapline_core::config::Config;
 
 use super::super::exit;
 use super::super::output::render_report;
@@ -21,7 +21,7 @@ pub fn run_validate(
     let fmt = resolve_format(format, config);
     let output = resolve_output(output, config);
 
-    let report = match headway_core::validation::validate(&feed, Arc::clone(config)) {
+    let report = match gapline_core::validation::validate(&feed, Arc::clone(config)) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("{e}");

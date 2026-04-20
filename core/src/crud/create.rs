@@ -20,7 +20,7 @@ use crate::models::{
 };
 use crate::parser::feed_source::GtfsFiles;
 
-// Re-export so that existing callers (`use headway_core::crud::create::FieldAssignment`) keep working.
+// Re-export so that existing callers (`use gapline_core::crud::create::FieldAssignment`) keep working.
 pub use crate::crud::common::FieldAssignment;
 
 /// Errors that can occur during record creation.

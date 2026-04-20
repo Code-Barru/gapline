@@ -1,9 +1,9 @@
 //! Tests for section 7.11 — speed validation.
 
-use headway_core::models::*;
-use headway_core::validation::schedule_time_validation::SpeedThresholds;
-use headway_core::validation::schedule_time_validation::speed::SpeedValidationRule;
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::models::*;
+use gapline_core::validation::schedule_time_validation::SpeedThresholds;
+use gapline_core::validation::schedule_time_validation::speed::SpeedValidationRule;
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Constants

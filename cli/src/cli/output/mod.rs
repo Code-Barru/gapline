@@ -7,7 +7,7 @@ mod validation;
 use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
-use headway_core::config::OutputSection;
+use gapline_core::config::OutputSection;
 
 pub use read::render_read_results;
 pub use rules::{RuleEntry, Stage, render_rules_list};
@@ -98,7 +98,7 @@ pub(super) fn open_html_sink(output_dest: Option<&Path>) -> io::Result<(Box<dyn 
     }
     if io::stdout().is_terminal() {
         let temp = tempfile::Builder::new()
-            .prefix("headway-report-")
+            .prefix("gapline-report-")
             .suffix(".html")
             .tempfile()?;
         let (file, path) = temp

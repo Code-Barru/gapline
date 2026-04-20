@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use headway_core::parser::{FeedSource, GtfsFiles};
-use headway_core::validation::Severity;
-use headway_core::validation::file_structure::{
+use gapline_core::parser::{FeedSource, GtfsFiles};
+use gapline_core::validation::Severity;
+use gapline_core::validation::file_structure::{
     CsvParsingFailedRule, DuplicatedColumnRule, EmptyColumnNameRule, EmptyFileRule, EmptyRowRule,
     InvalidInputFilesInSubfolderRule, InvalidRowLengthRule, MissingCalendarFilesRule,
     MissingRecommendedFileRule, MissingRequiredFileRule, NewLineInValueRule,

@@ -1,17 +1,17 @@
 //! Tests for section 3 — Field Type Validation.
 
-use headway_core::models::*;
-use headway_core::parser::error::{ParseError, ParseErrorKind};
-use headway_core::validation::field_type::field_type_rules::{
+use gapline_core::models::*;
+use gapline_core::parser::error::{ParseError, ParseErrorKind};
+use gapline_core::validation::field_type::field_type_rules::{
     FieldTypeValidator, is_valid_color, is_valid_currency, is_valid_email, is_valid_language_code,
     is_valid_phone, is_valid_timezone, is_valid_url,
 };
-use headway_core::validation::field_type::numeric_rules::NumericRangeValidator;
-use headway_core::validation::field_type::parse_error_converter;
-use headway_core::validation::field_type::text_rules::{
+use gapline_core::validation::field_type::numeric_rules::NumericRangeValidator;
+use gapline_core::validation::field_type::parse_error_converter;
+use gapline_core::validation::field_type::text_rules::{
     TextValidator, has_invalid_chars, has_non_ascii_or_non_printable, is_poorly_cased,
 };
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Pure validation functions

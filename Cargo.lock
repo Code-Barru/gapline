@@ -591,6 +591,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "gapline"
+version = "1.0.1"
+dependencies = [
+ "chrono",
+ "clap",
+ "clap_complete",
+ "colored",
+ "comfy-table",
+ "csv",
+ "gapline-core",
+ "indicatif",
+ "quick-xml",
+ "rayon",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
+ "zip",
+]
+
+[[package]]
+name = "gapline-core"
+version = "1.0.1"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "criterion",
+ "csv",
+ "dirs",
+ "indicatif",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "toml",
+ "url",
+ "zip",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -663,50 +707,6 @@ name = "hashbrown"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
-
-[[package]]
-name = "headway"
-version = "1.0.0"
-dependencies = [
- "chrono",
- "clap",
- "clap_complete",
- "colored",
- "comfy-table",
- "csv",
- "headway-core",
- "indicatif",
- "quick-xml",
- "rayon",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tracing",
- "tracing-subscriber",
- "zip",
-]
-
-[[package]]
-name = "headway-core"
-version = "1.0.0"
-dependencies = [
- "chrono",
- "chrono-tz",
- "criterion",
- "csv",
- "dirs",
- "indicatif",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "toml",
- "url",
- "zip",
-]
 
 [[package]]
 name = "heck"

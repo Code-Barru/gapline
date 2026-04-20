@@ -41,7 +41,7 @@ pub struct DefaultSection {
     pub feed: Option<PathBuf>,
     /// Default output format. Validated by the CLI layer (kept as `String`
     /// here because [`OutputFormat`](../../cli/src/cli/parser.rs) lives in
-    /// the `headway` crate, not in `headway-core`).
+    /// the `gapline` crate, not in `gapline-core`).
     pub format: Option<String>,
     /// Default output destination when `--output` is omitted.
     pub output: Option<PathBuf>,
@@ -356,7 +356,7 @@ pub struct ExperimentalSection {
 #[derive(Debug, Default)]
 pub struct CliOverrides {
     /// Optional `--config PATH` override. When set, this path replaces
-    /// `./headway.toml` in the lookup chain (the global config is still
+    /// `./gapline.toml` in the lookup chain (the global config is still
     /// consulted as the lower-priority layer).
     pub config_path: Option<PathBuf>,
     pub feed: Option<PathBuf>,
@@ -397,7 +397,7 @@ pub enum ConfigError {
 
 impl Config {
     /// Loads the config using the current process's working directory as
-    /// the base for `./headway.toml`. Convenience wrapper over
+    /// the base for `./gapline.toml`. Convenience wrapper over
     /// [`Config::load_from`].
     ///
     /// # Errors
@@ -410,13 +410,13 @@ impl Config {
     }
 
     /// Loads the config with an explicit base directory for the local
-    /// `headway.toml` lookup. Used by tests to avoid touching the global
+    /// `gapline.toml` lookup. Used by tests to avoid touching the global
     /// process cwd.
     ///
     /// Hierarchy (lowest to highest priority):
     /// 1. Built-in defaults
-    /// 2. Global `~/.config/headway/config.toml` (if it exists)
-    /// 3. Local `<base>/headway.toml`, or `cli.config_path` if set
+    /// 2. Global `~/.config/gapline/config.toml` (if it exists)
+    /// 3. Local `<base>/gapline.toml`, or `cli.config_path` if set
     /// 4. CLI overrides applied last
     ///
     /// Missing files at any layer are silently skipped (CA2).
@@ -437,10 +437,10 @@ impl Config {
         let local_path = cli
             .config_path
             .clone()
-            .or_else(|| base_dir.map(|d| d.join("headway.toml")));
+            .or_else(|| base_dir.map(|d| d.join("gapline.toml")));
         let local_path_for_errors = local_path
             .clone()
-            .unwrap_or_else(|| PathBuf::from("./headway.toml"));
+            .unwrap_or_else(|| PathBuf::from("./gapline.toml"));
         if let Some(path) = local_path.as_deref()
             && let Some((table, _)) = read_table(path)?
         {
@@ -593,10 +593,10 @@ impl Config {
     }
 }
 
-/// Returns `~/.config/headway/config.toml` (or the OS equivalent), if a
+/// Returns `~/.config/gapline/config.toml` (or the OS equivalent), if a
 /// home/config directory can be determined for the current user.
 fn global_config_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("headway").join("config.toml"))
+    dirs::config_dir().map(|d| d.join("gapline").join("config.toml"))
 }
 
 /// Reads a TOML file and returns its parsed root table along with the

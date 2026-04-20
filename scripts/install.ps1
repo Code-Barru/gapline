@@ -1,22 +1,22 @@
-# Headway CLI installer for Windows
-# Usage: irm https://raw.githubusercontent.com/Code-Barru/headway/main/scripts/install.ps1 | iex
+# Gapline CLI installer for Windows
+# Usage: irm https://raw.githubusercontent.com/Code-Barru/gapline/main/scripts/install.ps1 | iex
 #
 # Options (via environment variables):
-#   $env:HEADWAY_VERSION       Specific version (e.g. "0.3.0")
-#   $env:HEADWAY_INSTALL_DIR   Custom install directory
-#   $env:HEADWAY_YES           Set to "true" for non-interactive mode
+#   $env:GAPLINE_VERSION       Specific version (e.g. "0.3.0")
+#   $env:GAPLINE_INSTALL_DIR   Custom install directory
+#   $env:GAPLINE_YES           Set to "true" for non-interactive mode
 
 & {
     $ErrorActionPreference = 'Stop'
 
-    $Repo = "Code-Barru/headway"
-    $BinaryName = "headway"
+    $Repo = "Code-Barru/gapline"
+    $BinaryName = "gapline"
     $GitHubApi = "https://api.github.com/repos/$Repo/releases"
     $GitHubDownload = "https://github.com/$Repo/releases/download"
 
-    $Version = if ($env:HEADWAY_VERSION) { $env:HEADWAY_VERSION } else { "" }
-    $InstallDir = if ($env:HEADWAY_INSTALL_DIR) { $env:HEADWAY_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "headway\bin" }
-    $NonInteractive = $env:HEADWAY_YES -eq "true"
+    $Version = if ($env:GAPLINE_VERSION) { $env:GAPLINE_VERSION } else { "" }
+    $InstallDir = if ($env:GAPLINE_INSTALL_DIR) { $env:GAPLINE_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "gapline\bin" }
+    $NonInteractive = $env:GAPLINE_YES -eq "true"
 
     # --- Helpers ---
     function Write-Info  { param([string]$Msg) Write-Host "info " -ForegroundColor Blue -NoNewline; Write-Host $Msg }
@@ -33,7 +33,7 @@
     }
     $target = "$targetArch-pc-windows-msvc"
 
-    Write-Host "`nHeadway CLI Installer`n" -ForegroundColor White
+    Write-Host "`nGapline CLI Installer`n" -ForegroundColor White
     Write-Info "Platform: Windows ($targetArch)"
     Write-Info "Target: $target"
     Write-Info "Install directory: $InstallDir"
@@ -46,13 +46,13 @@
     else {
         Write-Info "Fetching latest version..."
         try {
-            $releases = Invoke-RestMethod -Uri $GitHubApi -Headers @{ 'User-Agent' = 'headway-installer' } -UseBasicParsing
+            $releases = Invoke-RestMethod -Uri $GitHubApi -Headers @{ 'User-Agent' = 'gapline-installer' } -UseBasicParsing
             $cliRelease = $releases | Where-Object { $_.tag_name -like 'cli@*' } | Select-Object -First 1
             if (-not $cliRelease) { throw "No CLI release found" }
             $tag = $cliRelease.tag_name
         }
         catch {
-            throw "Failed to fetch latest CLI release. Set `$env:HEADWAY_VERSION to install a specific version. ($_)"
+            throw "Failed to fetch latest CLI release. Set `$env:GAPLINE_VERSION to install a specific version. ($_)"
         }
         $Version = $tag -replace '^cli@v', ''
         Write-Info "Latest version: $Version"
@@ -62,7 +62,7 @@
     $downloadUrl = "$GitHubDownload/$tag/$archiveName"
 
     # --- Create temp directory ---
-    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "headway-install-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "gapline-install-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
     New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 
     try {
@@ -118,7 +118,7 @@
             Write-Ok "Installed $installedVersion to $destBinary"
         }
         catch {
-            Write-Ok "Installed headway v$Version to $destBinary"
+            Write-Ok "Installed gapline v$Version to $destBinary"
         }
 
         # --- PATH configuration ---
@@ -152,7 +152,7 @@
             }
         }
 
-        Write-Host "`nRun 'headway --help' to get started.`n"
+        Write-Host "`nRun 'gapline --help' to get started.`n"
     }
     finally {
         if (Test-Path -Path $tmpDir) {

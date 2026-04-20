@@ -35,10 +35,10 @@ pub enum InstallError {
     },
 }
 
-const PLUGIN_STUB: &str = "# headway completion plugin - auto-generated\n";
+const PLUGIN_STUB: &str = "# gapline completion plugin - auto-generated\n";
 const BASH_HINT: Option<&str> = Some("Restart your shell or source the file to activate.");
 const OMZ_HINT: Option<&str> =
-    Some("Add `headway` to your plugins=(...) array in ~/.zshrc and restart your shell.");
+    Some("Add `gapline` to your plugins=(...) array in ~/.zshrc and restart your shell.");
 const ZSH_NAKED_HINT: Option<&str> =
     Some("Ensure this directory is in your $fpath and run `compinit` (restart your shell).");
 
@@ -63,12 +63,12 @@ pub fn install_completion(shell: Shell) -> Result<InstallReport, InstallError> {
 
 fn install_zsh(home: &Path) -> Result<InstallReport, InstallError> {
     if let Some(plugin_dir) = oh_my_zsh_plugin_dir() {
-        write_text(&plugin_dir.join("headway.plugin.zsh"), PLUGIN_STUB)?;
-        return install_at(Shell::Zsh, plugin_dir.join("_headway"), OMZ_HINT);
+        write_text(&plugin_dir.join("gapline.plugin.zsh"), PLUGIN_STUB)?;
+        return install_at(Shell::Zsh, plugin_dir.join("_gapline"), OMZ_HINT);
     }
     install_at(
         Shell::Zsh,
-        xdg_data_home(home).join("zsh/site-functions/_headway"),
+        xdg_data_home(home).join("zsh/site-functions/_gapline"),
         ZSH_NAKED_HINT,
     )
 }
@@ -85,9 +85,9 @@ fn install_at(
 
 fn oh_my_zsh_plugin_dir() -> Option<PathBuf> {
     if let Some(custom) = std::env::var_os("ZSH_CUSTOM") {
-        return Some(PathBuf::from(custom).join("plugins/headway"));
+        return Some(PathBuf::from(custom).join("plugins/gapline"));
     }
-    std::env::var_os("ZSH").map(|zsh| PathBuf::from(zsh).join("custom/plugins/headway"))
+    std::env::var_os("ZSH").map(|zsh| PathBuf::from(zsh).join("custom/plugins/gapline"))
 }
 
 fn home_dir() -> Result<PathBuf, InstallError> {
@@ -111,11 +111,11 @@ fn xdg_config_home(home: &Path) -> PathBuf {
 }
 
 fn bash_path(home: &Path) -> PathBuf {
-    xdg_data_home(home).join("bash-completion/completions/headway")
+    xdg_data_home(home).join("bash-completion/completions/gapline")
 }
 
 fn fish_path(home: &Path) -> PathBuf {
-    xdg_config_home(home).join("fish/completions/headway.fish")
+    xdg_config_home(home).join("fish/completions/gapline.fish")
 }
 
 fn create_with_parents(path: &Path) -> Result<fs::File, InstallError> {

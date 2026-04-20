@@ -1,7 +1,7 @@
-use headway_core::crud::delete::{apply_delete, validate_delete};
-use headway_core::crud::query::parse;
-use headway_core::crud::read::GtfsTarget;
-use headway_core::models::*;
+use gapline_core::crud::delete::{apply_delete, validate_delete};
+use gapline_core::crud::query::parse;
+use gapline_core::crud::read::GtfsTarget;
+use gapline_core::models::*;
 
 use chrono::NaiveDate;
 

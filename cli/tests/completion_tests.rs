@@ -1,10 +1,10 @@
-//! Integration tests for `headway completion <shell>` — covers script
+//! Integration tests for `gapline completion <shell>` — covers script
 //! generation markers (CA1/CA2/CA3/CA7/CA12) and `--install` path
 //! resolution including oh-my-zsh detection.
 
 use clap_complete::Shell;
-use headway::cli::commands::generate_completion;
-use headway::cli::install_completion;
+use gapline::cli::commands::generate_completion;
+use gapline::cli::install_completion;
 use tempfile::TempDir;
 
 fn generate(shell: Shell) -> String {
@@ -17,7 +17,7 @@ fn generate(shell: Shell) -> String {
 fn bash_script_contains_expected_markers() {
     let s = generate(Shell::Bash);
     assert!(!s.is_empty());
-    assert!(s.contains("_headway"), "bash script missing _headway fn");
+    assert!(s.contains("_gapline"), "bash script missing _gapline fn");
     assert!(s.contains("validate"));
     assert!(s.contains("completion"));
 }
@@ -25,14 +25,14 @@ fn bash_script_contains_expected_markers() {
 #[test]
 fn zsh_script_starts_with_compdef() {
     let s = generate(Shell::Zsh);
-    assert!(s.contains("#compdef headway"));
+    assert!(s.contains("#compdef gapline"));
     assert!(s.contains("validate"));
 }
 
 #[test]
 fn fish_script_uses_complete_c() {
     let s = generate(Shell::Fish);
-    assert!(s.contains("complete -c headway"));
+    assert!(s.contains("complete -c gapline"));
     assert!(s.contains("validate"));
 }
 
@@ -75,7 +75,7 @@ fn script_covers_crud_targets() {
 #[test]
 fn unknown_shell_fails_to_parse() {
     use clap::Parser;
-    let err = headway::cli::Cli::try_parse_from(["headway", "completion", "bogus"]);
+    let err = gapline::cli::Cli::try_parse_from(["gapline", "completion", "bogus"]);
     assert!(err.is_err());
 }
 
@@ -106,30 +106,30 @@ fn install_writes_scripts_and_detects_oh_my_zsh() {
     let r = install_completion(Shell::Bash).unwrap();
     assert_eq!(
         r.path,
-        home.join(".local/share/bash-completion/completions/headway")
+        home.join(".local/share/bash-completion/completions/gapline")
     );
     let body = std::fs::read_to_string(&r.path).unwrap();
-    assert!(body.contains("_headway"));
+    assert!(body.contains("_gapline"));
 
     // fish -> XDG config home default
     let r = install_completion(Shell::Fish).unwrap();
-    assert_eq!(r.path, home.join(".config/fish/completions/headway.fish"));
+    assert_eq!(r.path, home.join(".config/fish/completions/gapline.fish"));
     assert!(
         std::fs::read_to_string(&r.path)
             .unwrap()
-            .contains("complete -c headway")
+            .contains("complete -c gapline")
     );
 
     // zsh without oh-my-zsh -> site-functions under XDG data
     let r = install_completion(Shell::Zsh).unwrap();
     assert_eq!(
         r.path,
-        home.join(".local/share/zsh/site-functions/_headway")
+        home.join(".local/share/zsh/site-functions/_gapline")
     );
     assert!(
         std::fs::read_to_string(&r.path)
             .unwrap()
-            .contains("#compdef headway")
+            .contains("#compdef gapline")
     );
     assert!(r.hint.unwrap().contains("fpath"));
 
@@ -139,8 +139,8 @@ fn install_writes_scripts_and_detects_oh_my_zsh() {
         std::env::set_var("ZSH_CUSTOM", &custom);
     }
     let r = install_completion(Shell::Zsh).unwrap();
-    assert_eq!(r.path, custom.join("plugins/headway/_headway"));
-    assert!(custom.join("plugins/headway/headway.plugin.zsh").exists());
+    assert_eq!(r.path, custom.join("plugins/gapline/_gapline"));
+    assert!(custom.join("plugins/gapline/gapline.plugin.zsh").exists());
     assert!(r.hint.unwrap().contains("plugins"));
 
     // zsh with only ZSH set (stock oh-my-zsh install) -> $ZSH/custom/plugins
@@ -151,7 +151,7 @@ fn install_writes_scripts_and_detects_oh_my_zsh() {
     let r = install_completion(Shell::Zsh).unwrap();
     assert_eq!(
         r.path,
-        home.join(".oh-my-zsh/custom/plugins/headway/_headway")
+        home.join(".oh-my-zsh/custom/plugins/gapline/_gapline")
     );
 
     // elvish / powershell must be rejected

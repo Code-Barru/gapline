@@ -8,9 +8,9 @@
 use std::path::{Path, PathBuf};
 use std::process;
 
-use headway_core::config::Config;
-use headway_core::crud::query::Query;
-use headway_core::parser::{FeedLoader, FeedSource, ParseError};
+use gapline_core::config::Config;
+use gapline_core::crud::query::Query;
+use gapline_core::parser::{FeedLoader, FeedSource, ParseError};
 
 use super::exit;
 use super::parser::OutputFormat;
@@ -71,7 +71,7 @@ pub(super) fn warn_parse_errors(parse_errors: &[ParseError]) {
 
 /// Parses a `--where` filter string, exiting with `COMMAND_FAILED` on failure.
 pub(super) fn parse_query_or_exit(where_query: &str) -> Query {
-    match headway_core::crud::query::parse(where_query) {
+    match gapline_core::crud::query::parse(where_query) {
         Ok(q) => q,
         Err(e) => {
             tracing::error!("Invalid query: {e}");

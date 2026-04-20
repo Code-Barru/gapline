@@ -4,12 +4,12 @@
 
 use std::collections::HashMap;
 
-use headway_core::parser::{FeedSource, GtfsFiles};
-use headway_core::validation::csv_formatting::{
+use gapline_core::parser::{FeedSource, GtfsFiles};
+use gapline_core::validation::csv_formatting::{
     CaseSensitiveRule, InvalidContentRule, InvalidDelimiterRule, InvalidEncodingRule,
     InvalidQuotingRule, MissingHeaderRule, SuperfluousWhitespaceRule,
 };
-use headway_core::validation::{Severity, StructuralValidationRule};
+use gapline_core::validation::{Severity, StructuralValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers

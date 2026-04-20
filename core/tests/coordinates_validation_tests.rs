@@ -1,8 +1,8 @@
 //! Tests for section 7.13 — coordinate sanity validation.
 
-use headway_core::models::*;
-use headway_core::validation::ValidationRule;
-use headway_core::validation::schedule_time_validation::coordinates::{
+use gapline_core::models::*;
+use gapline_core::validation::ValidationRule;
+use gapline_core::validation::schedule_time_validation::coordinates::{
     CoordinatesNearOriginRule, CoordinatesNearPoleRule, DuplicateCoordinatesRule,
 };
 

@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::path::Path;
 
-use headway_core::parser::FeedLoader;
+use gapline_core::parser::FeedLoader;
 
 fn create_minimal_feed(dir: &Path) {
     let files: &[(&str, &str)] = &[

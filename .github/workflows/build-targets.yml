@@ -63,14 +63,14 @@ jobs:
         env:
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: cargo build --release --target ${{ matrix.target }} -p headway
+        run: cargo build --release --target ${{ matrix.target }} -p gapline
 
       - name: Package (tar.gz)
         if: inputs.upload && matrix.archive == 'tar.gz'
         run: |
-          staging="headway-${{ matrix.target }}"
+          staging="gapline-${{ matrix.target }}"
           mkdir "$staging"
-          cp target/${{ matrix.target }}/release/headway "$staging/"
+          cp target/${{ matrix.target }}/release/gapline "$staging/"
           cp LICENSE README.md "$staging/"
           tar czf "$staging.tar.gz" "$staging"
 
@@ -78,9 +78,9 @@ jobs:
         if: inputs.upload && matrix.archive == 'zip'
         shell: pwsh
         run: |
-          $staging = "headway-${{ matrix.target }}"
+          $staging = "gapline-${{ matrix.target }}"
           New-Item -ItemType Directory -Path $staging
-          Copy-Item "target/${{ matrix.target }}/release/headway.exe" "$staging/"
+          Copy-Item "target/${{ matrix.target }}/release/gapline.exe" "$staging/"
           Copy-Item LICENSE, README.md "$staging/"
           Compress-Archive -Path "$staging/*" -DestinationPath "$staging.zip"
 
@@ -88,8 +88,8 @@ jobs:
         if: inputs.upload
         uses: actions/upload-artifact@v6
         with:
-          name: headway-${{ matrix.target }}
+          name: gapline-${{ matrix.target }}
           path: |
-            headway-${{ matrix.target }}.tar.gz
-            headway-${{ matrix.target }}.zip
+            gapline-${{ matrix.target }}.tar.gz
+            gapline-${{ matrix.target }}.zip
           if-no-files-found: error

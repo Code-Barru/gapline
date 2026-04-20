@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# bench_compare.sh — Compare headway validate against MobilityData/gtfs-validator
+# bench_compare.sh — Compare gapline validate against MobilityData/gtfs-validator
 # (the canonical GTFS validator, written in Java) across multiple feed sizes.
 #
 # Iterates over 4 tiers: small / medium / large / huge. For each tier, runs
-# 4 cases: {headway, gtfs-validator} × {zip, directory}. Both tools accept
+# 4 cases: {gapline, gtfs-validator} × {zip, directory}. Both tools accept
 # either input form and the cost profiles differ (zip decompression vs fs walk).
 #
 # Metrics:
@@ -21,7 +21,7 @@
 #   FEED_TIERS          comma-separated subset: small,medium,large,huge
 #                       (default: all 4)
 #   VALIDATOR_VERSION   MobilityData tag      (default: latest from GitHub API)
-#   HEADWAY_BIN         path to headway       (default: PATH → target/release)
+#   GAPLINE_BIN         path to gapline       (default: PATH → target/release)
 #   JAVA_FLAGS          extra JVM flags       (default: empty — stock heap)
 #   WARMUP, RUNS        hyperfine params      (default: 1, 5)
 #
@@ -79,22 +79,22 @@ else
     exit 127
 fi
 
-# --- Resolve headway binary ---
-# Priority: explicit $HEADWAY_BIN → headway on PATH (installed) → target/release
-if [ -n "${HEADWAY_BIN:-}" ]; then
-    HEADWAY_SOURCE="env"
-elif HEADWAY_BIN="$(command -v headway 2>/dev/null)" && [ -n "$HEADWAY_BIN" ]; then
-    HEADWAY_SOURCE="PATH"
+# --- Resolve gapline binary ---
+# Priority: explicit $GAPLINE_BIN → gapline on PATH (installed) → target/release
+if [ -n "${GAPLINE_BIN:-}" ]; then
+    GAPLINE_SOURCE="env"
+elif GAPLINE_BIN="$(command -v gapline 2>/dev/null)" && [ -n "$GAPLINE_BIN" ]; then
+    GAPLINE_SOURCE="PATH"
 elif [ -x "$ROOT/target/release/headway" ]; then
-    HEADWAY_BIN="$ROOT/target/release/headway"
-    HEADWAY_SOURCE="target/release"
+    GAPLINE_BIN="$ROOT/target/release/headway"
+    GAPLINE_SOURCE="target/release"
 else
-    err "no headway binary found — install (scripts/install.sh) or build (cargo build --release)"
+    err "no gapline binary found — install (scripts/install.sh) or build (cargo build --release)"
     exit 127
 fi
 
-if [ ! -x "$HEADWAY_BIN" ]; then
-    err "headway binary not executable: $HEADWAY_BIN"
+if [ ! -x "$GAPLINE_BIN" ]; then
+    err "gapline binary not executable: $GAPLINE_BIN"
     exit 127
 fi
 
@@ -140,10 +140,10 @@ if [ ! -f "$VALIDATOR_JAR" ]; then
     ok "saved $VALIDATOR_JAR"
 fi
 
-HEADWAY_VER="$("$HEADWAY_BIN" --version 2>/dev/null || echo "headway ?")"
+GAPLINE_VER="$("$GAPLINE_BIN" --version 2>/dev/null || echo "gapline ?")"
 
 printf "\n${BOLD}== Setup ==${RESET}\n"
-printf "  %-20s %s\n" "Headway:"        "$HEADWAY_VER  [$HEADWAY_SOURCE: $HEADWAY_BIN]"
+printf "  %-20s %s\n" "Gapline:"        "$GAPLINE_VER  [$GAPLINE_SOURCE: $GAPLINE_BIN]"
 printf "  %-20s %s\n" "gtfs-validator:" "v$VALIDATOR_VERSION  ($VALIDATOR_JAR)"
 printf "  %-20s %s\n" "Hyperfine:"      "warmup=$WARMUP runs=$RUNS"
 printf "  %-20s %s\n" "RSS backend:"    "$RSS_MODE"
@@ -218,8 +218,8 @@ bench_feed() {
     dir_sz="$(du -sh "$feed_dir" 2>/dev/null | cut -f1)"
     printf "  %-14s zip=%s  dir=%s\n\n" "sizes:" "$zip_sz" "$dir_sz"
 
-    local hw_out_zip="$RESULTS_DIR/headway-${tier}-zip.json"
-    local hw_out_dir="$RESULTS_DIR/headway-${tier}-dir.json"
+    local hw_out_zip="$RESULTS_DIR/gapline-${tier}-zip.json"
+    local hw_out_dir="$RESULTS_DIR/gapline-${tier}-dir.json"
     local gv_out_zip="$RESULTS_DIR/gtfs-validator-${tier}-zip-out"
     local gv_out_dir="$RESULTS_DIR/gtfs-validator-${tier}-dir-out"
     local hf_json_zip="$RESULTS_DIR/hyperfine-${tier}-zip.json"
@@ -231,8 +231,8 @@ bench_feed() {
     # is expected — we don't want hyperfine to emit "Ignoring non-zero exit"
     # warnings on every run.
     local hw_cmd_zip hw_cmd_dir gv_cmd_zip gv_cmd_dir clean_cmd
-    hw_cmd_zip="$(printf '%q ' "$HEADWAY_BIN" validate -f "$feed_zip" --format json -o "$hw_out_zip")|| true"
-    hw_cmd_dir="$(printf '%q ' "$HEADWAY_BIN" validate -f "$feed_dir" --format json -o "$hw_out_dir")|| true"
+    hw_cmd_zip="$(printf '%q ' "$GAPLINE_BIN" validate -f "$feed_zip" --format json -o "$hw_out_zip")|| true"
+    hw_cmd_dir="$(printf '%q ' "$GAPLINE_BIN" validate -f "$feed_dir" --format json -o "$hw_out_dir")|| true"
     # shellcheck disable=SC2086
     gv_cmd_zip="$(printf '%q ' java)${JAVA_FLAGS:+$JAVA_FLAGS }$(printf '%q ' -jar "$VALIDATOR_JAR" --input "$feed_zip" --output_base "$gv_out_zip")|| true"
     # shellcheck disable=SC2086
@@ -250,7 +250,7 @@ bench_feed() {
         --warmup "$WARMUP" --runs "$RUNS" \
         --export-json "$hf_json_zip" \
         --prepare "$clean_cmd" \
-        -n "headway (zip)"        "$hw_cmd_zip" \
+        -n "gapline (zip)"        "$hw_cmd_zip" \
         -n "gtfs-validator (zip)" "$gv_cmd_zip"
 
     printf "\n"
@@ -260,7 +260,7 @@ bench_feed() {
         --warmup "$WARMUP" --runs "$RUNS" \
         --export-json "$hf_json_dir" \
         --prepare "$clean_cmd" \
-        -n "headway (dir)"        "$hw_cmd_dir" \
+        -n "gapline (dir)"        "$hw_cmd_dir" \
         -n "gtfs-validator (dir)" "$gv_cmd_dir"
 
     printf "\n"
@@ -268,9 +268,9 @@ bench_feed() {
     : > "$rss_log"
 
     eval "$clean_cmd"
-    measure_rss "headway (zip)"        "$HEADWAY_BIN" validate -f "$feed_zip" --format json -o "$hw_out_zip" | tee -a "$rss_log"
+    measure_rss "gapline (zip)"        "$GAPLINE_BIN" validate -f "$feed_zip" --format json -o "$hw_out_zip" | tee -a "$rss_log"
     eval "$clean_cmd"
-    measure_rss "headway (dir)"        "$HEADWAY_BIN" validate -f "$feed_dir" --format json -o "$hw_out_dir" | tee -a "$rss_log"
+    measure_rss "gapline (dir)"        "$GAPLINE_BIN" validate -f "$feed_dir" --format json -o "$hw_out_dir" | tee -a "$rss_log"
     eval "$clean_cmd"
     # shellcheck disable=SC2086
     measure_rss "gtfs-validator (zip)" java $JAVA_FLAGS -jar "$VALIDATOR_JAR" --input "$feed_zip" --output_base "$gv_out_zip" | tee -a "$rss_log"
@@ -317,7 +317,7 @@ fmt_rss() {
     }'
 }
 
-# Speed ratio: gv_mean / hw_mean → "Nx" (headway is N times faster when > 1).
+# Speed ratio: gv_mean / hw_mean → "Nx" (gapline is N times faster when > 1).
 fmt_ratio() {
     local hw="$1" gv="$2"
     if [ -z "$hw" ] || [ -z "$gv" ]; then echo "—"; return; fi
@@ -334,19 +334,19 @@ print_summary_tables() {
 
     printf "\n${BOLD}== Wall-clock (mean ± stddev) ==${RESET}\n"
     printf "%-10s  %-20s  %-22s  %-7s  %-20s  %-22s  %-7s\n" \
-        "tier" "headway (zip)" "gtfs-validator (zip)" "speedup" \
-        "headway (dir)" "gtfs-validator (dir)" "speedup"
+        "tier" "gapline (zip)" "gtfs-validator (zip)" "speedup" \
+        "gapline (dir)" "gtfs-validator (dir)" "speedup"
 
     local tier zj dj hw_zm gv_zm hw_zs gv_zs hw_dm gv_dm hw_ds gv_ds
     for tier in "${RAN_TIERS[@]}"; do
         zj="$RESULTS_DIR/hyperfine-${tier}-zip.json"
         dj="$RESULTS_DIR/hyperfine-${tier}-dir.json"
-        hw_zm="$(hf_field "$zj" "headway (zip)"        mean)"
-        hw_zs="$(hf_field "$zj" "headway (zip)"        stddev)"
+        hw_zm="$(hf_field "$zj" "gapline (zip)"        mean)"
+        hw_zs="$(hf_field "$zj" "gapline (zip)"        stddev)"
         gv_zm="$(hf_field "$zj" "gtfs-validator (zip)" mean)"
         gv_zs="$(hf_field "$zj" "gtfs-validator (zip)" stddev)"
-        hw_dm="$(hf_field "$dj" "headway (dir)"        mean)"
-        hw_ds="$(hf_field "$dj" "headway (dir)"        stddev)"
+        hw_dm="$(hf_field "$dj" "gapline (dir)"        mean)"
+        hw_ds="$(hf_field "$dj" "gapline (dir)"        stddev)"
         gv_dm="$(hf_field "$dj" "gtfs-validator (dir)" mean)"
         gv_ds="$(hf_field "$dj" "gtfs-validator (dir)" stddev)"
 
@@ -362,16 +362,16 @@ print_summary_tables() {
 
     printf "\n${BOLD}== Peak RSS ==${RESET}\n"
     printf "%-10s  %-15s  %-20s  %-15s  %-20s\n" \
-        "tier" "headway (zip)" "gtfs-validator (zip)" "headway (dir)" "gtfs-validator (dir)"
+        "tier" "gapline (zip)" "gtfs-validator (zip)" "gapline (dir)" "gtfs-validator (dir)"
 
     local log
     for tier in "${RAN_TIERS[@]}"; do
         log="$RESULTS_DIR/rss-${tier}.txt"
         printf "%-10s  %-15s  %-20s  %-15s  %-20s\n" \
             "$tier" \
-            "$(fmt_rss "$(rss_kib "$log" "headway (zip)")")" \
+            "$(fmt_rss "$(rss_kib "$log" "gapline (zip)")")" \
             "$(fmt_rss "$(rss_kib "$log" "gtfs-validator (zip)")")" \
-            "$(fmt_rss "$(rss_kib "$log" "headway (dir)")")" \
+            "$(fmt_rss "$(rss_kib "$log" "gapline (dir)")")" \
             "$(fmt_rss "$(rss_kib "$log" "gtfs-validator (dir)")")"
     done
 }

@@ -1,4 +1,4 @@
-//! Tests for the [`headway_core::config::Config`] TOML schema and loader.
+//! Tests for the [`gapline_core::config::Config`] TOML schema and loader.
 //!
 //! Covers:
 //! - Schema sanity (empty TOML, partial overrides, `deny_unknown_fields`)
@@ -6,7 +6,7 @@
 //! - Error reporting for malformed files
 //! - CLI override semantics (replace vs append for `disabled_rules`)
 //!
-//! The global `~/.config/headway/config.toml` is intentionally **not**
+//! The global `~/.config/gapline/config.toml` is intentionally **not**
 //! exercised here — these tests use [`Config::load_from`] with an explicit
 //! base directory plus `cli.config_path`, which together pin the local
 //! lookup to a tempdir. The user-global file is still consulted by
@@ -22,8 +22,8 @@
 
 use std::path::PathBuf;
 
-use headway_core::config::{CliOverrides, Config};
-use headway_core::validation::Severity;
+use gapline_core::config::{CliOverrides, Config};
+use gapline_core::validation::Severity;
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -31,15 +31,15 @@ use tempfile::TempDir;
 // ---------------------------------------------------------------------------
 
 fn write_local(dir: &TempDir, contents: &str) -> PathBuf {
-    let path = dir.path().join("headway.toml");
-    std::fs::write(&path, contents).expect("write headway.toml");
+    let path = dir.path().join("gapline.toml");
+    std::fs::write(&path, contents).expect("write gapline.toml");
     path
 }
 
 /// `Config::load_from` with an isolated tempdir base, no CLI overrides
 /// (other than `config_path` pinning).
 fn load_local(dir: &TempDir) -> Config {
-    let local = dir.path().join("headway.toml");
+    let local = dir.path().join("gapline.toml");
     let cli = CliOverrides {
         config_path: Some(local),
         ..CliOverrides::default()
@@ -139,11 +139,11 @@ fn unknown_field_rejected() {
 #[test]
 fn load_no_local_file_returns_defaults() {
     let dir = tempfile::tempdir().unwrap();
-    // Note: no headway.toml is written. The global config may or may not
+    // Note: no gapline.toml is written. The global config may or may not
     // exist on the dev machine — assert only on a defaults-only sanity field
     // that no realistic global config would override.
     let cli = CliOverrides {
-        config_path: Some(dir.path().join("headway.toml")),
+        config_path: Some(dir.path().join("gapline.toml")),
         ..CliOverrides::default()
     };
     let config = Config::load_from(Some(dir.path()), cli).expect("load_from");
@@ -161,7 +161,7 @@ fn load_no_local_file_returns_defaults() {
     );
 }
 
-/// Ticket scenario 2: only `./headway.toml` exists, with `default.feed`.
+/// Ticket scenario 2: only `./gapline.toml` exists, with `default.feed`.
 #[test]
 fn load_local_only_resolves_feed() {
     let dir = tempfile::tempdir().unwrap();
@@ -194,7 +194,7 @@ fn cli_overrides_beat_local_file() {
         "#,
     );
     let cli = CliOverrides {
-        config_path: Some(dir.path().join("headway.toml")),
+        config_path: Some(dir.path().join("gapline.toml")),
         format: Some("text".into()),
         ..CliOverrides::default()
     };
@@ -279,7 +279,7 @@ fn cli_disabled_rules_append_to_file_list() {
         "#,
     );
     let cli = CliOverrides {
-        config_path: Some(dir.path().join("headway.toml")),
+        config_path: Some(dir.path().join("gapline.toml")),
         disabled_rules: vec!["from_cli".into()],
         ..CliOverrides::default()
     };
@@ -320,13 +320,13 @@ fn min_severity_loaded_from_file() {
 // ---------------------------------------------------------------------------
 
 fn load_expecting_invalid(dir: &TempDir) -> String {
-    let local = dir.path().join("headway.toml");
+    let local = dir.path().join("gapline.toml");
     let cli = CliOverrides {
         config_path: Some(local),
         ..CliOverrides::default()
     };
     match Config::load_from(Some(dir.path()), cli) {
-        Err(headway_core::config::ConfigError::Invalid(msg)) => msg,
+        Err(gapline_core::config::ConfigError::Invalid(msg)) => msg,
         Err(other) => panic!("expected Invalid, got {other:?}"),
         Ok(_) => panic!("expected Invalid, got Ok"),
     }

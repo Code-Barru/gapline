@@ -1,7 +1,7 @@
-use headway::cli::{OutputFormat, render_read_results, render_report};
-use headway_core::config::Config;
-use headway_core::crud::read::ReadResult;
-use headway_core::validation::{Severity, ValidationError, ValidationReport};
+use gapline::cli::{OutputFormat, render_read_results, render_report};
+use gapline_core::config::Config;
+use gapline_core::crud::read::ReadResult;
+use gapline_core::validation::{Severity, ValidationError, ValidationReport};
 use std::fs;
 use std::path::Path;
 use tempfile::NamedTempFile;
@@ -784,7 +784,7 @@ fn validate_html_includes_metadata_header() {
     let content = render_validation_to_string(&report, OutputFormat::Html);
 
     assert!(content.contains("test_feed.zip"));
-    assert!(content.contains(&format!("headway v{}", env!("CARGO_PKG_VERSION"))));
+    assert!(content.contains(&format!("gapline v{}", env!("CARGO_PKG_VERSION"))));
     // Generated timestamp: %Y-%m-%d %H:%M:%S — check for the "20" century prefix
     // next to the "Generated:" label
     let gen_pos = content.find("Generated:").expect("Generated label present");
@@ -860,7 +860,7 @@ fn read_html_renders_table_with_escaped_values() {
 
 #[test]
 fn rules_html_groups_by_stage() {
-    use headway::cli::{RuleEntry, Stage, render_rules_list};
+    use gapline::cli::{RuleEntry, Stage, render_rules_list};
     let entries = vec![
         RuleEntry::new("struct_rule_a", Severity::Error, Stage::Structural),
         RuleEntry::new("sem_rule_a", Severity::Warning, Stage::Semantic),

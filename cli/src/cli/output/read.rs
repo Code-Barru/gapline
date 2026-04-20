@@ -10,7 +10,7 @@ use super::{
     xml_writer_to_io,
 };
 use crate::cli::OutputFormat;
-use headway_core::crud::read::ReadResult;
+use gapline_core::crud::read::ReadResult;
 
 /// Renders read results in the specified output format.
 ///
@@ -165,12 +165,12 @@ fn render_html(result: &ReadResult, output_dest: Option<&Path>) -> io::Result<()
     let rows = result.rows.len();
     let version = env!("CARGO_PKG_VERSION");
     html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
-    let _ = writeln!(html, "<title>Headway — {file_esc}</title>");
+    let _ = writeln!(html, "<title>Gapline — {file_esc}</title>");
     html.push_str(READ_HTML_STYLE);
     html.push_str("\n</head>\n<body>\n");
     let _ = writeln!(
         html,
-        "<header><h1>Headway Read Results</h1><div class=\"meta\">File: <strong>{file_esc}</strong> · {rows} records · headway v{version}</div></header>",
+        "<header><h1>Gapline Read Results</h1><div class=\"meta\">File: <strong>{file_esc}</strong> · {rows} records · gapline v{version}</div></header>",
     );
     html.push_str("<main>\n");
 

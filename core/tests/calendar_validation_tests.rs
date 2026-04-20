@@ -4,13 +4,13 @@ use std::sync::Arc;
 
 use chrono::NaiveDate;
 
-use headway_core::models::*;
-use headway_core::validation::ValidationRule;
-use headway_core::validation::schedule_time_validation::calendar_dates_coherence::CalendarDatesCoherenceRule;
-use headway_core::validation::schedule_time_validation::calendar_ranges::CalendarRangesRule;
-use headway_core::validation::schedule_time_validation::feed_coverage::FeedCoverageRule;
-use headway_core::validation::schedule_time_validation::service_dates::ServiceDateCache;
-use headway_core::validation::schedule_time_validation::trip_activity::TripActivityRule;
+use gapline_core::models::*;
+use gapline_core::validation::ValidationRule;
+use gapline_core::validation::schedule_time_validation::calendar_dates_coherence::CalendarDatesCoherenceRule;
+use gapline_core::validation::schedule_time_validation::calendar_ranges::CalendarRangesRule;
+use gapline_core::validation::schedule_time_validation::feed_coverage::FeedCoverageRule;
+use gapline_core::validation::schedule_time_validation::service_dates::ServiceDateCache;
+use gapline_core::validation::schedule_time_validation::trip_activity::TripActivityRule;
 
 // ---------------------------------------------------------------------------
 // Helpers

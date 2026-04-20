@@ -1,8 +1,8 @@
 //! Tests for section 7.10 — pathway validation.
 
-use headway_core::models::*;
-use headway_core::validation::schedule_time_validation::pathways::PathwayValidationRule;
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::models::*;
+use gapline_core::validation::schedule_time_validation::pathways::PathwayValidationRule;
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Builders

@@ -10,7 +10,7 @@ use super::{
     xml_to_io,
 };
 use crate::cli::OutputFormat;
-use headway_core::validation::Severity;
+use gapline_core::validation::Severity;
 
 /// Pipeline stage at which a validation rule runs.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -29,7 +29,7 @@ impl Stage {
     }
 }
 
-/// One entry in the `headway rules list` output.
+/// One entry in the `gapline rules list` output.
 #[derive(Debug, Serialize)]
 pub struct RuleEntry {
     pub rule_id: &'static str,
@@ -164,12 +164,12 @@ fn render_html(entries: &[RuleEntry], output_dest: Option<&Path>) -> io::Result<
     let total = entries.len();
     let version = env!("CARGO_PKG_VERSION");
     html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
-    html.push_str("<title>Headway Validation Rules</title>\n");
+    html.push_str("<title>Gapline Validation Rules</title>\n");
     html.push_str(RULES_HTML_STYLE);
     html.push_str("\n</head>\n<body>\n");
     let _ = writeln!(
         html,
-        "<header><h1>Validation Rules</h1><div class=\"meta\">{total} rules · headway v{version}</div></header>",
+        "<header><h1>Validation Rules</h1><div class=\"meta\">{total} rules · gapline v{version}</div></header>",
     );
     html.push_str("<main>\n");
 

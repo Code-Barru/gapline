@@ -1,9 +1,9 @@
 //! Tests for section 7 — Schedule Time Validation.
 
-use headway_core::models::*;
-use headway_core::validation::ValidationRule;
-use headway_core::validation::schedule_time_validation::frequencies::FrequenciesCoherenceRule;
-use headway_core::validation::schedule_time_validation::stop_times::StopTimesTimeSequenceRule;
+use gapline_core::models::*;
+use gapline_core::validation::ValidationRule;
+use gapline_core::validation::schedule_time_validation::frequencies::FrequenciesCoherenceRule;
+use gapline_core::validation::schedule_time_validation::stop_times::StopTimesTimeSequenceRule;
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,18 +1,18 @@
 //! Tests for section 4 — Field Definition Validation.
 
 use chrono::NaiveDate;
-use headway_core::models::*;
-use headway_core::validation::field_definition::agency::AgencyFieldDefinitionRule;
-use headway_core::validation::field_definition::attributions::AttributionsFieldDefinitionRule;
-use headway_core::validation::field_definition::feed_info::FeedInfoFieldDefinitionRule;
-use headway_core::validation::field_definition::pathways::PathwaysFieldDefinitionRule;
-use headway_core::validation::field_definition::routes::RoutesFieldDefinitionRule;
-use headway_core::validation::field_definition::stop_times::StopTimesFieldDefinitionRule;
-use headway_core::validation::field_definition::stops::StopsFieldDefinitionRule;
-use headway_core::validation::field_definition::transfers::TransfersFieldDefinitionRule;
-use headway_core::validation::field_definition::translations::TranslationsFieldDefinitionRule;
-use headway_core::validation::field_definition::trips::TripsFieldDefinitionRule;
-use headway_core::validation::{Severity, ValidationRule};
+use gapline_core::models::*;
+use gapline_core::validation::field_definition::agency::AgencyFieldDefinitionRule;
+use gapline_core::validation::field_definition::attributions::AttributionsFieldDefinitionRule;
+use gapline_core::validation::field_definition::feed_info::FeedInfoFieldDefinitionRule;
+use gapline_core::validation::field_definition::pathways::PathwaysFieldDefinitionRule;
+use gapline_core::validation::field_definition::routes::RoutesFieldDefinitionRule;
+use gapline_core::validation::field_definition::stop_times::StopTimesFieldDefinitionRule;
+use gapline_core::validation::field_definition::stops::StopsFieldDefinitionRule;
+use gapline_core::validation::field_definition::transfers::TransfersFieldDefinitionRule;
+use gapline_core::validation::field_definition::translations::TranslationsFieldDefinitionRule;
+use gapline_core::validation::field_definition::trips::TripsFieldDefinitionRule;
+use gapline_core::validation::{Severity, ValidationRule};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -241,14 +241,14 @@ fn valid_feed() -> GtfsFeed {
     feed
 }
 
-fn count_errors(errors: &[headway_core::validation::ValidationError], severity: Severity) -> usize {
+fn count_errors(errors: &[gapline_core::validation::ValidationError], severity: Severity) -> usize {
     errors.iter().filter(|e| e.severity == severity).count()
 }
 
 fn errors_for_field<'a>(
-    errors: &'a [headway_core::validation::ValidationError],
+    errors: &'a [gapline_core::validation::ValidationError],
     field: &str,
-) -> Vec<&'a headway_core::validation::ValidationError> {
+) -> Vec<&'a gapline_core::validation::ValidationError> {
     errors
         .iter()
         .filter(|e| e.field_name.as_deref() == Some(field))

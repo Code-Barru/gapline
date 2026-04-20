@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use headway_core::models::*;
+use gapline_core::models::*;
 
 // --- IDs (CA1, CA2) ---
 

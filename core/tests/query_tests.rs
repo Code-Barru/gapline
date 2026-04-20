@@ -1,7 +1,7 @@
 use std::time::Instant;
 
-use headway_core::crud::query::{Filter, Filterable, Query, QueryError, parse};
-use headway_core::models::*;
+use gapline_core::crud::query::{Filter, Filterable, Query, QueryError, parse};
+use gapline_core::models::*;
 
 // ===========================================================================
 // Test helper: a simple struct implementing Filterable for eval tests

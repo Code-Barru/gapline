@@ -1,6 +1,6 @@
-//! # headway-core
+//! # gapline-core
 //!
-//! Core business logic for headway - entirely CLI-agnostic, usable as a library.
+//! Core business logic for gapline - entirely CLI-agnostic, usable as a library.
 //!
 //! ## Modules
 //!
@@ -10,7 +10,7 @@
 //! ## Quick Example
 //!
 //! ```no_run
-//! use headway_core::validation::{ValidationError, Severity};
+//! use gapline_core::validation::{ValidationError, Severity};
 //!
 //! let error = ValidationError::new("missing_required_file", "1", Severity::Error)
 //!     .message("Required file agency.txt is missing")

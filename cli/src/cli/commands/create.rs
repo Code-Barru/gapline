@@ -1,11 +1,11 @@
-//! `headway create` — insert a new record into a GTFS file.
+//! `gapline create` — insert a new record into a GTFS file.
 
 use std::path::Path;
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::Config;
-use headway_core::parser::FeedLoader;
+use gapline_core::config::Config;
+use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
@@ -24,14 +24,14 @@ pub fn run_create(
 
     let source = load_feed_or_exit(&feed);
     let files: std::collections::HashSet<_> =
-        headway_core::crud::create::required_files(target.to_target())
+        gapline_core::crud::create::required_files(target.to_target())
             .into_iter()
             .collect();
     let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
     warn_parse_errors(&parse_errors);
 
     let plan =
-        match headway_core::crud::create::validate_create(&feed_data, target.to_target(), set) {
+        match gapline_core::crud::create::validate_create(&feed_data, target.to_target(), set) {
             Ok(p) => p,
             Err(e) => {
                 tracing::error!("{e}");
@@ -55,11 +55,11 @@ pub fn run_create(
         }
     }
 
-    headway_core::crud::create::apply_create(&mut feed_data, plan);
+    gapline_core::crud::create::apply_create(&mut feed_data, plan);
 
     let write_path = output.unwrap_or_else(|| feed.clone());
     if let Err(e) =
-        headway_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
+        gapline_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
     {
         tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);

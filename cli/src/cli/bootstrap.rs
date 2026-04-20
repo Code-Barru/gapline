@@ -7,7 +7,7 @@
 use std::process;
 use std::sync::Arc;
 
-use headway_core::config::{CliOverrides, Config, Verbosity};
+use gapline_core::config::{CliOverrides, Config, Verbosity};
 use tracing_subscriber::{EnvFilter, fmt};
 
 use super::exit;
@@ -28,7 +28,7 @@ pub fn init(args: &mut Cli) -> Arc<Config> {
 
 /// Installs a `tracing` subscriber whose default level is derived from
 /// `[output] verbosity` (`quiet`→warn, `normal`→info, `verbose`→debug).
-/// `HEADWAY_LOG` overrides this if set — same syntax as `RUST_LOG`.
+/// `GAPLINE_LOG` overrides this if set — same syntax as `RUST_LOG`.
 ///
 /// The formatter is minimal: no timestamp, level, target or span, so that
 /// `tracing::info!("Updated 5 records")` prints exactly `Updated 5 records\n`
@@ -40,7 +40,7 @@ fn init_logging(config: &Config) {
         Verbosity::Normal => "info",
         Verbosity::Verbose => "debug",
     };
-    let filter = EnvFilter::try_from_env("HEADWAY_LOG").unwrap_or_else(|_| EnvFilter::new(default));
+    let filter = EnvFilter::try_from_env("GAPLINE_LOG").unwrap_or_else(|_| EnvFilter::new(default));
     // `try_init` is a no-op if a subscriber is already installed (e.g. during
     // tests that repeatedly call `bootstrap::init`).
     let _ = fmt()
