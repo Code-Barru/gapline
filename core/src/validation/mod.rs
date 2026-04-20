@@ -32,6 +32,7 @@ pub mod third_party;
 pub(crate) mod utils;
 mod validate;
 
+pub use engine::ValidationEngine;
 pub use error::{Severity, ValidationError};
 pub use report::ValidationReport;
 pub use rules::ValidationRule;

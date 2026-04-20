@@ -10,6 +10,7 @@ use std::sync::{Arc, LazyLock};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 
 use crate::config::Config;
+use crate::dataset::Dataset;
 use crate::parser::{FeedLoader, ParserError};
 use crate::validation::ValidationReport;
 use crate::validation::engine::ValidationEngine;
@@ -35,6 +36,7 @@ pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, Pa
     let mut source = FeedLoader::open(path)?;
     source.preload()?;
     let show_progress = config.output.show_progress;
+    let config_for_semantic = Arc::clone(&config);
     let engine = ValidationEngine::new(config);
 
     let structural_report = engine.validate_structural(&source);
@@ -52,13 +54,13 @@ pub fn validate(path: &Path, config: Arc<Config>) -> Result<ValidationReport, Pa
         spinner.set_draw_target(ProgressDrawTarget::hidden());
     }
 
-    let (feed, parse_errors) = FeedLoader::load(&source);
+    let (dataset, parse_errors) = Dataset::from_source(&source);
     spinner.finish_and_clear();
 
-    let feed_report = engine.validate_feed(&feed, &parse_errors);
+    let semantic_report = dataset.validate_semantic(&config_for_semantic, &parse_errors);
 
     let mut all_errors: Vec<_> = structural_report.errors().to_vec();
-    all_errors.extend(feed_report.errors().to_vec());
+    all_errors.extend(semantic_report.errors().to_vec());
 
     Ok(ValidationReport::from(all_errors))
 }

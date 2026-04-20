@@ -257,3 +257,13 @@ pub mod setters;
 
 /// Record update for GTFS feeds.
 pub mod update;
+
+pub use create::{CreateError, CreatePlan, CreatedRecord, apply_create, validate_create};
+pub use delete::{
+    DeleteCascadePlan, DeleteError, DeletePlan, DeleteResult, apply_delete, validate_delete,
+};
+pub use query::{Filter, Query, QueryError, parse};
+pub use read::{GtfsTarget, ReadError, ReadResult, read_records};
+pub use update::{
+    CascadePlan, UpdateError, UpdatePlan, UpdateResult, apply_update, validate_update,
+};

@@ -17,6 +17,10 @@
 //!     .file("agency.txt");
 //! ```
 
+/// Unified dataset type — the primary entry point for core consumers.
+pub mod dataset;
+pub use dataset::Dataset;
+
 /// Application configuration.
 pub mod config;
 
