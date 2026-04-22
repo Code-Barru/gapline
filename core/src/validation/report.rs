@@ -25,7 +25,7 @@ use crate::validation::{Severity, ValidationError};
 /// assert_eq!(report.warning_count(), 1);
 /// assert!(report.has_errors());
 /// ```
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct ValidationReport {
     /// Number of findings with [`Severity::Error`].
     errors: usize,

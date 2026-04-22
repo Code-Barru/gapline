@@ -5,13 +5,12 @@ use std::process;
 use std::sync::Arc;
 
 use gapline_core::config::Config;
-use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::output::render_read_results;
 use super::super::parser::{CrudTarget, OutputFormat};
 use super::{
-    load_feed_or_exit, parse_query_or_exit, resolve_feed, resolve_format, resolve_output,
+    load_dataset_or_exit, parse_query_or_exit, resolve_feed, resolve_format, resolve_output,
     warn_parse_errors,
 };
 
@@ -27,21 +26,12 @@ pub fn run_read(
     let fmt = resolve_format(format, config);
     let output = resolve_output(output, config);
 
-    let mut source = load_feed_or_exit(&feed);
-    if let Err(e) = source.preload() {
-        tracing::error!("{e}");
-        process::exit(exit::INPUT_ERROR);
-    }
-    let (feed_data, parse_errors) = FeedLoader::load(&source);
+    let (ds, parse_errors) = load_dataset_or_exit(&feed);
     warn_parse_errors(&parse_errors);
 
     let query = where_query.map(|q| parse_query_or_exit(q));
 
-    let result = match gapline_core::crud::read::read_records(
-        &feed_data,
-        target.to_target(),
-        query.as_ref(),
-    ) {
+    let result = match ds.read(target.to_target(), query.as_ref()) {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("{e}");

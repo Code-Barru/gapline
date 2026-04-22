@@ -28,6 +28,8 @@ pub enum WriteError {
     Csv(#[from] csv::Error),
     #[error("ZIP error: {0}")]
     Zip(#[from] zip::result::ZipError),
+    #[error("Cannot open source feed for writing: {0}")]
+    Source(String),
 }
 
 /// Writes a complete GTFS feed as a ZIP archive at the given path.

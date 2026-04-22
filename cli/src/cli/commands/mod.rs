@@ -8,9 +8,10 @@
 use std::path::{Path, PathBuf};
 use std::process;
 
+use gapline_core::Dataset;
 use gapline_core::config::Config;
 use gapline_core::crud::query::Query;
-use gapline_core::parser::{FeedLoader, FeedSource, ParseError};
+use gapline_core::parser::ParseError;
 
 use super::exit;
 use super::parser::OutputFormat;
@@ -48,10 +49,12 @@ pub(super) fn resolve_feed(cli_feed: Option<&Path>, config: &Config) -> PathBuf 
     process::exit(exit::COMMAND_FAILED);
 }
 
-/// Opens a GTFS feed for reading, exiting with `INPUT_ERROR` on failure.
-pub(super) fn load_feed_or_exit(feed: &Path) -> FeedSource {
-    match FeedLoader::open(feed) {
-        Ok(s) => s,
+/// Opens, preloads, and loads a GTFS feed, exiting with `INPUT_ERROR` on failure.
+///
+/// Returns the loaded dataset and any parse errors encountered during loading.
+pub(super) fn load_dataset_or_exit(feed: &Path) -> (Dataset, Vec<ParseError>) {
+    match Dataset::from_path(feed) {
+        Ok(pair) => pair,
         Err(e) => {
             tracing::error!("{e}");
             process::exit(exit::INPUT_ERROR);

@@ -592,7 +592,7 @@ dependencies = [
 
 [[package]]
 name = "gapline"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "chrono",
  "clap",
@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "gapline-core"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "chrono",
  "chrono-tz",

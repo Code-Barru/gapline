@@ -6,6 +6,8 @@ use std::process;
 use std::sync::Arc;
 
 use gapline_core::config::Config;
+// ValidationEngine is the only permitted direct import of this type from cli/.
+// Used here solely for rule introspection — not for running validation logic.
 use gapline_core::validation::engine::ValidationEngine;
 
 use super::super::exit;

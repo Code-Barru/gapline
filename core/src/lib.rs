@@ -44,3 +44,6 @@ pub mod crud;
 
 /// Feed writer — serialize a [`models::GtfsFeed`] to a GTFS ZIP archive.
 pub mod writer;
+
+/// Batch command execution on a loaded [`Dataset`].
+pub mod batch;

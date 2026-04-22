@@ -1,5 +1,9 @@
 //! Unified entry point for the gapline core API.
 //!
+//! [`Dataset`] is the **single entry point** for all gapline-core operations.
+//! CLI, server, and Python bindings must go through `Dataset` — never
+//! re-implement orchestration by calling internal modules directly.
+//!
 //! [`Dataset`] owns a [`crate::models::GtfsFeed`] together with its
 //! [`crate::integrity::IntegrityIndex`] and exposes all core operations
 //! (validation, CRUD, writing) as methods, eliminating the boilerplate that
@@ -31,7 +35,7 @@
 //! let report = dataset.validate(&Config::default());
 //! ```
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::config::Config;
@@ -44,7 +48,7 @@ use crate::integrity::IntegrityIndex;
 use crate::models::GtfsFeed;
 use crate::parser::{FeedLoader, FeedSource, ParseError, ParserError};
 use crate::validation::{ValidationEngine, ValidationReport};
-use crate::writer::WriteError;
+use crate::writer::{WriteError, write_modified_targets};
 
 /// Unified view of a loaded GTFS feed: data + integrity index.
 ///
@@ -55,6 +59,9 @@ pub struct Dataset {
     integrity: IntegrityIndex,
     /// Parse errors captured at load time, used by [`Dataset::validate`].
     parse_errors: Vec<ParseError>,
+    /// Original path used to open this dataset, stored for [`Dataset::write_modified`].
+    /// `None` when created from an already-parsed feed or in-memory source.
+    source_path: Option<PathBuf>,
 }
 
 // CA2 — static Send + Sync assertion
@@ -75,6 +82,7 @@ impl Dataset {
             feed,
             integrity,
             parse_errors: vec![],
+            source_path: None,
         }
     }
 
@@ -90,11 +98,15 @@ impl Dataset {
             feed,
             integrity,
             parse_errors: parse_errors.clone(),
+            source_path: None,
         };
         (dataset, parse_errors)
     }
 
     /// Opens, preloads, and loads a feed from `path`.
+    ///
+    /// The path is stored internally so that [`write_modified`](Dataset::write_modified)
+    /// can copy unchanged files from the original source.
     ///
     /// # Errors
     ///
@@ -102,7 +114,15 @@ impl Dataset {
     pub fn from_path(path: &Path) -> Result<(Self, Vec<ParseError>), ParserError> {
         let mut source = FeedLoader::open(path)?;
         source.preload()?;
-        Ok(Self::from_source(&source))
+        let (feed, parse_errors) = FeedLoader::load(&source);
+        let integrity = IntegrityIndex::build_from_feed(&feed);
+        let dataset = Self {
+            feed,
+            integrity,
+            parse_errors: parse_errors.clone(),
+            source_path: Some(path.to_path_buf()),
+        };
+        Ok((dataset, parse_errors))
     }
 
     /// Creates an empty dataset with no records and an empty integrity index.
@@ -123,6 +143,15 @@ impl Dataset {
     #[must_use]
     pub fn integrity(&self) -> &IntegrityIndex {
         &self.integrity
+    }
+
+    /// Returns the path this dataset was loaded from, if available.
+    ///
+    /// Present when created via [`from_path`](Dataset::from_path); `None` for
+    /// in-memory or feed-constructed datasets.
+    #[must_use]
+    pub fn source_path(&self) -> Option<&Path> {
+        self.source_path.as_deref()
     }
 
     // ── Validation ──────────────────────────────────────────────────────────
@@ -158,6 +187,16 @@ impl Dataset {
     ) -> ValidationReport {
         let engine = ValidationEngine::new(Arc::new(config.clone()));
         engine.validate_feed(&self.feed, parse_errors)
+    }
+
+    /// Alias for [`validate_semantic`](Dataset::validate_semantic).
+    #[must_use]
+    pub fn validate_with_parse_errors(
+        &self,
+        config: &Config,
+        parse_errors: &[ParseError],
+    ) -> ValidationReport {
+        self.validate_semantic(config, parse_errors)
     }
 
     // ── Read ────────────────────────────────────────────────────────────────
@@ -308,18 +347,25 @@ impl Dataset {
     }
 
     /// Rewrites only `targets` from the in-memory feed; all other entries are
-    /// copied from `source`.
+    /// copied from the original source path stored at load time.
+    ///
+    /// Requires the dataset to have been created via [`from_path`](Dataset::from_path).
+    /// Falls back to [`write_zip_atomic`](Dataset::write_zip_atomic) when no
+    /// source path is available (e.g. in-memory or test datasets).
     ///
     /// # Errors
     ///
-    /// Returns [`WriteError`] on I/O, CSV, or ZIP failure.
-    pub fn write_modified(
-        &self,
-        source: &FeedSource,
-        targets: &[GtfsTarget],
-        output: &Path,
-    ) -> Result<(), WriteError> {
-        crate::writer::write_modified_targets(&self.feed, source, targets, output)
+    /// Returns [`WriteError`] on I/O, CSV, or ZIP failure, or if the original
+    /// source file can no longer be opened.
+    pub fn write_modified(&self, targets: &[GtfsTarget], output: &Path) -> Result<(), WriteError> {
+        match self.source_path.as_ref() {
+            Some(path) => {
+                let source =
+                    FeedLoader::open(path).map_err(|e| WriteError::Source(e.to_string()))?;
+                write_modified_targets(&self.feed, &source, targets, output)
+            }
+            None => crate::writer::write_feed_atomic(&self.feed, output),
+        }
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

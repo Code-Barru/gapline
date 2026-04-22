@@ -5,11 +5,10 @@ use std::process;
 use std::sync::Arc;
 
 use gapline_core::config::Config;
-use gapline_core::parser::FeedLoader;
 
 use super::super::exit;
 use super::super::parser::CrudTarget;
-use super::{load_feed_or_exit, resolve_feed, resolve_output, warn_parse_errors};
+use super::{load_dataset_or_exit, resolve_feed, resolve_output, warn_parse_errors};
 
 pub fn run_create(
     config: &Arc<Config>,
@@ -22,22 +21,16 @@ pub fn run_create(
     let feed = resolve_feed(feed, config);
     let output = resolve_output(output, config);
 
-    let source = load_feed_or_exit(&feed);
-    let files: std::collections::HashSet<_> =
-        gapline_core::crud::create::required_files(target.to_target())
-            .into_iter()
-            .collect();
-    let (mut feed_data, parse_errors) = FeedLoader::load_only(&source, &files);
+    let (mut ds, parse_errors) = load_dataset_or_exit(&feed);
     warn_parse_errors(&parse_errors);
 
-    let plan =
-        match gapline_core::crud::create::validate_create(&feed_data, target.to_target(), set) {
-            Ok(p) => p,
-            Err(e) => {
-                tracing::error!("{e}");
-                process::exit(exit::COMMAND_FAILED);
-            }
-        };
+    let plan = match ds.plan_create(target.to_target(), set) {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::error!("{e}");
+            process::exit(exit::COMMAND_FAILED);
+        }
+    };
 
     tracing::info!("Fields to create in {}:", plan.file_name);
     for a in &plan.assignments {
@@ -55,15 +48,14 @@ pub fn run_create(
         }
     }
 
-    gapline_core::crud::create::apply_create(&mut feed_data, plan);
+    let target_gtfs = target.to_target();
+    ds.apply_create(plan);
 
     let write_path = output.unwrap_or_else(|| feed.clone());
-    if let Err(e) =
-        gapline_core::writer::write_modified(&feed_data, &source, target.to_target(), &write_path)
-    {
+    if let Err(e) = ds.write_modified(&[target_gtfs], &write_path) {
         tracing::error!("{e}");
         process::exit(exit::INPUT_ERROR);
     }
 
-    tracing::info!("Created 1 record in {}", target.to_target().file_name());
+    tracing::info!("Created 1 record in {}", target_gtfs.file_name());
 }
