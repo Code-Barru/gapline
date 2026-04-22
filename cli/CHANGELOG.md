@@ -4,6 +4,12 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.0] - 2026-04-22
+
+### Features
+
+- feat: migrate cli logic into core
+
 ## [1.0.2] - 2026-04-20
 
 ### Bug Fixes
