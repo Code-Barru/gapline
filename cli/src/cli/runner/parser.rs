@@ -1,4 +1,4 @@
-//! `.hw` file parser — turns text lines into typed directives.
+//! `.gl` file parser — turns text lines into typed directives.
 
 use std::path::{Path, PathBuf};
 
@@ -51,7 +51,7 @@ pub enum DirectiveKind {
     },
 }
 
-/// Parses a `.hw` file into a list of directives.
+/// Parses a `.gl` file into a list of directives.
 ///
 /// # Errors
 ///

@@ -221,11 +221,11 @@ pub enum Commands {
         #[arg(short, long, value_name = "PATH", help = "Output path")]
         output: Option<PathBuf>,
     },
-    /// Execute a sequence of gapline commands from a `.hw` batch file.
-    #[command(about = "Execute gapline commands from a .hw file")]
+    /// Execute a sequence of gapline commands from a `.gl` batch file.
+    #[command(about = "Execute gapline commands from a .gl file")]
     Run {
-        /// Path to the `.hw` batch file.
-        #[arg(value_name = "file.hw", help = "Gapline file path")]
+        /// Path to the `.gl` batch file.
+        #[arg(value_name = "file.gl", help = "Gapline file path")]
         file: PathBuf,
     },
     /// Inspect the validation rules registered with this build.

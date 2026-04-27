@@ -1,4 +1,4 @@
-//! `gapline run <file.hw>` — execute a batch of gapline directives.
+//! `gapline run <file.gl>` — execute a batch of gapline directives.
 
 use std::path::Path;
 use std::process;

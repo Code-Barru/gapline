@@ -6,7 +6,7 @@
 //! only the changed files.
 //!
 //! CLI, server, and Python consumers should build a `Vec<BatchCommand>` from
-//! whatever input format they parse (`.hw` files, HTTP request bodies, Python
+//! whatever input format they parse (`.gl` files, HTTP request bodies, Python
 //! calls), then hand off to `BatchExecutor::run`.
 
 use std::collections::HashSet;

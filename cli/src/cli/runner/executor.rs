@@ -1,4 +1,4 @@
-//! Sequential executor for parsed `.hw` directives.
+//! Sequential executor for parsed `.gl` directives.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ fn cmd_err(line: usize, message: String) -> RunError {
     RunError::Command { line, message }
 }
 
-/// Executes `.hw` directives sequentially, stopping on first error.
+/// Executes `.gl` directives sequentially, stopping on first error.
 ///
 /// # Errors
 ///

@@ -310,7 +310,7 @@ pub enum TimestampFormat {
 // [batch]
 // ============================================================================
 
-/// `.hw` batch-runner behaviour. Forward-compat — not wired.
+/// `.gl` batch-runner behaviour. Forward-compat — not wired.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BatchSection {

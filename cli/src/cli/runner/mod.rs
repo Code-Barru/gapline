@@ -1,4 +1,4 @@
-//! `.hw` batch file runner — parser and sequential executor.
+//! `.gl` batch file runner — parser and sequential executor.
 
 mod error;
 mod executor;

@@ -24,7 +24,7 @@ Transit data engineers and application developers face:
 - **Performance**: parallel rule execution and file parsing via multi-threading
 - **Integrity protection**: bidirectional referential integrity index with recursive dependency tracking
 - **CRUD operations**: create, read, update, and delete on core GTFS files
-- **Batch processing**: `.hw` files to automate GTFS workflows
+- **Batch processing**: `.gl` files to automate GTFS workflows
 - **TOML configuration system**: three-tier config (project > user > defaults)
 
 ## Installation
@@ -94,7 +94,7 @@ gapline delete stop_times -f ./feed.zip --where "trip_id=OLD AND stop_sequence>1
 ### Batch execution
 
 ```bash
-gapline run weekly-fix.hw
+gapline run weekly-fix.gl
 ```
 
 ### Exit codes

@@ -44,7 +44,7 @@ fn create_valid_feed() -> NamedTempFile {
 }
 
 fn write_hw_file(content: &str) -> NamedTempFile {
-    let mut tmp = tempfile::Builder::new().suffix(".hw").tempfile().unwrap();
+    let mut tmp = tempfile::Builder::new().suffix(".gl").tempfile().unwrap();
     tmp.write_all(content.as_bytes()).unwrap();
     tmp.flush().unwrap();
     tmp
@@ -166,7 +166,7 @@ fn run_create_without_confirm() {
 #[test]
 fn run_nonexistent_hw_file() {
     let output = Command::new(gapline_bin())
-        .args(["run", "/tmp/nonexistent_test_file.hw"])
+        .args(["run", "/tmp/nonexistent_test_file.gl"])
         .output()
         .expect("failed to run gapline");
 
