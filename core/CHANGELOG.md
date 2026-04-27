@@ -4,6 +4,12 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - 2026-04-27
+
+### Features
+
+- feat: query gtfs from url
+
 ## [1.1.0] - 2026-04-22
 
 ### Features
