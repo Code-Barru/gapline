@@ -78,6 +78,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
+      id-token: write       # required for ferrflow bot: true OIDC exchange
     outputs:
       new_ref: ${{ steps.ref.outputs.sha }}
       cli_tag: ${{ steps.ref.outputs.cli_tag }}
@@ -85,17 +86,15 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.FERRFLOW_TOKEN }}
-      - uses: FerrFlow-Org/ferrflow@v2
+      - uses: FerrLabs/FerrFlow@v4
         with:
           dry_run: ${{ inputs.dry_run }}
-        env:
-          FERRFLOW_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+          bot: true
 
       - id: ref
         name: Capture ferrflow commit and cli tag
         env:
-          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch --tags origin
           git pull --ff-only origin main || true
@@ -111,7 +110,7 @@ jobs:
       - name: Ensure latest CLI release is marked as latest
         if: steps.ref.outputs.cli_tag != ''
         env:
-          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ steps.ref.outputs.cli_tag }}" --latest
 
   build-release:
