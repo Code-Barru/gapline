@@ -3,6 +3,27 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+/// Feed source: either a local path or an HTTP(S) URL.
+///
+/// Clap uses `FromStr` to auto-detect: strings starting with `http://` or
+/// `https://` become `Url`, everything else becomes `Path`.
+#[derive(Debug, Clone)]
+pub enum FeedInput {
+    Path(PathBuf),
+    Url(String),
+}
+
+impl std::str::FromStr for FeedInput {
+    type Err = std::convert::Infallible;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with("http://") || s.starts_with("https://") {
+            Ok(Self::Url(s.to_owned()))
+        } else {
+            Ok(Self::Path(PathBuf::from(s)))
+        }
+    }
+}
+
 use gapline_core::validation::Severity;
 
 /// Top-level CLI argument parser for gapline.
@@ -76,10 +97,22 @@ pub enum Commands {
     /// Validate a GTFS feed against the full specification.
     #[command(about = "Validates a GTFS feed")]
     Validate {
-        /// Path to the GTFS feed (`.zip` archive or decompressed directory).
+        /// Path or HTTPS URL to the GTFS feed (`.zip` archive or directory).
         /// May be omitted if `[default] feed` is set in the config file.
-        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
-        feed: Option<PathBuf>,
+        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
+        feed: Option<FeedInput>,
+        /// Skip HTTP cache and force re-download (only applies to URL feeds).
+        #[arg(long, help = "Skip HTTP cache, force re-download")]
+        no_cache: bool,
+        /// Maximum allowed feed size in bytes; download is aborted if
+        /// Content-Length exceeds this value (only applies to URL feeds).
+        #[arg(
+            long,
+            value_name = "BYTES",
+            default_value = "524288000",
+            help = "Maximum feed size in bytes (default: 500 MB)"
+        )]
+        max_size: u64,
         /// Output format for the validation report.
         #[arg(
             long,
@@ -114,9 +147,20 @@ pub enum Commands {
     /// Read and query data from a GTFS file.
     #[command(about = "Read and query GTFS fields")]
     Read {
-        /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
-        feed: Option<PathBuf>,
+        /// Path or HTTPS URL to the GTFS feed. Optional when `[default] feed` is set.
+        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
+        feed: Option<FeedInput>,
+        /// Skip HTTP cache and force re-download (only applies to URL feeds).
+        #[arg(long, help = "Skip HTTP cache, force re-download")]
+        no_cache: bool,
+        /// Maximum allowed feed size in bytes (only applies to URL feeds).
+        #[arg(
+            long,
+            value_name = "BYTES",
+            default_value = "524288000",
+            help = "Maximum feed size in bytes (default: 500 MB)"
+        )]
+        max_size: u64,
         /// Filter expression using the mini query language.
         #[arg(short, long = "where", value_name = "QUERY", help = "SQL-like query")]
         where_query: Option<String>,
@@ -140,9 +184,20 @@ pub enum Commands {
     /// Insert new records into a GTFS file.
     #[command(about = "Insert GTFS fields into a feed")]
     Create {
-        /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
-        feed: Option<PathBuf>,
+        /// Path or HTTPS URL to the GTFS feed. Optional when `[default] feed` is set.
+        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
+        feed: Option<FeedInput>,
+        /// Skip HTTP cache and force re-download (only applies to URL feeds).
+        #[arg(long, help = "Skip HTTP cache, force re-download")]
+        no_cache: bool,
+        /// Maximum allowed feed size in bytes (only applies to URL feeds).
+        #[arg(
+            long,
+            value_name = "BYTES",
+            default_value = "524288000",
+            help = "Maximum feed size in bytes (default: 500 MB)"
+        )]
+        max_size: u64,
         /// Field values to set on the new record (e.g. `stop_id=NEW_01`).
         #[arg(short, long, num_args = 1.., help = "Fields to set (e.g. stop_id=NEW_01 stop_name=\"Test\")")]
         set: Vec<String>,
@@ -162,9 +217,20 @@ pub enum Commands {
     /// Update existing records in a GTFS file.
     #[command(about = "Update GTFS field in a feed")]
     Update {
-        /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
-        feed: Option<PathBuf>,
+        /// Path or HTTPS URL to the GTFS feed. Optional when `[default] feed` is set.
+        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
+        feed: Option<FeedInput>,
+        /// Skip HTTP cache and force re-download (only applies to URL feeds).
+        #[arg(long, help = "Skip HTTP cache, force re-download")]
+        no_cache: bool,
+        /// Maximum allowed feed size in bytes (only applies to URL feeds).
+        #[arg(
+            long,
+            value_name = "BYTES",
+            default_value = "524288000",
+            help = "Maximum feed size in bytes (default: 500 MB)"
+        )]
+        max_size: u64,
         /// Filter expression to select records to update (required).
         #[arg(
             short,
@@ -196,9 +262,20 @@ pub enum Commands {
     /// Delete records from a GTFS file.
     #[command(about = "Delete GTFS records from a feed")]
     Delete {
-        /// Path to the GTFS feed. Optional when `[default] feed` is set.
-        #[arg(short, long, value_name = "FEED", help = "Path to GTFS feed")]
-        feed: Option<PathBuf>,
+        /// Path or HTTPS URL to the GTFS feed. Optional when `[default] feed` is set.
+        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
+        feed: Option<FeedInput>,
+        /// Skip HTTP cache and force re-download (only applies to URL feeds).
+        #[arg(long, help = "Skip HTTP cache, force re-download")]
+        no_cache: bool,
+        /// Maximum allowed feed size in bytes (only applies to URL feeds).
+        #[arg(
+            long,
+            value_name = "BYTES",
+            default_value = "524288000",
+            help = "Maximum feed size in bytes (default: 500 MB)"
+        )]
+        max_size: u64,
         /// Filter expression to select records to delete (required).
         #[arg(
             short,

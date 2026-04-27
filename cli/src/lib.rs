@@ -7,3 +7,5 @@
 
 /// Command-line interface module.
 pub mod cli;
+/// HTTP feed download module.
+pub mod http;
