@@ -4,7 +4,7 @@ use crate::models::{BookingRule, BookingRuleId, BookingType, GtfsTime, Phone, Se
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::{ParseError, ParseErrorKind};
 use crate::parser::field_parsers::{
-    optional_id, optional_parse, optional_str, required_enum, required_id,
+    optional_id, optional_parse, optional_str, required_enum_opt, required_id,
 };
 
 const FILE: &str = "booking_rules.txt";
@@ -20,13 +20,12 @@ pub fn parse(reader: impl BufRead) -> (Vec<BookingRule>, Vec<ParseError>) {
     while let Some((line, row)) = iter.next_row() {
         let booking_rule_id =
             required_id::<BookingRuleId>(&row, "booking_rule_id", FILE, line, &mut errors);
-        let booking_type = required_enum(
+        let booking_type = required_enum_opt(
             &row,
             "booking_type",
             FILE,
             line,
             BookingType::from_i32,
-            BookingType::RealTime,
             &mut errors,
         );
         let prior_notice_duration_min = optional_parse::<u32>(

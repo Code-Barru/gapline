@@ -203,6 +203,36 @@ pub fn optional_enum<T>(
     }
 }
 
+/// Like [`required_enum`] but returns `Option<T>` instead of a default on
+/// failure. Missing → `MissingRequired`, unknown code → `InvalidEnum`.
+pub fn required_enum_opt<T>(
+    row: &CsvRow,
+    field: &str,
+    file: &str,
+    line: usize,
+    from_i32: fn(i32) -> Option<T>,
+    errors: &mut Vec<ParseError>,
+) -> Option<T> {
+    if let Some(v) = get(row, field) {
+        if let Some(e) = v.parse::<i32>().ok().and_then(from_i32) {
+            Some(e)
+        } else {
+            push_error(errors, file, line, field, v, ParseErrorKind::InvalidEnum);
+            None
+        }
+    } else {
+        push_error(
+            errors,
+            file,
+            line,
+            field,
+            "",
+            ParseErrorKind::MissingRequired,
+        );
+        None
+    }
+}
+
 /// Reads a GTFS boolean column: `"1"` → `true`, anything else (including
 /// absent) → `false`. No error is emitted for this column type.
 #[must_use]

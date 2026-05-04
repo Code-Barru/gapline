@@ -118,9 +118,18 @@ fn booking_rules_parse_typed_fields() {
     let source = FeedLoader::open(tmp.path()).unwrap();
     let (feed, _) = FeedLoader::load(&source);
     assert_eq!(feed.booking_rules.len(), 3);
-    assert_eq!(feed.booking_rules[0].booking_type, BookingType::RealTime);
-    assert_eq!(feed.booking_rules[1].booking_type, BookingType::SameDay);
-    assert_eq!(feed.booking_rules[2].booking_type, BookingType::PriorDays);
+    assert_eq!(
+        feed.booking_rules[0].booking_type,
+        Some(BookingType::RealTime)
+    );
+    assert_eq!(
+        feed.booking_rules[1].booking_type,
+        Some(BookingType::SameDay)
+    );
+    assert_eq!(
+        feed.booking_rules[2].booking_type,
+        Some(BookingType::PriorDays)
+    );
     assert_eq!(feed.booking_rules[1].prior_notice_duration_min, Some(30));
 }
 

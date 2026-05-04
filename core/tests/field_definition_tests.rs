@@ -4,10 +4,12 @@ use chrono::NaiveDate;
 use gapline_core::models::*;
 use gapline_core::validation::field_definition::agency::AgencyFieldDefinitionRule;
 use gapline_core::validation::field_definition::attributions::AttributionsFieldDefinitionRule;
+use gapline_core::validation::field_definition::booking_rules::BookingRulesFieldDefinitionRule;
 use gapline_core::validation::field_definition::feed_info::FeedInfoFieldDefinitionRule;
 use gapline_core::validation::field_definition::pathways::PathwaysFieldDefinitionRule;
 use gapline_core::validation::field_definition::routes::RoutesFieldDefinitionRule;
 use gapline_core::validation::field_definition::stop_times::StopTimesFieldDefinitionRule;
+use gapline_core::validation::field_definition::stop_times_flex::StopTimesFlexFieldDefinitionRule;
 use gapline_core::validation::field_definition::stops::StopsFieldDefinitionRule;
 use gapline_core::validation::field_definition::transfers::TransfersFieldDefinitionRule;
 use gapline_core::validation::field_definition::translations::TranslationsFieldDefinitionRule;
@@ -951,4 +953,278 @@ fn errors_from_secondary_files_are_all_reported() {
         count_errors(&all_errors, Severity::Error) >= 3,
         "Expected at least 3 errors across secondary files, got: {all_errors:?}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Section 9 — GTFS-Flex helpers
+// ---------------------------------------------------------------------------
+
+fn make_booking_rule(id: &str, btype: Option<BookingType>, prior_min: Option<u32>) -> BookingRule {
+    BookingRule {
+        booking_rule_id: BookingRuleId::from(id.to_string()),
+        booking_type: btype,
+        prior_notice_duration_min: prior_min,
+        prior_notice_duration_max: None,
+        prior_notice_last_day: None,
+        prior_notice_last_time: None,
+        prior_notice_start_day: None,
+        prior_notice_start_time: None,
+        prior_notice_service_id: None,
+        message: None,
+        pickup_message: None,
+        drop_off_message: None,
+        phone_number: None,
+        info_url: None,
+        booking_url: None,
+    }
+}
+
+fn make_stop_time_flex(
+    trip_id: &str,
+    seq: u32,
+    start_window: Option<GtfsTime>,
+    end_window: Option<GtfsTime>,
+    pickup_br: Option<&str>,
+    drop_br: Option<&str>,
+) -> StopTime {
+    let mut st = make_stop_time(trip_id, seq, None, None, None);
+    st.start_pickup_drop_off_window = start_window;
+    st.end_pickup_drop_off_window = end_window;
+    st.pickup_booking_rule_id = pickup_br.map(|s| BookingRuleId::from(s.to_string()));
+    st.drop_off_booking_rule_id = drop_br.map(|s| BookingRuleId::from(s.to_string()));
+    st
+}
+
+// ---------------------------------------------------------------------------
+// Section 9 — booking_rules tests (CA4, CA5)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn booking_rules_no_flex_yields_zero_section_9_errors() {
+    let feed = valid_feed();
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+#[test]
+fn booking_rules_valid_feed_yields_zero_errors() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules
+        .push(make_booking_rule("BR0", Some(BookingType::RealTime), None));
+    feed.booking_rules.push(make_booking_rule(
+        "BR1",
+        Some(BookingType::SameDay),
+        Some(30),
+    ));
+    feed.booking_rules.push(make_booking_rule(
+        "BR2",
+        Some(BookingType::PriorDays),
+        Some(1440),
+    ));
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+#[test]
+fn booking_rules_same_day_without_duration_min_emits_error() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules
+        .push(make_booking_rule("BR1", Some(BookingType::SameDay), None));
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    let field_errors = errors_for_field(&errors, "prior_notice_duration_min");
+    assert_eq!(field_errors.len(), 1);
+    let e = field_errors[0];
+    assert_eq!(e.severity, Severity::Error);
+    assert_eq!(e.section, "9");
+    assert_eq!(e.file_name.as_deref(), Some("booking_rules.txt"));
+    assert_eq!(e.line_number, Some(2));
+    assert_eq!(e.rule_id, "field_definition_booking_rules");
+}
+
+#[test]
+fn booking_rules_prior_days_without_duration_min_emits_error() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules
+        .push(make_booking_rule("BR1", Some(BookingType::PriorDays), None));
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    assert_eq!(
+        errors_for_field(&errors, "prior_notice_duration_min").len(),
+        1
+    );
+}
+
+#[test]
+fn booking_rules_realtime_with_duration_min_emits_warning() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules.push(make_booking_rule(
+        "BR1",
+        Some(BookingType::RealTime),
+        Some(30),
+    ));
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    let field_errors = errors_for_field(&errors, "prior_notice_duration_min");
+    assert_eq!(field_errors.len(), 1);
+    let e = field_errors[0];
+    assert_eq!(e.severity, Severity::Warning);
+    assert_eq!(e.section, "9");
+    assert_eq!(e.file_name.as_deref(), Some("booking_rules.txt"));
+    assert_eq!(e.value.as_deref(), Some("30"));
+}
+
+#[test]
+fn booking_rules_missing_booking_type_skipped_in_validator() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules
+        .push(make_booking_rule("BR1", None, Some(30)));
+    feed.booking_rules
+        .push(make_booking_rule("BR2", None, None));
+    let errors = BookingRulesFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+// ---------------------------------------------------------------------------
+// Section 9 — stop_times Flex tests (window pair + booking-rule conditional)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn stop_times_flex_no_flex_fields_yields_zero_errors() {
+    let feed = valid_feed();
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+#[test]
+fn stop_times_flex_valid_window_pair_yields_zero_errors() {
+    let mut feed = valid_feed();
+    feed.stop_times.push(make_stop_time_flex(
+        "T1",
+        3,
+        Some(time(9, 0)),
+        Some(time(10, 0)),
+        Some("BR1"),
+        None,
+    ));
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+#[test]
+fn stop_times_flex_window_pair_partial_start_only_emits_error() {
+    let mut feed = valid_feed();
+    feed.stop_times.push(make_stop_time_flex(
+        "T1",
+        3,
+        Some(time(9, 0)),
+        None,
+        None,
+        None,
+    ));
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    let field_errors = errors_for_field(&errors, "end_pickup_drop_off_window");
+    assert_eq!(field_errors.len(), 1);
+    let e = field_errors[0];
+    assert_eq!(e.severity, Severity::Error);
+    assert_eq!(e.section, "9");
+    assert_eq!(e.file_name.as_deref(), Some("stop_times.txt"));
+    assert_eq!(e.line_number, Some(4));
+}
+
+#[test]
+fn stop_times_flex_window_pair_partial_end_only_emits_error() {
+    let mut feed = valid_feed();
+    feed.stop_times.push(make_stop_time_flex(
+        "T1",
+        3,
+        None,
+        Some(time(10, 0)),
+        None,
+        None,
+    ));
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    assert_eq!(
+        errors_for_field(&errors, "start_pickup_drop_off_window").len(),
+        1
+    );
+}
+
+#[test]
+fn stop_times_flex_booking_rule_without_window_emits_error() {
+    let mut feed = valid_feed();
+    feed.stop_times
+        .push(make_stop_time_flex("T1", 3, None, None, Some("BR1"), None));
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    let field_errors = errors_for_field(&errors, "start_pickup_drop_off_window");
+    assert_eq!(field_errors.len(), 1);
+    let e = field_errors[0];
+    assert_eq!(e.severity, Severity::Error);
+    assert_eq!(e.section, "9");
+    assert_eq!(e.rule_id, "field_definition_stop_times_flex");
+}
+
+#[test]
+fn stop_times_flex_drop_off_booking_rule_without_window_emits_error() {
+    let mut feed = valid_feed();
+    feed.stop_times
+        .push(make_stop_time_flex("T1", 3, None, None, None, Some("BR1")));
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    assert_eq!(
+        errors_for_field(&errors, "start_pickup_drop_off_window").len(),
+        1
+    );
+}
+
+#[test]
+fn stop_times_flex_fixed_stop_without_window_yields_zero_errors() {
+    let feed = valid_feed();
+    let errors = StopTimesFlexFieldDefinitionRule.validate(&feed);
+    assert!(errors.is_empty(), "expected 0 errors, got: {errors:?}");
+}
+
+// ---------------------------------------------------------------------------
+// Section 9 — engine registration (CA10)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn section_9_rules_registered_in_default_engine() {
+    use gapline_core::config::Config;
+    use gapline_core::validation::engine::ValidationEngine;
+    use std::sync::Arc;
+
+    let engine = ValidationEngine::new(Arc::new(Config::default()));
+    let ids: std::collections::HashSet<&str> =
+        engine.post_rules().iter().map(|r| r.rule_id()).collect();
+    assert!(ids.contains("field_definition_booking_rules"));
+    assert!(ids.contains("field_definition_stop_times_flex"));
+}
+
+// ---------------------------------------------------------------------------
+// Section 9 — cumulation across multiple Flex files (CA11 cumulé)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn section_9_errors_from_multiple_files_all_reported() {
+    let mut feed = valid_feed();
+    feed.loaded_files.insert("booking_rules.txt".to_string());
+    feed.booking_rules
+        .push(make_booking_rule("BR1", Some(BookingType::SameDay), None));
+    feed.stop_times
+        .push(make_stop_time_flex("T1", 3, None, None, Some("BR1"), None));
+
+    let rules: Vec<Box<dyn ValidationRule>> = vec![
+        Box::new(BookingRulesFieldDefinitionRule),
+        Box::new(StopTimesFlexFieldDefinitionRule),
+    ];
+    let all_errors: Vec<_> = rules.iter().flat_map(|r| r.validate(&feed)).collect();
+    assert_eq!(count_errors(&all_errors, Severity::Error), 2);
+    let files: std::collections::HashSet<_> = all_errors
+        .iter()
+        .filter_map(|e| e.file_name.as_deref())
+        .collect();
+    assert!(files.contains("booking_rules.txt"));
+    assert!(files.contains("stop_times.txt"));
 }

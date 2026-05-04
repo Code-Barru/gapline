@@ -7,7 +7,7 @@ use super::types::{GtfsTime, Phone, Url};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookingRule {
     pub booking_rule_id: BookingRuleId,
-    pub booking_type: BookingType,
+    pub booking_type: Option<BookingType>,
     pub prior_notice_duration_min: Option<u32>,
     pub prior_notice_duration_max: Option<u32>,
     pub prior_notice_last_day: Option<u32>,

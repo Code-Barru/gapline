@@ -271,7 +271,7 @@ impl_filterable!(Attribution {
 
 impl_filterable!(BookingRule {
     booking_rule_id: req,
-    booking_type: req_enum,
+    booking_type: opt_enum,
     prior_notice_duration_min: opt,
     prior_notice_duration_max: opt,
     prior_notice_last_day: opt,
