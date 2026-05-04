@@ -4,6 +4,14 @@ All notable changes to `cli` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.0] - 2026-05-04
+
+### Features
+
+- feat: flex semantic rules
+- feat: flex foreign key & referential integrity
+- feat: flex data model & csv parsing
+
 ## [1.2.0] - 2026-04-27
 
 ### Features
