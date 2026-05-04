@@ -44,3 +44,5 @@ gtfs_id!(PathwayId);
 gtfs_id!(LevelId);
 gtfs_id!(FareMediaId);
 gtfs_id!(ZoneId);
+gtfs_id!(BookingRuleId);
+gtfs_id!(LocationGroupId);

@@ -6,7 +6,8 @@ use super::enums::{
     TransferType, WheelchairAccessible,
 };
 use super::ids::{
-    AgencyId, FareId, LevelId, PathwayId, RouteId, ServiceId, ShapeId, StopId, TripId,
+    AgencyId, BookingRuleId, FareId, LevelId, PathwayId, RouteId, ServiceId, ShapeId, StopId,
+    TripId,
 };
 use super::types::{
     Color, CurrencyCode, Email, GtfsDate, GtfsTime, LanguageCode, Latitude, Longitude, Phone,
@@ -89,6 +90,14 @@ pub struct StopTime {
     pub continuous_drop_off: Option<ContinuousDropOff>,
     pub shape_dist_traveled: Option<f64>,
     pub timepoint: Option<Timepoint>,
+    pub start_pickup_drop_off_window: Option<GtfsTime>,
+    pub end_pickup_drop_off_window: Option<GtfsTime>,
+    pub pickup_booking_rule_id: Option<BookingRuleId>,
+    pub drop_off_booking_rule_id: Option<BookingRuleId>,
+    pub mean_duration_factor: Option<f64>,
+    pub mean_duration_offset: Option<f64>,
+    pub safe_duration_factor: Option<f64>,
+    pub safe_duration_offset: Option<f64>,
 }
 
 #[allow(clippy::struct_excessive_bools)]

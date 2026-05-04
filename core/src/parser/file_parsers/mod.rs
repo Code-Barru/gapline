@@ -1,5 +1,6 @@
 pub mod agency;
 pub mod attributions;
+pub mod booking_rules;
 pub mod calendar;
 pub mod calendar_dates;
 pub mod fare_attributes;
@@ -7,6 +8,8 @@ pub mod fare_rules;
 pub mod feed_info;
 pub mod frequencies;
 pub mod levels;
+pub mod location_group_stops;
+pub mod location_groups;
 pub mod pathways;
 pub mod routes;
 pub mod shapes;

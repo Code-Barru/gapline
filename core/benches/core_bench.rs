@@ -115,6 +115,7 @@ fn bench_validation(c: &mut Criterion) {
 
 /// Create a large synthetic feed: 1 agency, 10 routes, 1 calendar,
 /// 200 stops, 1000 trips with 100 `stop_times` each (100k total).
+#[allow(clippy::too_many_lines)]
 fn create_large_feed() -> gapline_core::models::GtfsFeed {
     use gapline_core::models::{
         Agency, AgencyId, Calendar, GtfsDate, GtfsFeed, Route, RouteId, RouteType, ServiceId, Stop,
@@ -216,6 +217,14 @@ fn create_large_feed() -> gapline_core::models::GtfsFeed {
                 continuous_drop_off: None,
                 shape_dist_traveled: None,
                 timepoint: None,
+                start_pickup_drop_off_window: None,
+                end_pickup_drop_off_window: None,
+                pickup_booking_rule_id: None,
+                drop_off_booking_rule_id: None,
+                mean_duration_factor: None,
+                mean_duration_offset: None,
+                safe_duration_factor: None,
+                safe_duration_offset: None,
             });
         }
     }

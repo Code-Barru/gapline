@@ -1,6 +1,7 @@
 use crate::models::{
-    Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
-    Level, Pathway, Route, Shape, Stop, StopTime, Transfer, Translation, Trip,
+    Agency, Attribution, BookingRule, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo,
+    Frequency, Level, LocationGroup, LocationGroupStop, Pathway, Route, Shape, Stop, StopTime,
+    Transfer, Translation, Trip,
 };
 
 /// Trait for GTFS records that can be filtered by the query engine.
@@ -137,6 +138,14 @@ impl_filterable!(StopTime {
     continuous_drop_off: opt_enum,
     shape_dist_traveled: opt,
     timepoint: opt_enum,
+    start_pickup_drop_off_window: opt,
+    end_pickup_drop_off_window: opt,
+    pickup_booking_rule_id: opt,
+    drop_off_booking_rule_id: opt,
+    mean_duration_factor: opt,
+    mean_duration_offset: opt,
+    safe_duration_factor: opt,
+    safe_duration_offset: opt,
 });
 
 impl_filterable!(Calendar {
@@ -258,4 +267,32 @@ impl_filterable!(Attribution {
     attribution_url: opt,
     attribution_email: opt,
     attribution_phone: opt,
+});
+
+impl_filterable!(BookingRule {
+    booking_rule_id: req,
+    booking_type: req_enum,
+    prior_notice_duration_min: opt,
+    prior_notice_duration_max: opt,
+    prior_notice_last_day: opt,
+    prior_notice_last_time: opt,
+    prior_notice_start_day: opt,
+    prior_notice_start_time: opt,
+    prior_notice_service_id: opt,
+    message: opt,
+    pickup_message: opt,
+    drop_off_message: opt,
+    phone_number: opt,
+    info_url: opt,
+    booking_url: opt,
+});
+
+impl_filterable!(LocationGroup {
+    location_group_id: req,
+    location_group_name: opt,
+});
+
+impl_filterable!(LocationGroupStop {
+    location_group_id: req,
+    stop_id: req,
 });

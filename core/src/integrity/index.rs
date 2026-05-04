@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::models::{GtfsFeed, ZoneId};
+use crate::models::{BookingRuleId, GtfsFeed, LocationGroupId, StopId, TripId, ZoneId};
 
 use super::types::{EntityRef, RelationType};
 
@@ -19,6 +19,10 @@ pub struct IntegrityIndex {
     pub forward: RelMap,
     /// PK target -> dependents referencing it.
     pub reverse: RelMap,
+    /// `booking_rule_id` -> `(trip_id, stop_sequence)` referencing it.
+    pub booking_rule_to_stop_times: HashMap<BookingRuleId, Vec<(TripId, u32)>>,
+    /// `location_group_id` -> member stops.
+    pub location_group_to_stops: HashMap<LocationGroupId, Vec<StopId>>,
 }
 
 const EMPTY: &[(EntityRef, RelationType); 0] = &[];
@@ -33,7 +37,29 @@ impl IntegrityIndex {
         register_entities(feed, &mut forward);
         build_relations(feed, &mut forward, &mut reverse);
 
-        Self { forward, reverse }
+        let booking_rule_to_stop_times = build_booking_rule_reverse(feed);
+        let location_group_to_stops = build_location_group_reverse(feed);
+
+        Self {
+            forward,
+            reverse,
+            booking_rule_to_stop_times,
+            location_group_to_stops,
+        }
+    }
+
+    #[must_use]
+    pub fn stop_times_for_booking_rule(&self, id: &BookingRuleId) -> &[(TripId, u32)] {
+        self.booking_rule_to_stop_times
+            .get(id)
+            .map_or(&[], Vec::as_slice)
+    }
+
+    #[must_use]
+    pub fn stops_for_location_group(&self, id: &LocationGroupId) -> &[StopId] {
+        self.location_group_to_stops
+            .get(id)
+            .map_or(&[], Vec::as_slice)
     }
 
     #[must_use]
@@ -507,6 +533,33 @@ fn build_attribution_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &
             );
         }
     }
+}
+
+fn build_booking_rule_reverse(feed: &GtfsFeed) -> HashMap<BookingRuleId, Vec<(TripId, u32)>> {
+    let mut map: HashMap<BookingRuleId, Vec<(TripId, u32)>> = HashMap::new();
+    for st in &feed.stop_times {
+        if let Some(ref id) = st.pickup_booking_rule_id {
+            map.entry(id.clone())
+                .or_default()
+                .push((st.trip_id.clone(), st.stop_sequence));
+        }
+        if let Some(ref id) = st.drop_off_booking_rule_id {
+            map.entry(id.clone())
+                .or_default()
+                .push((st.trip_id.clone(), st.stop_sequence));
+        }
+    }
+    map
+}
+
+fn build_location_group_reverse(feed: &GtfsFeed) -> HashMap<LocationGroupId, Vec<StopId>> {
+    let mut map: HashMap<LocationGroupId, Vec<StopId>> = HashMap::new();
+    for lgs in &feed.location_group_stops {
+        map.entry(lgs.location_group_id.clone())
+            .or_default()
+            .push(lgs.stop_id.clone());
+    }
+    map
 }
 
 fn add_relation(

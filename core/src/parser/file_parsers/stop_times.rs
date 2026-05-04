@@ -1,17 +1,18 @@
 use std::io::BufRead;
 
 use crate::models::{
-    ContinuousDropOff, ContinuousPickup, DropOffType, GtfsTime, PickupType, StopId, StopTime,
-    Timepoint, TripId,
+    BookingRuleId, ContinuousDropOff, ContinuousPickup, DropOffType, GtfsTime, PickupType, StopId,
+    StopTime, Timepoint, TripId,
 };
 use crate::parser::csv_parser::parse_csv;
 use crate::parser::error::{ParseError, ParseErrorKind};
 use crate::parser::field_parsers::{
-    optional_enum, optional_parse, optional_str, required_id, required_parse,
+    optional_enum, optional_id, optional_parse, optional_str, required_id, required_parse,
 };
 
 const FILE: &str = "stop_times.txt";
 
+#[allow(clippy::too_many_lines)]
 pub fn parse(reader: impl BufRead) -> (Vec<StopTime>, Vec<ParseError>) {
     let Ok(mut iter) = parse_csv(reader) else {
         return (vec![], vec![]);
@@ -96,6 +97,57 @@ pub fn parse(reader: impl BufRead) -> (Vec<StopTime>, Vec<ParseError>) {
             Timepoint::from_i32,
             &mut errors,
         );
+        let start_pickup_drop_off_window = optional_parse::<GtfsTime>(
+            &row,
+            "start_pickup_drop_off_window",
+            FILE,
+            line,
+            ParseErrorKind::InvalidTime,
+            &mut errors,
+        );
+        let end_pickup_drop_off_window = optional_parse::<GtfsTime>(
+            &row,
+            "end_pickup_drop_off_window",
+            FILE,
+            line,
+            ParseErrorKind::InvalidTime,
+            &mut errors,
+        );
+        let pickup_booking_rule_id = optional_id::<BookingRuleId>(&row, "pickup_booking_rule_id");
+        let drop_off_booking_rule_id =
+            optional_id::<BookingRuleId>(&row, "drop_off_booking_rule_id");
+        let mean_duration_factor = optional_parse::<f64>(
+            &row,
+            "mean_duration_factor",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let mean_duration_offset = optional_parse::<f64>(
+            &row,
+            "mean_duration_offset",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let safe_duration_factor = optional_parse::<f64>(
+            &row,
+            "safe_duration_factor",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
+        let safe_duration_offset = optional_parse::<f64>(
+            &row,
+            "safe_duration_offset",
+            FILE,
+            line,
+            ParseErrorKind::InvalidFloat,
+            &mut errors,
+        );
 
         records.push(StopTime {
             trip_id,
@@ -110,6 +162,14 @@ pub fn parse(reader: impl BufRead) -> (Vec<StopTime>, Vec<ParseError>) {
             continuous_drop_off,
             shape_dist_traveled,
             timepoint,
+            start_pickup_drop_off_window,
+            end_pickup_drop_off_window,
+            pickup_booking_rule_id,
+            drop_off_booking_rule_id,
+            mean_duration_factor,
+            mean_duration_offset,
+            safe_duration_factor,
+            safe_duration_offset,
         });
     }
 

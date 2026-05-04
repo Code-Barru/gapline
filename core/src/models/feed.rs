@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use super::flex::{BookingRule, LocationGroup, LocationGroupStop};
 use super::records::{
     Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
     Level, Pathway, Route, Shape, Stop, StopTime, Transfer, Translation, Trip,
@@ -33,6 +34,9 @@ pub struct GtfsFeed {
     pub fare_rules: Vec<FareRule>,
     pub translations: Vec<Translation>,
     pub attributions: Vec<Attribution>,
+    pub booking_rules: Vec<BookingRule>,
+    pub location_groups: Vec<LocationGroup>,
+    pub location_group_stops: Vec<LocationGroupStop>,
 }
 
 impl GtfsFeed {
@@ -40,5 +44,18 @@ impl GtfsFeed {
     #[must_use]
     pub fn has_file(&self, name: &str) -> bool {
         self.loaded_files.contains(name)
+    }
+
+    #[must_use]
+    pub fn has_flex(&self) -> bool {
+        self.has_file("booking_rules.txt")
+            || self.has_file("location_groups.txt")
+            || self.has_file("location_group_stops.txt")
+            || self.stop_times.iter().any(|st| {
+                st.pickup_booking_rule_id.is_some()
+                    || st.drop_off_booking_rule_id.is_some()
+                    || st.start_pickup_drop_off_window.is_some()
+                    || st.end_pickup_drop_off_window.is_some()
+            })
     }
 }

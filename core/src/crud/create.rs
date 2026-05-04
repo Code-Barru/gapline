@@ -10,13 +10,13 @@ use crate::crud::common::{
 };
 use crate::crud::read::GtfsTarget;
 use crate::models::{
-    Agency, AgencyId, Attribution, BikesAllowed, Calendar, CalendarDate, Color, ContinuousDropOff,
-    ContinuousPickup, CurrencyCode, DirectionId, DropOffType, Email, ExactTimes, ExceptionType,
-    FareAttribute, FareId, FareRule, FeedInfo, Frequency, GtfsDate, GtfsFeed, GtfsTime,
-    IsBidirectional, LanguageCode, Latitude, Level, LevelId, LocationType, Longitude, Pathway,
-    PathwayId, PathwayMode, Phone, PickupType, Route, RouteId, RouteType, ServiceId, Shape,
-    ShapeId, Stop, StopId, StopTime, Timepoint, Timezone, Transfer, TransferType, Translation,
-    Trip, TripId, Url, WheelchairAccessible,
+    Agency, AgencyId, Attribution, BikesAllowed, BookingRuleId, Calendar, CalendarDate, Color,
+    ContinuousDropOff, ContinuousPickup, CurrencyCode, DirectionId, DropOffType, Email, ExactTimes,
+    ExceptionType, FareAttribute, FareId, FareRule, FeedInfo, Frequency, GtfsDate, GtfsFeed,
+    GtfsTime, IsBidirectional, LanguageCode, Latitude, Level, LevelId, LocationType, Longitude,
+    Pathway, PathwayId, PathwayMode, Phone, PickupType, Route, RouteId, RouteType, ServiceId,
+    Shape, ShapeId, Stop, StopId, StopTime, Timepoint, Timezone, Transfer, TransferType,
+    Translation, Trip, TripId, Url, WheelchairAccessible,
 };
 use crate::parser::feed_source::GtfsFiles;
 
@@ -681,6 +681,14 @@ build_record! {
         continuous_drop_off: opt_enum(ContinuousDropOff::from_i32, "0-3"),
         shape_dist_traveled: opt_parse("number"),
         timepoint: opt_enum(Timepoint::from_i32, "0-1"),
+        start_pickup_drop_off_window: opt_parse("time HH:MM:SS"),
+        end_pickup_drop_off_window: opt_parse("time HH:MM:SS"),
+        pickup_booking_rule_id: opt_id<BookingRuleId>,
+        drop_off_booking_rule_id: opt_id<BookingRuleId>,
+        mean_duration_factor: opt_parse("number"),
+        mean_duration_offset: opt_parse("number"),
+        safe_duration_factor: opt_parse("number"),
+        safe_duration_offset: opt_parse("number"),
     }
 }
 

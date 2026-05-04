@@ -156,6 +156,17 @@ impl FeedLoader {
             (None, 0, vec![])
         };
 
+        let booking_rules_r =
+            parse_vec!(GtfsFiles::BookingRules, file_parsers::booking_rules::parse);
+        let location_groups_r = parse_vec!(
+            GtfsFiles::LocationGroups,
+            file_parsers::location_groups::parse
+        );
+        let location_group_stops_r = parse_vec!(
+            GtfsFiles::LocationGroupStops,
+            file_parsers::location_group_stops::parse
+        );
+
         let mut all_errors = Vec::new();
 
         macro_rules! unpack {
@@ -181,6 +192,9 @@ impl FeedLoader {
         let mut fare_rules_r = fare_rules_r;
         let mut translations_r = translations_r;
         let mut attributions_r = attributions_r;
+        let mut booking_rules_r = booking_rules_r;
+        let mut location_groups_r = location_groups_r;
+        let mut location_group_stops_r = location_group_stops_r;
         let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
         all_errors.append(&mut feed_info_errors);
 
@@ -209,6 +223,9 @@ impl FeedLoader {
             fare_rules: unpack!(fare_rules_r, all_errors),
             translations: unpack!(translations_r, all_errors),
             attributions: unpack!(attributions_r, all_errors),
+            booking_rules: unpack!(booking_rules_r, all_errors),
+            location_groups: unpack!(location_groups_r, all_errors),
+            location_group_stops: unpack!(location_group_stops_r, all_errors),
         };
 
         (feed, all_errors)
@@ -263,6 +280,16 @@ impl FeedLoader {
         let fare_rules_r = parse_vec!(GtfsFiles::FareRules, file_parsers::fare_rules::parse);
         let translations_r = parse_vec!(GtfsFiles::Translations, file_parsers::translations::parse);
         let attributions_r = parse_vec!(GtfsFiles::Attributions, file_parsers::attributions::parse);
+        let booking_rules_r =
+            parse_vec!(GtfsFiles::BookingRules, file_parsers::booking_rules::parse);
+        let location_groups_r = parse_vec!(
+            GtfsFiles::LocationGroups,
+            file_parsers::location_groups::parse
+        );
+        let location_group_stops_r = parse_vec!(
+            GtfsFiles::LocationGroupStops,
+            file_parsers::location_group_stops::parse
+        );
 
         let feed_info_r = if want(GtfsFiles::FeedInfo) {
             match source.read_file(GtfsFiles::FeedInfo) {
@@ -312,6 +339,9 @@ impl FeedLoader {
             fare_rules: unpack!(fare_rules_r, all_errors),
             translations: unpack!(translations_r, all_errors),
             attributions: unpack!(attributions_r, all_errors),
+            booking_rules: unpack!(booking_rules_r, all_errors),
+            location_groups: unpack!(location_groups_r, all_errors),
+            location_group_stops: unpack!(location_group_stops_r, all_errors),
         };
 
         (feed, all_errors)

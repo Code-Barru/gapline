@@ -321,6 +321,25 @@ impl IsBidirectional {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BookingType {
+    RealTime = 0,
+    SameDay = 1,
+    PriorDays = 2,
+}
+
+impl BookingType {
+    #[must_use]
+    pub const fn from_i32(val: i32) -> Option<Self> {
+        match val {
+            0 => Some(Self::RealTime),
+            1 => Some(Self::SameDay),
+            2 => Some(Self::PriorDays),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Timepoint {
     Approximate = 0,
     Exact = 1,

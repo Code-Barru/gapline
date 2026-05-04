@@ -656,13 +656,21 @@ fn stop_time_field_values() {
         continuous_drop_off: None,
         shape_dist_traveled: Some(1234.5),
         timepoint: Some(Timepoint::Exact),
+        start_pickup_drop_off_window: None,
+        end_pickup_drop_off_window: None,
+        pickup_booking_rule_id: None,
+        drop_off_booking_rule_id: None,
+        mean_duration_factor: None,
+        mean_duration_offset: None,
+        safe_duration_factor: None,
+        safe_duration_offset: None,
     };
     assert_eq!(st.field_value("stop_sequence"), Some("5".into()));
     assert_eq!(st.field_value("arrival_time"), Some("08:30:00".into()));
     assert_eq!(st.field_value("pickup_type"), Some("0".into())); // Regular = 0
     assert_eq!(st.field_value("timepoint"), Some("1".into())); // Exact = 1
     assert_eq!(st.field_value("shape_dist_traveled"), Some("1234.5".into()));
-    assert_eq!(StopTime::valid_fields().len(), 12);
+    assert_eq!(StopTime::valid_fields().len(), 20);
 }
 
 // ===========================================================================

@@ -181,6 +181,14 @@ fn add_schedule_records(feed: &mut GtfsFeed) {
         continuous_drop_off: None,
         shape_dist_traveled: None,
         timepoint: None,
+        start_pickup_drop_off_window: None,
+        end_pickup_drop_off_window: None,
+        pickup_booking_rule_id: None,
+        drop_off_booking_rule_id: None,
+        mean_duration_factor: None,
+        mean_duration_offset: None,
+        safe_duration_factor: None,
+        safe_duration_offset: None,
     });
     feed.calendar_dates.push(CalendarDate {
         service_id: ServiceId::from("SVC1"),

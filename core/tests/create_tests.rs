@@ -314,6 +314,14 @@ fn create_stop_time_composite_pk_dup() {
         continuous_drop_off: None,
         shape_dist_traveled: None,
         timepoint: None,
+        start_pickup_drop_off_window: None,
+        end_pickup_drop_off_window: None,
+        pickup_booking_rule_id: None,
+        drop_off_booking_rule_id: None,
+        mean_duration_factor: None,
+        mean_duration_offset: None,
+        safe_duration_factor: None,
+        safe_duration_offset: None,
     });
 
     let err = validate_create(
