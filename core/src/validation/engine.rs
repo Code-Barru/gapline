@@ -27,6 +27,7 @@ use crate::parser::FeedSource;
 use crate::parser::error::ParseError;
 use crate::validation::csv_formatting::scanner;
 use crate::validation::field_type::parse_error_converter;
+use crate::validation::flex_semantic::register_rules as register_flex_semantic_rules;
 use crate::validation::schedule_time_validation::{
     CalendarThresholds, DistanceThresholds, SpeedThresholds, TransferThresholds,
     service_dates::ServiceDateCache,
@@ -43,6 +44,7 @@ fn progress_label(group: &str) -> &str {
         "5" => "Key & Reference Validation",
         "7" => "Semantic & Logic",
         "8" => "Best Practices",
+        "9" => "Flex Semantic",
         "13" => "Third-Party Validators",
         _ => "Validation",
     }
@@ -164,8 +166,9 @@ impl ValidationEngine {
             t.calendar,
             t.transfer,
             t.speed,
-            t.service_cache,
+            t.service_cache.clone(),
         );
+        register_flex_semantic_rules(&mut engine, t.service_cache);
         let naming_thresholds = crate::validation::best_practices::NamingThresholds {
             max_route_short_name_length: t.max_route_short_name_length,
         };

@@ -22,6 +22,7 @@ mod error;
 pub mod field_definition;
 pub mod field_type;
 pub mod file_structure;
+pub mod flex_semantic;
 pub mod foreign_key;
 pub mod primary_key;
 mod report;
