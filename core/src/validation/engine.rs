@@ -44,7 +44,6 @@ fn progress_label(group: &str) -> &str {
         "5" => "Key & Reference Validation",
         "7" => "Semantic & Logic",
         "8" => "Best Practices",
-        "9" => "Flex Semantic",
         "13" => "Third-Party Validators",
         _ => "Validation",
     }
@@ -54,8 +53,9 @@ fn progress_label(group: &str) -> &str {
 /// sections share one progress bar without touching each rule struct.
 fn display_group(progress_group: &str) -> &str {
     match progress_group {
-        "4" => "3", // Field Definition → merged with Field Type
-        "6" => "5", // Primary Key → merged with Foreign Key
+        "4" => "3",        // Field Definition → merged with Field Type
+        "6" => "5",        // Primary Key → merged with Foreign Key
+        "9" | "10" => "7", // Flex / Fares v2 Semantic → merged with Semantic & Logic
         g => g,
     }
 }
@@ -70,9 +70,9 @@ fn display_group(progress_group: &str) -> &str {
 /// use gapline_core::parser::FeedLoader;
 /// use gapline_core::validation::engine::ValidationEngine;
 ///
-/// let config = Arc::new(Config::default);
+/// let config = Arc::new(Config::default());
 /// let engine = ValidationEngine::new(config);
-/// let source = FeedLoader::open(std::path::Path::new("feed.zip")).unwrap;
+/// let source = FeedLoader::open(std::path::Path::new("feed.zip")).unwrap();
 /// let report = engine.validate_structural(&source);
 /// ```
 pub struct ValidationEngine {
@@ -169,6 +169,7 @@ impl ValidationEngine {
             t.service_cache.clone(),
         );
         register_flex_semantic_rules(&mut engine, t.service_cache);
+        crate::validation::fares_v2_semantic::register_rules(&mut engine);
         let naming_thresholds = crate::validation::best_practices::NamingThresholds {
             max_route_short_name_length: t.max_route_short_name_length,
         };

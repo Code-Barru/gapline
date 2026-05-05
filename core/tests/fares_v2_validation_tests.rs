@@ -6,6 +6,10 @@
 
 use chrono::NaiveDate;
 use gapline_core::models::*;
+use gapline_core::validation::fares_v2_semantic::rules::{
+    CircularTransferRule, EmptyAreaRule, InvalidTransferCountRule, NegativeAmountRule,
+    TimeframeOverlapRule, UnusedFareProductRule, ZeroAmountRule, ZeroDurationLimitRule,
+};
 use gapline_core::validation::field_definition::fares_v2::FaresV2FieldDefinitionRule;
 use gapline_core::validation::foreign_key::fare_leg_join_rules::{
     FareLegJoinRulesFromNetworkFkRule, FareLegJoinRulesFromStopFkRule,
@@ -643,4 +647,191 @@ fn errors_from_multiple_files_all_reported() {
     assert!(files.contains("fare_leg_rules.txt"));
     assert!(files.contains("stop_areas.txt"));
     assert!(errors.iter().all(|e| e.severity == Severity::Error));
+}
+
+// ---------------------------------------------------------------------------
+// Semantic rules
+// ---------------------------------------------------------------------------
+
+fn loaded_v2_feed() -> GtfsFeed {
+    let mut feed = valid_v2_feed();
+    feed.loaded_files.insert("fare_products.txt".to_string());
+    feed
+}
+
+fn run_semantic(feed: &GtfsFeed) -> Vec<ValidationError> {
+    let rules: Vec<Box<dyn ValidationRule>> = vec![
+        Box::new(NegativeAmountRule),
+        Box::new(ZeroAmountRule),
+        Box::new(TimeframeOverlapRule),
+        Box::new(InvalidTransferCountRule),
+        Box::new(ZeroDurationLimitRule),
+        Box::new(CircularTransferRule),
+        Box::new(UnusedFareProductRule),
+        Box::new(EmptyAreaRule),
+    ];
+    rules.iter().flat_map(|r| r.validate(feed)).collect()
+}
+
+#[test]
+fn semantic_valid_feed_clean() {
+    let errors = run_semantic(&loaded_v2_feed());
+    assert!(errors.is_empty(), "{errors:?}");
+}
+
+#[test]
+fn semantic_skipped_when_no_v2() {
+    assert!(run_semantic(&GtfsFeed::default()).is_empty());
+}
+
+#[test]
+fn semantic_negative_amount() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_products[0].amount = -1.50;
+    let errors = NegativeAmountRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].rule_id, "fares_negative_amount");
+    assert_eq!(errors[0].severity, Severity::Error);
+}
+
+#[test]
+fn semantic_zero_amount() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_products[0].amount = 0.0;
+    let errors = ZeroAmountRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].severity, Severity::Warning);
+}
+
+#[test]
+fn semantic_timeframe_overlap() {
+    let mut feed = loaded_v2_feed();
+    feed.timeframes.clear();
+    feed.timeframes.push(timeframe(
+        "TF1",
+        GtfsTime::from_hms(6, 0, 0),
+        GtfsTime::from_hms(10, 0, 0),
+        "SVC1",
+    ));
+    feed.timeframes.push(timeframe(
+        "TF1",
+        GtfsTime::from_hms(9, 0, 0),
+        GtfsTime::from_hms(12, 0, 0),
+        "SVC1",
+    ));
+    let errors = TimeframeOverlapRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].severity, Severity::Warning);
+}
+
+#[test]
+fn semantic_timeframe_adjacent_ok() {
+    let mut feed = loaded_v2_feed();
+    feed.timeframes.clear();
+    feed.timeframes.push(timeframe(
+        "TF1",
+        GtfsTime::from_hms(6, 0, 0),
+        GtfsTime::from_hms(10, 0, 0),
+        "SVC1",
+    ));
+    feed.timeframes.push(timeframe(
+        "TF1",
+        GtfsTime::from_hms(10, 0, 0),
+        GtfsTime::from_hms(14, 0, 0),
+        "SVC1",
+    ));
+    assert!(TimeframeOverlapRule.validate(&feed).is_empty());
+}
+
+#[test]
+fn semantic_invalid_transfer_count() {
+    let mut feed = loaded_v2_feed();
+    for n in [0, -1] {
+        feed.fare_transfer_rules[0].transfer_count = Some(n);
+        let errors = InvalidTransferCountRule.validate(&feed);
+        assert_eq!(errors.len(), 1, "transfer_count={n}");
+        assert_eq!(errors[0].severity, Severity::Error);
+    }
+}
+
+#[test]
+fn semantic_zero_duration_limit() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_transfer_rules[0].duration_limit = Some(0);
+    let errors = ZeroDurationLimitRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].severity, Severity::Error);
+}
+
+fn push_transfer(feed: &mut GtfsFeed, from: &str, to: &str) {
+    feed.fare_transfer_rules.push(fare_transfer_rule(
+        Some(from),
+        Some(to),
+        None,
+        None,
+        FareTransferType::Sum,
+        Some("FP1"),
+    ));
+}
+
+#[test]
+fn semantic_circular_transfer_two_node() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_transfer_rules.clear();
+    push_transfer(&mut feed, "A", "B");
+    push_transfer(&mut feed, "B", "A");
+    assert_eq!(CircularTransferRule.validate(&feed).len(), 2);
+}
+
+#[test]
+fn semantic_circular_transfer_three_node() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_transfer_rules.clear();
+    push_transfer(&mut feed, "A", "B");
+    push_transfer(&mut feed, "B", "C");
+    push_transfer(&mut feed, "C", "A");
+    assert_eq!(CircularTransferRule.validate(&feed).len(), 3);
+}
+
+#[test]
+fn semantic_circular_transfer_dag_ok() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_transfer_rules.clear();
+    push_transfer(&mut feed, "A", "B");
+    push_transfer(&mut feed, "B", "C");
+    assert!(CircularTransferRule.validate(&feed).is_empty());
+}
+
+#[test]
+fn semantic_unused_product() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_products.push(fare_product("ORPHAN", None, None));
+    let errors = UnusedFareProductRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].value.as_deref(), Some("ORPHAN"));
+}
+
+#[test]
+fn semantic_product_used_via_transfer_rule_only() {
+    let mut feed = loaded_v2_feed();
+    feed.fare_products.push(fare_product("FP2", None, None));
+    feed.fare_transfer_rules.push(fare_transfer_rule(
+        Some("LG1"),
+        Some("LG1"),
+        None,
+        None,
+        FareTransferType::Sum,
+        Some("FP2"),
+    ));
+    let errors = UnusedFareProductRule.validate(&feed);
+    assert!(errors.iter().all(|e| e.value.as_deref() != Some("FP2")));
+}
+
+#[test]
+fn semantic_empty_area() {
+    let mut feed = loaded_v2_feed();
+    feed.areas.push(area("EMPTY"));
+    let errors = EmptyAreaRule.validate(&feed);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].value.as_deref(), Some("EMPTY"));
 }

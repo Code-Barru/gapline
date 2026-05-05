@@ -15,13 +15,13 @@
 //! use std::path::Path;
 //! use gapline_core::{Dataset, config::Config, crud::{GtfsTarget, parse}};
 //!
-//! let (mut dataset, _parse_errors) = Dataset::from_path(Path::new("feed.zip")).unwrap;
-//! let config = Config::default;
+//! let (mut dataset, _parse_errors) = Dataset::from_path(Path::new("feed.zip")).unwrap();
+//! let config = Config::default();
 //! let report = dataset.validate(&config);
-//! if !report.has_errors {
-//! let query = parse("stop_id=S1").unwrap;
-//! dataset.delete(GtfsTarget::Stops, &query).unwrap;
-//! dataset.write_zip(Path::new("out.zip")).unwrap;
+//! if !report.has_errors() {
+//!     let query = parse("stop_id=S1").unwrap();
+//!     dataset.delete(GtfsTarget::Stops, &query).unwrap();
+//!     dataset.write_zip(Path::new("out.zip")).unwrap();
 //! }
 //! ```
 //!
@@ -31,8 +31,8 @@
 //! use std::path::Path;
 //! use gapline_core::{Dataset, config::Config};
 //!
-//! let (dataset, _) = Dataset::from_path(Path::new("feed.zip")).unwrap;
-//! let report = dataset.validate(&Config::default);
+//! let (dataset, _) = Dataset::from_path(Path::new("feed.zip")).unwrap();
+//! let report = dataset.validate(&Config::default());
 //! ```
 
 use std::path::{Path, PathBuf};

@@ -21,9 +21,9 @@ use crate::validation::{Severity, ValidationError};
 /// ];
 ///
 /// let report = ValidationReport::from(errors);
-/// assert_eq!(report.error_count, 1);
-/// assert_eq!(report.warning_count, 1);
-/// assert!(report.has_errors);
+/// assert_eq!(report.error_count(), 1);
+/// assert_eq!(report.warning_count(), 1);
+/// assert!(report.has_errors());
 /// ```
 #[derive(Debug, Serialize)]
 pub struct ValidationReport {

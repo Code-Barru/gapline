@@ -19,6 +19,7 @@ pub mod best_practices;
 pub mod csv_formatting;
 pub mod engine;
 mod error;
+pub mod fares_v2_semantic;
 pub mod field_definition;
 pub mod field_type;
 pub mod file_structure;
