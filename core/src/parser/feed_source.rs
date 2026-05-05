@@ -35,6 +35,7 @@ pub enum FeedSource {
         /// Original entry names from the archive (before prefix normalization,
         /// including unknown files, excluding directory entries).
         raw_entry_names: Vec<String>,
+        geojson_bytes: Option<Vec<u8>>,
     },
     /// An in-memory feed for testing. Behaves like a ZIP but needs no file on disk.
     #[doc(hidden)]
@@ -43,6 +44,7 @@ pub enum FeedSource {
         files: HashMap<GtfsFiles, Vec<u8>>,
         /// Raw entry names for structural validation.
         raw_entry_names: Vec<String>,
+        geojson_bytes: Option<Vec<u8>>,
     },
     /// A feed loaded from a directory on disk.
     Directory {
@@ -52,6 +54,7 @@ pub enum FeedSource {
         file_names: Vec<GtfsFiles>,
         /// All file and directory entry names found at any level (relative to root).
         raw_entry_names: Vec<String>,
+        geojson_bytes: Option<Vec<u8>>,
     },
 }
 
@@ -158,6 +161,16 @@ impl FeedSource {
         }
     }
 
+    /// Returns the raw bytes of `locations.geojson`, or `None` if absent.
+    #[must_use]
+    pub fn read_geojson_locations(&self) -> Option<&[u8]> {
+        match self {
+            FeedSource::Zip { geojson_bytes, .. }
+            | FeedSource::InMemory { geojson_bytes, .. }
+            | FeedSource::Directory { geojson_bytes, .. } => geojson_bytes.as_deref(),
+        }
+    }
+
     /// Copies all ZIP entries except `exclude` into the given ZIP writer.
     ///
     /// Unmodified files are decompressed from the source archive and written
@@ -249,6 +262,7 @@ impl FeedSource {
             path,
             index,
             raw_entry_names,
+            geojson_bytes,
         } = self
         else {
             return Ok(());
@@ -269,6 +283,7 @@ impl FeedSource {
         *self = FeedSource::InMemory {
             files,
             raw_entry_names: std::mem::take(raw_entry_names),
+            geojson_bytes: geojson_bytes.take(),
         };
 
         Ok(())

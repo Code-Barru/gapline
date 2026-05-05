@@ -7,6 +7,7 @@ use super::fares_v2::{
     RiderCategory, RouteNetwork, StopArea, Timeframe,
 };
 use super::flex::{BookingRule, LocationGroup, LocationGroupStop};
+use super::geojson::GeoJsonLocation;
 use super::records::{
     Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
     Level, Pathway, Route, Shape, Stop, StopTime, Transfer, Translation, Trip,
@@ -63,6 +64,8 @@ pub struct GtfsFeed {
     pub route_networks: Vec<RouteNetwork>,
     #[serde(default)]
     pub fare_leg_join_rules: Vec<FareLegJoinRule>,
+    #[serde(default)]
+    pub geojson_locations: Vec<GeoJsonLocation>,
 }
 
 impl GtfsFeed {
@@ -96,11 +99,17 @@ impl GtfsFeed {
         self.has_file("booking_rules.txt")
             || self.has_file("location_groups.txt")
             || self.has_file("location_group_stops.txt")
+            || self.has_geojson()
             || self.stop_times.iter().any(|st| {
                 st.pickup_booking_rule_id.is_some()
                     || st.drop_off_booking_rule_id.is_some()
                     || st.start_pickup_drop_off_window.is_some()
                     || st.end_pickup_drop_off_window.is_some()
             })
+    }
+
+    #[must_use]
+    pub fn has_geojson(&self) -> bool {
+        self.has_file("locations.geojson") || !self.geojson_locations.is_empty()
     }
 }

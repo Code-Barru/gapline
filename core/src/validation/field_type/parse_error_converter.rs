@@ -17,6 +17,7 @@ fn convert_one(e: &ParseError) -> ValidationError {
         ParseErrorKind::InvalidTime => ("invalid_time", Severity::Error),
         ParseErrorKind::InvalidEnum => ("unexpected_enum_value", Severity::Warning),
         ParseErrorKind::MissingRequired => ("missing_required_field", Severity::Error),
+        ParseErrorKind::InvalidGeoJson(_) => ("invalid_geojson", Severity::Error),
     };
 
     ValidationError::new(rule_id, "3", severity)

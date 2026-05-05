@@ -16,6 +16,7 @@ pub mod frequencies;
 pub mod levels;
 pub mod location_group_stops;
 pub mod location_groups;
+pub mod locations_geojson;
 pub mod networks;
 pub mod pathways;
 pub mod rider_categories;

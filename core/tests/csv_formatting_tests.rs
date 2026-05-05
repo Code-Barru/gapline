@@ -20,6 +20,7 @@ fn zip_source(files: HashMap<GtfsFiles, Vec<u8>>) -> FeedSource {
     FeedSource::InMemory {
         files,
         raw_entry_names,
+        geojson_bytes: None,
     }
 }
 
@@ -30,6 +31,7 @@ fn zip_source_with_raw(
     FeedSource::InMemory {
         files,
         raw_entry_names,
+        geojson_bytes: None,
     }
 }
 

@@ -700,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "gapline"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "blake3",
  "chrono",
@@ -726,7 +726,7 @@ dependencies = [
 
 [[package]]
 name = "gapline-core"
-version = "1.3.0"
+version = "1.4.0"
 dependencies = [
  "chrono",
  "chrono-tz",

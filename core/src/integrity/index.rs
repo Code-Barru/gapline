@@ -23,6 +23,8 @@ pub struct IntegrityIndex {
     pub booking_rule_to_stop_times: HashMap<BookingRuleId, Vec<(TripId, u32)>>,
     /// `location_group_id` -> member stops.
     pub location_group_to_stops: HashMap<LocationGroupId, Vec<StopId>>,
+    /// `location_id` -> index in `feed.geojson_locations`.
+    pub geojson_location_index: HashMap<String, usize>,
 }
 
 const EMPTY: &[(EntityRef, RelationType); 0] = &[];
@@ -39,13 +41,26 @@ impl IntegrityIndex {
 
         let booking_rule_to_stop_times = build_booking_rule_reverse(feed);
         let location_group_to_stops = build_location_group_reverse(feed);
+        let geojson_location_index = build_geojson_location_index(feed);
 
         Self {
             forward,
             reverse,
             booking_rule_to_stop_times,
             location_group_to_stops,
+            geojson_location_index,
         }
+    }
+
+    #[must_use]
+    pub fn geojson_location<'f>(
+        &self,
+        feed: &'f GtfsFeed,
+        location_id: &str,
+    ) -> Option<&'f crate::models::GeoJsonLocation> {
+        self.geojson_location_index
+            .get(location_id)
+            .and_then(|&i| feed.geojson_locations.get(i))
     }
 
     #[must_use]
@@ -775,6 +790,14 @@ fn build_location_group_reverse(feed: &GtfsFeed) -> HashMap<LocationGroupId, Vec
             .push(lgs.stop_id.clone());
     }
     map
+}
+
+fn build_geojson_location_index(feed: &GtfsFeed) -> HashMap<String, usize> {
+    feed.geojson_locations
+        .iter()
+        .enumerate()
+        .map(|(i, loc)| (loc.id.clone(), i))
+        .collect()
 }
 
 fn add_relation(

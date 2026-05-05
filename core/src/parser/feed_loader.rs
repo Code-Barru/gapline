@@ -2,11 +2,47 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::models::GtfsFeed;
-use crate::parser::error::{ParseError, ParserError};
+use crate::parser::error::{ParseError, ParseErrorKind, ParserError};
 use crate::parser::feed_source::{FeedSource, GtfsFiles};
 use crate::parser::file_parsers;
 
+const LOCATIONS_GEOJSON: &str = "locations.geojson";
+
 pub struct FeedLoader;
+
+fn parse_geojson_locations(
+    source: &FeedSource,
+) -> (Vec<crate::models::GeoJsonLocation>, Vec<ParseError>) {
+    let Some(bytes) = source.read_geojson_locations() else {
+        return (vec![], vec![]);
+    };
+
+    match file_parsers::locations_geojson::parse(bytes) {
+        Ok((locations, feature_errors)) => {
+            let errors = feature_errors
+                .into_iter()
+                .map(|e| ParseError {
+                    file_name: LOCATIONS_GEOJSON.to_string(),
+                    line_number: 0,
+                    field_name: String::new(),
+                    value: e.feature_index.map(|i| i.to_string()).unwrap_or_default(),
+                    kind: ParseErrorKind::InvalidGeoJson(e.message),
+                })
+                .collect();
+            (locations, errors)
+        }
+        Err(parser_err) => (
+            vec![],
+            vec![ParseError {
+                file_name: LOCATIONS_GEOJSON.to_string(),
+                line_number: 0,
+                field_name: String::new(),
+                value: String::new(),
+                kind: ParseErrorKind::InvalidGeoJson(parser_err.to_string()),
+            }],
+        ),
+    }
+}
 
 impl FeedLoader {
     /// # Errors
@@ -235,10 +271,16 @@ impl FeedLoader {
         let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
         all_errors.append(&mut feed_info_errors);
 
-        let loaded_files: HashSet<String> = available
+        let (geojson_locations, mut geojson_errors) = parse_geojson_locations(source);
+        all_errors.append(&mut geojson_errors);
+
+        let mut loaded_files: HashSet<String> = available
             .iter()
             .map(std::string::ToString::to_string)
             .collect();
+        if source.read_geojson_locations().is_some() {
+            loaded_files.insert(LOCATIONS_GEOJSON.to_string());
+        }
 
         let feed = GtfsFeed {
             loaded_files,
@@ -274,6 +316,7 @@ impl FeedLoader {
             networks: unpack!(networks_r, all_errors),
             route_networks: unpack!(route_networks_r, all_errors),
             fare_leg_join_rules: unpack!(fare_leg_join_rules_r, all_errors),
+            geojson_locations,
         };
 
         (feed, all_errors)
@@ -387,11 +430,17 @@ impl FeedLoader {
         let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
         all_errors.append(&mut feed_info_errors);
 
+        let (geojson_locations, mut geojson_errors) = parse_geojson_locations(source);
+        all_errors.append(&mut geojson_errors);
+
         // loaded_files reflects ALL files in the source, not just parsed ones
-        let loaded_files: HashSet<String> = available
+        let mut loaded_files: HashSet<String> = available
             .iter()
             .map(std::string::ToString::to_string)
             .collect();
+        if source.read_geojson_locations().is_some() {
+            loaded_files.insert(LOCATIONS_GEOJSON.to_string());
+        }
 
         let feed = GtfsFeed {
             loaded_files,
@@ -427,6 +476,7 @@ impl FeedLoader {
             networks: unpack!(networks_r, all_errors),
             route_networks: unpack!(route_networks_r, all_errors),
             fare_leg_join_rules: unpack!(fare_leg_join_rules_r, all_errors),
+            geojson_locations,
         };
 
         (feed, all_errors)
@@ -447,7 +497,7 @@ impl FeedLoader {
         }
 
         let file = std::fs::File::open(path)?;
-        let archive = zip::ZipArchive::new(file)?;
+        let mut archive = zip::ZipArchive::new(file)?;
 
         let raw_names: Vec<String> = (0..archive.len())
             .filter_map(|i| {
@@ -465,23 +515,40 @@ impl FeedLoader {
 
         // Build index: GtfsFiles → entry name (no decompression)
         let mut index = HashMap::new();
+        let mut geojson_entry: Option<String> = None;
         for raw_name in &raw_names {
             let normalized = raw_name.strip_prefix(&prefix).unwrap_or(raw_name);
             if let Ok(gtfs_file) = GtfsFiles::try_from(normalized) {
                 index.insert(gtfs_file, raw_name.clone());
+            } else if normalized == LOCATIONS_GEOJSON {
+                geojson_entry = Some(raw_name.clone());
             }
         }
+
+        let geojson_bytes = match geojson_entry {
+            Some(name) => {
+                use std::io::Read;
+                let mut entry = archive.by_name(&name)?;
+                let cap = usize::try_from(entry.size()).unwrap_or(0);
+                let mut buf = Vec::with_capacity(cap);
+                entry.read_to_end(&mut buf)?;
+                Some(buf)
+            }
+            None => None,
+        };
 
         Ok(FeedSource::Zip {
             path: path.to_path_buf(),
             index,
             raw_entry_names: raw_names,
+            geojson_bytes,
         })
     }
 
     fn open_directory(path: &Path) -> Result<FeedSource, ParserError> {
         let mut file_names = Vec::new();
         let mut raw_entry_names = Vec::new();
+        let mut has_geojson = false;
 
         for entry in std::fs::read_dir(path)? {
             let entry = entry?;
@@ -497,16 +564,25 @@ impl FeedLoader {
 
             if let Ok(gtfs_file) = GtfsFiles::try_from(name_str.as_ref()) {
                 file_names.push(gtfs_file);
+            } else if name_str.as_ref() == LOCATIONS_GEOJSON {
+                has_geojson = true;
             }
         }
 
         file_names.sort_by_key(std::string::ToString::to_string);
         raw_entry_names.sort();
 
+        let geojson_bytes = if has_geojson {
+            Some(std::fs::read(path.join(LOCATIONS_GEOJSON))?)
+        } else {
+            None
+        };
+
         Ok(FeedSource::Directory {
             path: path.to_path_buf(),
             file_names,
             raw_entry_names,
+            geojson_bytes,
         })
     }
 

@@ -467,3 +467,42 @@ fn test_agency_optional_id() {
     // Agency with None id should not be registered
     assert!(index.forward.is_empty());
 }
+
+#[test]
+fn geojson_location_reverse_index_lookup() {
+    let mut feed = GtfsFeed::default();
+    feed.geojson_locations.push(GeoJsonLocation {
+        id: "zone-1".to_string(),
+        id_was_generated: false,
+        geometry: GeoJsonGeometry::Polygon {
+            coordinates: vec![vec![
+                Position { lon: 0.0, lat: 0.0 },
+                Position { lon: 1.0, lat: 0.0 },
+                Position { lon: 1.0, lat: 1.0 },
+                Position { lon: 0.0, lat: 0.0 },
+            ]],
+        },
+        properties: std::collections::HashMap::new(),
+    });
+    feed.geojson_locations.push(GeoJsonLocation {
+        id: "zone-2".to_string(),
+        id_was_generated: false,
+        geometry: GeoJsonGeometry::Polygon {
+            coordinates: vec![vec![
+                Position { lon: 2.0, lat: 2.0 },
+                Position { lon: 3.0, lat: 2.0 },
+                Position { lon: 3.0, lat: 3.0 },
+                Position { lon: 2.0, lat: 2.0 },
+            ]],
+        },
+        properties: std::collections::HashMap::new(),
+    });
+
+    let index = IntegrityIndex::build_from_feed(&feed);
+
+    let found = index.geojson_location(&feed, "zone-2").unwrap();
+    assert_eq!(found.id, "zone-2");
+
+    assert!(index.geojson_location(&feed, "missing").is_none());
+    assert_eq!(index.geojson_location_index.len(), 2);
+}

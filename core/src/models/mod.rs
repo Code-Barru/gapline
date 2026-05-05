@@ -2,6 +2,7 @@ mod enums;
 mod fares_v2;
 mod feed;
 mod flex;
+mod geojson;
 mod ids;
 mod records;
 mod types;
@@ -18,6 +19,7 @@ pub use fares_v2::{
 };
 pub use feed::GtfsFeed;
 pub use flex::{BookingRule, LocationGroup, LocationGroupStop};
+pub use geojson::{GeoJsonGeometry, GeoJsonLocation, LinearRing, Position};
 pub use ids::{
     AgencyId, AreaId, BookingRuleId, FareId, FareMediaId, FareProductId, LegGroupId, LevelId,
     LocationGroupId, NetworkId, PathwayId, RiderCategoryId, RouteId, ServiceId, ShapeId, StopId,

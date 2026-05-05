@@ -151,6 +151,65 @@ fn feed_info_absent() {
     assert!(feed.feed_info.is_none());
 }
 
+#[test]
+fn locations_geojson_loaded_into_feed() {
+    let tmp = tempfile::tempdir().unwrap();
+    create_minimal_feed(tmp.path());
+
+    let geojson = br#"{
+        "type": "FeatureCollection",
+        "features": [{
+            "id": "zone-x",
+            "type": "Feature",
+            "geometry": { "type": "Polygon", "coordinates": [[[0.0,0.0],[1.0,0.0],[1.0,1.0],[0.0,0.0]]] },
+            "properties": { "stop_name": "X" }
+        }]
+    }"#;
+    let mut f = std::fs::File::create(tmp.path().join("locations.geojson")).unwrap();
+    f.write_all(geojson).unwrap();
+
+    let source = FeedLoader::open(tmp.path()).unwrap();
+    let (feed, errors) = FeedLoader::load(&source);
+
+    assert!(errors.is_empty(), "unexpected errors: {errors:?}");
+    assert_eq!(feed.geojson_locations.len(), 1);
+    assert_eq!(feed.geojson_locations[0].id, "zone-x");
+    assert!(feed.has_geojson());
+    assert!(feed.has_flex(), "locations.geojson should imply flex");
+}
+
+#[test]
+fn absent_locations_geojson_yields_empty_vec() {
+    let tmp = tempfile::tempdir().unwrap();
+    create_minimal_feed(tmp.path());
+
+    let source = FeedLoader::open(tmp.path()).unwrap();
+    let (feed, errors) = FeedLoader::load(&source);
+
+    assert!(feed.geojson_locations.is_empty());
+    assert!(!feed.has_geojson());
+    assert!(errors.iter().all(|e| e.file_name != "locations.geojson"));
+}
+
+#[test]
+fn invalid_locations_geojson_surfaces_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    create_minimal_feed(tmp.path());
+
+    let mut f = std::fs::File::create(tmp.path().join("locations.geojson")).unwrap();
+    f.write_all(b"not json").unwrap();
+
+    let source = FeedLoader::open(tmp.path()).unwrap();
+    let (feed, errors) = FeedLoader::load(&source);
+
+    assert_eq!(feed.agencies.len(), 1, "rest of feed still parses");
+    assert!(feed.geojson_locations.is_empty());
+    assert!(
+        errors.iter().any(|e| e.file_name == "locations.geojson"),
+        "expected geojson error in stream"
+    );
+}
+
 // -- Errors collected separately
 #[test]
 fn errors_collected_separately() {

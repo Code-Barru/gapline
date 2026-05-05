@@ -23,6 +23,7 @@ fn zip_source(files: &[GtfsFiles]) -> FeedSource {
     FeedSource::InMemory {
         files: map,
         raw_entry_names: files.iter().map(std::string::ToString::to_string).collect(),
+        geojson_bytes: None,
     }
 }
 
@@ -36,6 +37,7 @@ fn zip_source_with_content(entries: &[(GtfsFiles, &[u8])]) -> FeedSource {
     FeedSource::InMemory {
         files: map,
         raw_entry_names: raw,
+        geojson_bytes: None,
     }
 }
 
@@ -48,6 +50,7 @@ fn zip_source_with_raw(entries: &[(GtfsFiles, &[u8])], raw_entry_names: Vec<Stri
     FeedSource::InMemory {
         files: map,
         raw_entry_names,
+        geojson_bytes: None,
     }
 }
 

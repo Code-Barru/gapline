@@ -24,6 +24,24 @@ pub enum ParserError {
 
     #[error("CSV error in {file}: {source}")]
     Csv { file: String, source: csv::Error },
+
+    #[error("Invalid GeoJSON in locations.geojson: {0}")]
+    GeoJson(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct GeoJsonParseError {
+    pub feature_index: Option<usize>,
+    pub message: String,
+}
+
+impl fmt::Display for GeoJsonParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.feature_index {
+            Some(i) => write!(f, "locations.geojson: feature {i}: {}", self.message),
+            None => write!(f, "locations.geojson: {}", self.message),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +71,7 @@ pub enum ParseErrorKind {
     InvalidTime,
     InvalidEnum,
     MissingRequired,
+    InvalidGeoJson(String),
 }
 
 impl fmt::Display for ParseErrorKind {
@@ -64,6 +83,7 @@ impl fmt::Display for ParseErrorKind {
             Self::InvalidTime => write!(f, "invalid time"),
             Self::InvalidEnum => write!(f, "invalid enum value"),
             Self::MissingRequired => write!(f, "missing required field"),
+            Self::InvalidGeoJson(msg) => write!(f, "invalid GeoJSON: {msg}"),
         }
     }
 }
