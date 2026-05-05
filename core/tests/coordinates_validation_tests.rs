@@ -1,4 +1,4 @@
-//! Tests for section 7.13 — coordinate sanity validation.
+//! Tests for section 7.13 - coordinate sanity validation.
 
 use gapline_core::models::*;
 use gapline_core::validation::ValidationRule;
@@ -133,7 +133,7 @@ fn duplicate_coordinates_two_stops() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 6: unique coordinates — no warning
+// Test 6: unique coordinates - no warning
 // ---------------------------------------------------------------------------
 
 #[test]

@@ -1,4 +1,4 @@
-//! Rule `invalid_delimiter` — ensures the CSV delimiter is a comma and line
+//! Rule `invalid_delimiter` - ensures the CSV delimiter is a comma and line
 //! endings are CRLF or LF (not bare CR).
 
 use std::io::Read;

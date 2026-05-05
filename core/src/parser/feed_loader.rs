@@ -49,7 +49,7 @@ impl FeedLoader {
         }
 
         // Parse all files in parallel via nested rayon::join.
-        // Each branch is independent — no shared mutable state.
+        // Each branch is independent - no shared mutable state.
         let (
             ((agencies_r, stops_r), (routes_r, trips_r)),
             ((stop_times_r, calendars_r), (cal_dates_r, shapes_r)),
@@ -146,7 +146,7 @@ impl FeedLoader {
             },
         );
 
-        // feed_info is small — parse sequentially
+        // feed_info is small - parse sequentially
         let feed_info_r = if has(GtfsFiles::FeedInfo) {
             match source.read_file(GtfsFiles::FeedInfo) {
                 Ok(r) => file_parsers::feed_info::parse(r),

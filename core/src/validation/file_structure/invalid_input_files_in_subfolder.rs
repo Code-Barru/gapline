@@ -1,4 +1,4 @@
-//! Rule `invalid_input_files_in_subfolder` — detects GTFS files nested in subdirectories.
+//! Rule `invalid_input_files_in_subfolder` - detects GTFS files nested in subdirectories.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::StructuralValidationRule;

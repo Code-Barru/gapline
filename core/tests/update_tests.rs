@@ -690,7 +690,7 @@ fn update_attribution_organization_name() {
 #[test]
 fn cascade_updates_dependent_fk() {
     let mut feed = feed_with_deps();
-    // S01 is referenced by 2 stop_times — cascade should update them
+    // S01 is referenced by 2 stop_times - cascade should update them
     let query = parse("stop_id=S01").unwrap();
     let plan = validate_update(
         &feed,

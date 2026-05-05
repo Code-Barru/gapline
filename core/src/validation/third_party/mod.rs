@@ -1,4 +1,4 @@
-//! Section 13 — Third-party validator compatibility checks.
+//! Section 13 - Third-party validator compatibility checks.
 //!
 //! These rules replicate checks enforced by widely-used GTFS consumers
 //! (Conveyal, Etalab, `OpenTripPlanner`, Google feedvalidator). A feed that

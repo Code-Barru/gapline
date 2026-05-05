@@ -1,4 +1,4 @@
-//! Rule `missing_required_file` — detects absence of always-required GTFS files.
+//! Rule `missing_required_file` - detects absence of always-required GTFS files.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::StructuralValidationRule;

@@ -113,9 +113,9 @@ macro_rules! define_setter {
             $( $col:ident => $assign:expr ),* $(,)?
         }
     ) => {
-        /// # Errors
-        ///
-        /// Returns [`CrudError`] on unknown field or parse failure.
+ /// # Errors
+ ///
+ /// Returns [`CrudError`] on unknown field or parse failure.
         pub fn $name($record: &mut $ty, $field: &str, $value: &str) -> Result<(), CrudError> {
             match $field {
                 $( stringify!($col) => $record.$col = $assign, )*

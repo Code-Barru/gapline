@@ -1,4 +1,4 @@
-//! Rule `invalid_encoding` — rejects files not encoded in valid UTF-8.
+//! Rule `invalid_encoding` - rejects files not encoded in valid UTF-8.
 //!
 //! A UTF-8 BOM (`\xEF\xBB\xBF`) at the start of a file is accepted and ignored.
 //! Any other encoding (Latin-1, UTF-16, etc.) produces an ERROR.

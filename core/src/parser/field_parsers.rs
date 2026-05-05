@@ -1,7 +1,7 @@
 //! Low-level helpers used by every per-file GTFS parser.
 //!
 //! Each function reads a single field from a [`CsvRow`], converts it to the
-//! target type, and — on failure — pushes a structured [`ParseError`] into the
+//! target type, and - on failure - pushes a structured [`ParseError`] into the
 //! caller's error buffer before returning a default value. This keeps the
 //! per-file parsers (`core/src/parser/file_parsers/*.rs`) uniform: they walk
 //! the rows, call one helper per column, and collect every error in a single
@@ -74,7 +74,7 @@ pub fn optional_str(row: &CsvRow, field: &str) -> Option<String> {
 
 /// Parses a required typed column with `T::from_str`. On missing or invalid
 /// input, emits an error (`MissingRequired` or the supplied `err_kind`) and
-/// returns `T::default()`.
+/// returns `T::default`.
 pub fn required_parse<T: FromStr + Default>(
     row: &CsvRow,
     field: &str,

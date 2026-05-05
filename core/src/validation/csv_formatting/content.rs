@@ -1,4 +1,4 @@
-//! Rules `control_character` (CA7) and `forbidden_content` (CA8) —
+//! Rules `control_character` and `forbidden_content` -
 //! rejects control characters, HTML tags, HTML comments, and literal escape
 //! sequences in field values.
 
@@ -11,7 +11,7 @@ use crate::validation::csv_formatting::patterns::{
 use crate::validation::utils::strip_bom;
 use crate::validation::{Severity, StructuralValidationRule, ValidationError};
 
-/// Checks for control characters (CA7) and forbidden content (CA8).
+/// Checks for control characters and forbidden content.
 pub struct InvalidContentRule;
 
 impl StructuralValidationRule for InvalidContentRule {

@@ -12,7 +12,7 @@ use crate::models::{
 pub trait Filterable {
     /// Returns the string value of `field`, or `None` if the field is unset (`Option::None`).
     ///
-    /// Unknown field names also return `None` — use [`valid_fields`](Self::valid_fields)
+    /// Unknown field names also return `None` - use [`valid_fields`](Self::valid_fields)
     /// to check if a field name is recognized.
     fn field_value(&self, field: &str) -> Option<String>;
 

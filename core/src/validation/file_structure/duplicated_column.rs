@@ -1,4 +1,4 @@
-//! Rule `duplicated_column` — detects duplicate column names in CSV headers.
+//! Rule `duplicated_column` - detects duplicate column names in CSV headers.
 
 use std::collections::HashSet;
 

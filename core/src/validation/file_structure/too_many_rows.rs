@@ -1,4 +1,4 @@
-//! Rule `too_many_rows` — detects files exceeding a configurable row limit.
+//! Rule `too_many_rows` - detects files exceeding a configurable row limit.
 
 use std::io::BufRead;
 

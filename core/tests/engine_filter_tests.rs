@@ -151,7 +151,7 @@ fn disabled_rules_skip_speed_validation() {
     );
 }
 
-/// `pre_rules()` and `post_rules()` getters expose every registered rule
+/// `pre_rules` and `post_rules` getters expose every registered rule
 /// for introspection (used by `gapline rules list`). Both lists must be
 /// non-empty when constructed from the default config.
 #[test]

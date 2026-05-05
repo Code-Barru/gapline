@@ -76,7 +76,7 @@ fn check_coverage(errors: &mut Vec<ValidationError>, feed: &GtfsFeed, min_days: 
     let mut max_date: Option<GtfsDate> = None;
 
     for cal in &feed.calendars {
-        // Ignore inverted ranges — CalendarRangesRule already flags those
+        // Ignore inverted ranges - CalendarRangesRule already flags those
         // and using them here would produce a nonsensical coverage span.
         if cal.start_date > cal.end_date {
             continue;

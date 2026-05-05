@@ -39,7 +39,7 @@ fn read_to_string(reader: &mut dyn BufRead) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Test 1: ZIP valid — file names (CA2, CA4, cas test 1)
+// Test 1: ZIP valid - file names
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -63,7 +63,7 @@ fn test_zip_valid_file_names() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 2: ZIP valid — read file (CA5, cas test 2)
+// Test 2: ZIP valid - read file
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -81,7 +81,7 @@ fn test_zip_read_file() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 3: ZIP with subdirectory — prefix normalization (CA9, cas test 3)
+// Test 3: ZIP with subdirectory - prefix normalization
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -106,7 +106,7 @@ fn test_zip_with_subdirectory() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 4: Directory valid — file names (CA3, cas test 4)
+// Test 4: Directory valid - file names
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -127,7 +127,7 @@ fn test_directory_valid_file_names() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 5: Directory valid — read file (CA5, cas test 5)
+// Test 5: Directory valid - read file
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -147,7 +147,7 @@ fn test_directory_read_file() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 6: Directory filters non-.txt and unknown .txt files (CA3, cas test 6)
+// Test 6: Directory filters non-.txt and unknown .txt files
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -165,7 +165,7 @@ fn test_directory_filters_non_gtfs() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 7: Path not found (CA6, cas test 7)
+// Test 7: Path not found
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -181,7 +181,7 @@ fn test_path_not_found() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 8: Corrupted ZIP (CA7, cas test 8)
+// Test 8: Corrupted ZIP
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -201,7 +201,7 @@ fn test_zip_corrupted() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 9: Not a ZIP and not a directory (CA8, cas test 9)
+// Test 9: Not a ZIP and not a directory
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -277,7 +277,7 @@ fn test_directory_empty() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 13: ZIP with UTF-8 BOM preserved (CA11, cas test 13)
+// Test 13: ZIP with UTF-8 BOM preserved
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -292,7 +292,7 @@ fn test_zip_utf8_bom_preserved() {
     let mut reader = source.read_file(GtfsFiles::Agency).unwrap();
     let text = read_to_string(&mut *reader);
 
-    // BOM should be preserved (stripping is responsibility of the CSV parser in HW-006/007).
+    // BOM should be preserved (stripping is responsibility of the CSV parser in ).
     assert!(
         text.starts_with('\u{FEFF}'),
         "UTF-8 BOM should be preserved"
@@ -301,7 +301,7 @@ fn test_zip_utf8_bom_preserved() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 14: Insufficient permissions (cas test 14) — Linux only
+// Test 14: Insufficient permissions (cas test 14) - Linux only
 // ---------------------------------------------------------------------------
 
 #[cfg(unix)]
@@ -330,7 +330,7 @@ fn test_insufficient_permissions() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 15: ParserError implements Display and Error (CA10)
+// Test 15: ParserError implements Display and Error
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -357,7 +357,7 @@ fn test_parser_error_display_and_error() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 16: read_file on directory — nonexistent GTFS file
+// Test 16: read_file on directory - nonexistent GTFS file
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -397,7 +397,7 @@ fn test_feed_source_variants() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 18: TryFrom<&str> — valid filename
+// Test 18: TryFrom<&str> - valid filename
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -419,7 +419,7 @@ fn test_try_from_valid() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 19: TryFrom<&str> — unknown filename
+// Test 19: TryFrom<&str> - unknown filename
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -431,7 +431,7 @@ fn test_try_from_unknown() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 20: Display — shows correct filename
+// Test 20: Display - shows correct filename
 // ---------------------------------------------------------------------------
 
 #[test]

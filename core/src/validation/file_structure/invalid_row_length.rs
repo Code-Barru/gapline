@@ -1,4 +1,4 @@
-//! Rule `invalid_row_length` — detects rows with a different number of fields than the header.
+//! Rule `invalid_row_length` - detects rows with a different number of fields than the header.
 
 use std::io::BufRead;
 

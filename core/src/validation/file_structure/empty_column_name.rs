@@ -1,4 +1,4 @@
-//! Rule `empty_column_name` — detects empty column names in CSV headers.
+//! Rule `empty_column_name` - detects empty column names in CSV headers.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::StructuralValidationRule;

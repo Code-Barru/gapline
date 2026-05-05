@@ -1,4 +1,4 @@
-//! Tests for section 7.3 & 7.4 — shape geometry & stop-to-shape distances.
+//! Tests for section 7.3 & 7.4 - shape geometry & stop-to-shape distances.
 
 use std::time::Instant;
 
@@ -13,7 +13,7 @@ use gapline_core::validation::schedule_time_validation::shapes::ShapesGeometryRu
 // ---------------------------------------------------------------------------
 
 /// Meters per degree of latitude (constant with the spherical Earth model we
-/// use — `EARTH_RADIUS_M` = 6 371 000 m ⟹ π·R/180 ≈ 111 194.93 m/°).
+/// use - `EARTH_RADIUS_M` = 6 371 000 m ⟹ π·R/180 ≈ 111 194.93 m/°).
 const M_PER_DEG_LAT: f64 = 111_194.93;
 
 /// Offset `meters` along the latitude axis (no longitude drift).
@@ -148,7 +148,7 @@ fn haversine_tiny_offset_matches_expected() {
 }
 
 // ---------------------------------------------------------------------------
-// ShapesGeometryRule — CA1, CA2, CA4 (CA3 covered by FK rule)
+// ShapesGeometryRule
 // ---------------------------------------------------------------------------
 
 fn rule_shapes() -> ShapesGeometryRule {
@@ -444,7 +444,7 @@ fn degenerate_shape_does_not_affect_siblings() {
 }
 
 // ---------------------------------------------------------------------------
-// StopToShapeDistanceRule — CA5, CA7, CA8
+// StopToShapeDistanceRule
 // ---------------------------------------------------------------------------
 
 fn rule_distances(max_m: f64) -> StopToShapeDistanceRule {
@@ -492,7 +492,7 @@ fn stop_within_threshold_passes() {
     assert!(rule_distances(100.0).validate(&feed).is_empty());
 }
 
-/// Case #10: trip without a `shape_id` → no stop-to-shape checks (CA8).
+/// Case #10: trip without a `shape_id` → no stop-to-shape checks.
 #[test]
 fn trip_without_shape_is_skipped() {
     let feed = GtfsFeed {

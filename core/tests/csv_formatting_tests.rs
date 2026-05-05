@@ -40,7 +40,7 @@ fn single_file(file: GtfsFiles, content: Vec<u8>) -> HashMap<GtfsFiles, Vec<u8>>
 }
 
 // ===========================================================================
-// #1 — Valid UTF-8 without BOM -> 0 errors section 2
+// #1 - Valid UTF-8 without BOM -> 0 errors section 2
 // ===========================================================================
 #[test]
 fn t01_valid_utf8_no_bom() {
@@ -53,7 +53,7 @@ fn t01_valid_utf8_no_bom() {
 }
 
 // ===========================================================================
-// #2 — Valid UTF-8 with BOM -> 0 errors
+// #2 - Valid UTF-8 with BOM -> 0 errors
 // ===========================================================================
 #[test]
 fn t02_valid_utf8_with_bom() {
@@ -64,7 +64,7 @@ fn t02_valid_utf8_with_bom() {
 }
 
 // ===========================================================================
-// #3 — Latin-1 encoding -> ERROR
+// #3 - Latin-1 encoding -> ERROR
 // ===========================================================================
 #[test]
 fn t03_latin1_encoding() {
@@ -81,7 +81,7 @@ fn t03_latin1_encoding() {
 }
 
 // ===========================================================================
-// #4 — UTF-16 encoding -> ERROR
+// #4 - UTF-16 encoding -> ERROR
 // ===========================================================================
 #[test]
 fn t04_utf16_encoding() {
@@ -94,7 +94,7 @@ fn t04_utf16_encoding() {
 }
 
 // ===========================================================================
-// #5 — Semicolon delimiter -> ERROR
+// #5 - Semicolon delimiter -> ERROR
 // ===========================================================================
 #[test]
 fn t05_semicolon_delimiter() {
@@ -108,7 +108,7 @@ fn t05_semicolon_delimiter() {
 }
 
 // ===========================================================================
-// #6 — Tab delimiter -> ERROR
+// #6 - Tab delimiter -> ERROR
 // ===========================================================================
 #[test]
 fn t06_tab_delimiter() {
@@ -122,7 +122,7 @@ fn t06_tab_delimiter() {
 }
 
 // ===========================================================================
-// #7 — CRLF line ending -> 0 errors
+// #7 - CRLF line ending -> 0 errors
 // ===========================================================================
 #[test]
 fn t07_crlf_line_ending() {
@@ -134,7 +134,7 @@ fn t07_crlf_line_ending() {
 }
 
 // ===========================================================================
-// #8 — LF-only line ending -> 0 errors
+// #8 - LF-only line ending -> 0 errors
 // ===========================================================================
 #[test]
 fn t08_lf_line_ending() {
@@ -146,7 +146,7 @@ fn t08_lf_line_ending() {
 }
 
 // ===========================================================================
-// #9 — Wrong file name casing -> ERROR
+// #9 - Wrong file name casing -> ERROR
 // ===========================================================================
 #[test]
 fn t09_wrong_file_name_casing() {
@@ -164,7 +164,7 @@ fn t09_wrong_file_name_casing() {
 }
 
 // ===========================================================================
-// #10 — Wrong column name casing -> ERROR
+// #10 - Wrong column name casing -> ERROR
 // ===========================================================================
 #[test]
 fn t10_wrong_column_name_casing() {
@@ -179,18 +179,18 @@ fn t10_wrong_column_name_casing() {
 }
 
 // ===========================================================================
-// #11 — Unquoted value with comma -> ERROR quoting
+// #11 - Unquoted value with comma -> ERROR quoting
 // ===========================================================================
 #[test]
 fn t11_unquoted_comma_in_value() {
-    // "Gare de Lyon, Paris" without quotes — the comma splits the field,
+    // "Gare de Lyon, Paris" without quotes - the comma splits the field,
     // which causes a row length mismatch. The quoting rule detects the
     // structural issue at the state-machine level. Here we test that the
     // file with an unquoted embedded comma produces quoting errors.
     // Actually with our state machine, the comma just splits the field,
     // no quoting error per se (that's a row-length issue for section 1).
-    // Let's test a quote inside an unquoted field instead (covered by CA5).
-    // Re-reading the spec: CA5 says values containing comma MUST be quoted.
+    // Let's test a quote inside an unquoted field instead.
+    // Re-reading the spec: spec says values containing comma MUST be quoted.
     // Our state machine doesn't detect "missing quotes around comma" because
     // from the parser's perspective the comma is just a delimiter.
     // This is inherently a semantic check that requires knowing the expected
@@ -205,7 +205,7 @@ fn t11_unquoted_comma_in_value() {
 }
 
 // ===========================================================================
-// #12 — Correctly quoted value -> 0 errors
+// #12 - Correctly quoted value -> 0 errors
 // ===========================================================================
 #[test]
 fn t12_correctly_quoted_value() {
@@ -217,7 +217,7 @@ fn t12_correctly_quoted_value() {
 }
 
 // ===========================================================================
-// #13 — Single inner quotes (not doubled) -> ERROR
+// #13 - Single inner quotes (not doubled) -> ERROR
 // ===========================================================================
 #[test]
 fn t13_single_inner_quote() {
@@ -232,7 +232,7 @@ fn t13_single_inner_quote() {
 }
 
 // ===========================================================================
-// #14 — Doubled inner quotes -> 0 errors
+// #14 - Doubled inner quotes -> 0 errors
 // ===========================================================================
 #[test]
 fn t14_doubled_inner_quotes() {
@@ -244,7 +244,7 @@ fn t14_doubled_inner_quotes() {
 }
 
 // ===========================================================================
-// #15 — Tab in value -> ERROR control character
+// #15 - Tab in value -> ERROR control character
 // ===========================================================================
 #[test]
 fn t15_tab_in_value() {
@@ -259,7 +259,7 @@ fn t15_tab_in_value() {
 }
 
 // ===========================================================================
-// #16 — Bare CR in value -> ERROR
+// #16 - Bare CR in value -> ERROR
 // ===========================================================================
 #[test]
 fn t16_bare_cr_in_value() {
@@ -272,7 +272,7 @@ fn t16_bare_cr_in_value() {
 }
 
 // ===========================================================================
-// #17 — HTML tag in value -> ERROR forbidden content
+// #17 - HTML tag in value -> ERROR forbidden content
 // ===========================================================================
 #[test]
 fn t17_html_tag_in_value() {
@@ -295,7 +295,7 @@ fn t17_html_tag_in_value() {
 }
 
 // ===========================================================================
-// #18 — HTML comment -> ERROR
+// #18 - HTML comment -> ERROR
 // ===========================================================================
 #[test]
 fn t18_html_comment() {
@@ -312,7 +312,7 @@ fn t18_html_comment() {
 }
 
 // ===========================================================================
-// #19 — Literal escape sequence -> ERROR
+// #19 - Literal escape sequence -> ERROR
 // ===========================================================================
 #[test]
 fn t19_literal_escape_sequence() {
@@ -329,7 +329,7 @@ fn t19_literal_escape_sequence() {
 }
 
 // ===========================================================================
-// #20 — Superfluous whitespace between fields -> WARNING
+// #20 - Superfluous whitespace between fields -> WARNING
 // ===========================================================================
 #[test]
 fn t20_superfluous_whitespace() {
@@ -346,7 +346,7 @@ fn t20_superfluous_whitespace() {
 }
 
 // ===========================================================================
-// #21 — Space within value (legitimate) -> 0 errors
+// #21 - Space within value (legitimate) -> 0 errors
 // ===========================================================================
 #[test]
 fn t21_internal_space_ok() {
@@ -358,7 +358,7 @@ fn t21_internal_space_ok() {
 }
 
 // ===========================================================================
-// #22 — Mixed file — multiple violations -> distinct errors
+// #22 - Mixed file - multiple violations -> distinct errors
 // ===========================================================================
 #[test]
 fn t22_mixed_violations() {
@@ -394,7 +394,7 @@ fn t22_mixed_violations() {
 }
 
 // ===========================================================================
-// CA3 — Missing header (all-numeric first line)
+// Missing header (all-numeric first line)
 // ===========================================================================
 #[test]
 fn t_ca3_all_numeric_header() {
@@ -418,7 +418,7 @@ fn t_ca3_valid_header_passes() {
 }
 
 // ===========================================================================
-// Quoting — quote in unquoted field
+// Quoting - quote in unquoted field
 // ===========================================================================
 #[test]
 fn t_quote_in_unquoted_field() {
@@ -432,7 +432,7 @@ fn t_quote_in_unquoted_field() {
 }
 
 // ===========================================================================
-// CA10 — All rules return section="2"
+// All rules return section="2"
 // ===========================================================================
 #[test]
 fn t_ca10_all_errors_section_2() {
@@ -452,7 +452,7 @@ fn t_ca10_all_errors_section_2() {
 }
 
 // ===========================================================================
-// CA11 — Errors include file_name, line_number, value when relevant
+// Errors include file_name, line_number, value when relevant
 // ===========================================================================
 #[test]
 fn t_ca11_error_context() {

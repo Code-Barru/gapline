@@ -68,7 +68,7 @@ pub enum BatchCommandResult {
     Saved {
         count: usize,
     },
-    /// No matching records — command was a no-op.
+    /// No matching records - command was a no-op.
     NoChanges,
 }
 

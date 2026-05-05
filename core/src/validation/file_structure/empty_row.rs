@@ -1,4 +1,4 @@
-//! Rule `empty_row` — warns about data rows that contain only whitespace.
+//! Rule `empty_row` - warns about data rows that contain only whitespace.
 
 use std::io::BufRead;
 

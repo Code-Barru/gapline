@@ -18,16 +18,16 @@ use std::fmt::{Display, Formatter};
 ///
 /// // Structural error (no file/line context needed)
 /// let structural = ValidationError::new("missing_required_file", "1", Severity::Error)
-///     .message("Required file agency.txt is missing")
-///     .file("agency.txt");
+/// .message("Required file agency.txt is missing")
+/// .file("agency.txt");
 ///
 /// // Field-level error with full context
 /// let field_err = ValidationError::new("invalid_date", "3", Severity::Error)
-///     .message("Invalid date format: 2026-13-01")
-///     .file("calendar.txt")
-///     .line(42)
-///     .field("start_date")
-///     .value("2026-13-01");
+/// .message("Invalid date format: 2026-13-01")
+/// .file("calendar.txt")
+/// .line(42)
+/// .field("start_date")
+/// .value("2026-13-01");
 /// ```
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValidationError {

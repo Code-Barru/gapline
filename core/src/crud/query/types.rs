@@ -42,7 +42,7 @@ pub enum Filter {
     Lt(String, String),
     /// `field <= value`
     Lte(String, String),
-    /// `field LIKE pattern` — SQL-style pattern match (`%` = any sequence, `_` = single char).
+    /// `field LIKE pattern` - SQL-style pattern match (`%` = any sequence, `_` = single char).
     Like(String, String),
 }
 

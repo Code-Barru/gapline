@@ -1,4 +1,4 @@
-//! Tests for section 7.9 — transfer validation.
+//! Tests for section 7.9 - transfer validation.
 
 use gapline_core::models::*;
 use gapline_core::validation::schedule_time_validation::TransferThresholds;

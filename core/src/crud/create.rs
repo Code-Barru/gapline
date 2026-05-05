@@ -484,7 +484,7 @@ macro_rules! build_record {
         build_record!(@walk plain, $fn, $ty, f, [] $($body)*);
     };
 
-    // --- terminal arms ---
+ // --- terminal arms ---
     (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]) => {
         fn $fn($f: &Fields) -> Result<$ty, CreateError> {
             Ok($ty { $($acc)* })
@@ -496,7 +496,7 @@ macro_rules! build_record {
         }
     };
 
-    // --- infallible kinds (valid in both modes) ---
+ // --- infallible kinds (valid in both modes) ---
     (@walk $mode:ident, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
         $name:ident : req_str, $($rest:tt)*) => {
         build_record!(@walk $mode, $fn, $ty, $f,
@@ -523,7 +523,7 @@ macro_rules! build_record {
             [$($acc)* $name: opt_id::<$t>($f, stringify!($name)),] $($rest)*);
     };
 
-    // --- fallible kinds (only valid in fallible mode) ---
+ // --- fallible kinds (only valid in fallible mode) ---
     (@walk fallible, $fn:ident, $ty:ident, $f:ident, [$($acc:tt)*]
         $name:ident : req_parse($expected:literal), $($rest:tt)*) => {
         build_record!(@walk fallible, $fn, $ty, $f,
@@ -558,7 +558,7 @@ macro_rules! build_record {
     };
 }
 
-/// Infallible variant — delegates to `build_record!(@plain ...)`.
+/// Infallible variant - delegates to `build_record!(@plain ...)`.
 macro_rules! build_record_plain {
     ($fn:ident -> $ty:ident { $($body:tt)* }) => {
         build_record!(@plain $fn -> $ty { $($body)* });

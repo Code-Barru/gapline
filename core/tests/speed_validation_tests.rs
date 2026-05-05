@@ -1,4 +1,4 @@
-//! Tests for section 7.11 — speed validation.
+//! Tests for section 7.11 - speed validation.
 
 use gapline_core::models::*;
 use gapline_core::validation::schedule_time_validation::SpeedThresholds;
@@ -140,7 +140,7 @@ fn rule() -> SpeedValidationRule {
 }
 
 // ---------------------------------------------------------------------------
-// CA8: unrealistic_speed
+// unrealistic_speed
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -249,7 +249,7 @@ fn ferry_within_limit() {
 }
 
 // ---------------------------------------------------------------------------
-// CA9: zero_speed
+// zero_speed
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -281,7 +281,7 @@ fn zero_speed_different_coords() {
 
 #[test]
 fn zero_speed_same_coords_ok() {
-    // Same coordinates, same time — not flagged (distance < 1m)
+    // Same coordinates, same time - not flagged (distance < 1m)
     let feed = GtfsFeed {
         stops: vec![
             make_stop("A", BASE_LAT, BASE_LON),
@@ -304,7 +304,7 @@ fn zero_speed_same_coords_ok() {
 }
 
 // ---------------------------------------------------------------------------
-// CA10: skip conditions
+// skip conditions
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -366,7 +366,7 @@ fn missing_coords_skipped() {
 }
 
 // ---------------------------------------------------------------------------
-// CA11: custom speed limits
+// custom speed limits
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -436,7 +436,7 @@ fn multiple_trips_independent() {
 }
 
 // ---------------------------------------------------------------------------
-// CA13: error context completeness
+// error context completeness
 // ---------------------------------------------------------------------------
 
 #[test]

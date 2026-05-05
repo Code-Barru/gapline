@@ -1,4 +1,4 @@
-//! Tests for section 3 — Field Type Validation.
+//! Tests for section 3 - Field Type Validation.
 
 use gapline_core::models::*;
 use gapline_core::parser::error::{ParseError, ParseErrorKind};

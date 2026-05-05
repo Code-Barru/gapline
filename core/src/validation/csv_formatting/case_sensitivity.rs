@@ -1,4 +1,4 @@
-//! Rule `case_sensitive_name` — rejects file names and column names that differ
+//! Rule `case_sensitive_name` - rejects file names and column names that differ
 //! from the canonical GTFS names only by case.
 
 use crate::parser::{FeedSource, GtfsFiles};

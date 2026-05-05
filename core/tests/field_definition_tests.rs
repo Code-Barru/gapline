@@ -1,4 +1,4 @@
-//! Tests for section 4 — Field Definition Validation.
+//! Tests for section 4 - Field Definition Validation.
 
 use chrono::NaiveDate;
 use gapline_core::models::*;
@@ -266,7 +266,7 @@ fn errors_for_field<'a>(
 }
 
 // ---------------------------------------------------------------------------
-// Test 1 — Valid feed produces 0 errors
+// Test 1 - Valid feed produces 0 errors
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -292,7 +292,7 @@ fn valid_feed_produces_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Agency tests (CA1, CA2)
+// Agency tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -342,7 +342,7 @@ fn agency_id_optional_single_agency() {
 }
 
 // ---------------------------------------------------------------------------
-// Stops tests (CA3-CA6)
+// Stops tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -414,7 +414,7 @@ fn parent_station_forbidden_type_1() {
 }
 
 // ---------------------------------------------------------------------------
-// Routes tests (CA7-CA9)
+// Routes tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -450,7 +450,7 @@ fn route_agency_id_required_multiple_agencies() {
 }
 
 // ---------------------------------------------------------------------------
-// Trips tests (CA10-CA11)
+// Trips tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -472,7 +472,7 @@ fn trip_shape_id_optional_when_shapes_absent() {
 }
 
 // ---------------------------------------------------------------------------
-// StopTimes tests (CA12-CA14)
+// StopTimes tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -558,7 +558,7 @@ fn errors_from_multiple_files_are_all_reported() {
 }
 
 // ---------------------------------------------------------------------------
-// Transfers tests (CA4)
+// Transfers tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -642,7 +642,7 @@ fn transfers_absent_file_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Pathways tests (CA5, CA6)
+// Pathways tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -725,7 +725,7 @@ fn pathways_absent_file_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// FeedInfo tests (CA8)
+// FeedInfo tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -809,7 +809,7 @@ fn feed_info_absent_file_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Translations tests (CA11)
+// Translations tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -856,7 +856,7 @@ fn translations_absent_file_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Attributions tests (CA12)
+// Attributions tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -919,7 +919,7 @@ fn attributions_absent_file_no_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Multi-file cumulation — secondary files (Test 16)
+// Multi-file cumulation - secondary files (Test 16)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -956,7 +956,7 @@ fn errors_from_secondary_files_are_all_reported() {
 }
 
 // ---------------------------------------------------------------------------
-// Section 9 — GTFS-Flex helpers
+// Section 9 - GTFS-Flex helpers
 // ---------------------------------------------------------------------------
 
 fn make_booking_rule(id: &str, btype: Option<BookingType>, prior_min: Option<u32>) -> BookingRule {
@@ -996,7 +996,7 @@ fn make_stop_time_flex(
 }
 
 // ---------------------------------------------------------------------------
-// Section 9 — booking_rules tests (CA4, CA5)
+// Section 9 - booking_rules tests
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1088,7 +1088,7 @@ fn booking_rules_missing_booking_type_skipped_in_validator() {
 }
 
 // ---------------------------------------------------------------------------
-// Section 9 — stop_times Flex tests (window pair + booking-rule conditional)
+// Section 9 - stop_times Flex tests (window pair + booking-rule conditional)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1186,7 +1186,7 @@ fn stop_times_flex_fixed_stop_without_window_yields_zero_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Section 9 — engine registration (CA10)
+// Section 9 - engine registration
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1203,7 +1203,7 @@ fn section_9_rules_registered_in_default_engine() {
 }
 
 // ---------------------------------------------------------------------------
-// Section 9 — cumulation across multiple Flex files (CA11 cumulé)
+// Section 9 - cumulation across multiple Flex files
 // ---------------------------------------------------------------------------
 
 #[test]

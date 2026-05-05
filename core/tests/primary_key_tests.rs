@@ -1,4 +1,4 @@
-//! Tests for section 6 — Primary Key Uniqueness.
+//! Tests for section 6 - Primary Key Uniqueness.
 
 use chrono::NaiveDate;
 use gapline_core::models::*;
@@ -318,7 +318,7 @@ fn duplicate_stop_times_composite() {
 
 #[test]
 fn valid_stop_times_different_sequence() {
-    let feed = valid_feed(); // (T1,1) and (T1,2) — no duplicate
+    let feed = valid_feed(); // (T1,1) and (T1,2) - no duplicate
     let errors = PrimaryKeyUniquenessRule.validate(&feed);
     let errs = errors_for_field(&errors, "trip_id, stop_sequence");
     assert!(errs.is_empty());

@@ -1,4 +1,4 @@
-//! Tests for section 5 — Foreign Key Validation.
+//! Tests for section 5 - Foreign Key Validation.
 
 use chrono::NaiveDate;
 use gapline_core::models::*;
@@ -12,7 +12,7 @@ use gapline_core::validation::foreign_key::stops_parent_station::StopsParentStat
 use gapline_core::validation::foreign_key::trips_route::TripsRouteFkRule;
 use gapline_core::validation::foreign_key::trips_service::TripsServiceFkRule;
 use gapline_core::validation::foreign_key::trips_shape::TripsShapeFkRule;
-// HW-018 extended FK rules
+// extended FK rules
 use gapline_core::validation::foreign_key::attributions_refs::AttributionsRefsFkRule;
 use gapline_core::validation::foreign_key::fare_attributes_agency::FareAttributesAgencyFkRule;
 use gapline_core::validation::foreign_key::fare_rules_fare::FareRulesFareFkRule;
@@ -225,7 +225,7 @@ fn count_errors(errors: &[ValidationError], severity: Severity) -> usize {
 }
 
 // ---------------------------------------------------------------------------
-// All rules — valid feed
+// All rules - valid feed
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -251,7 +251,7 @@ fn valid_feed_no_fk_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// routes.agency_id → agency (CA1, CA2)
+// routes.agency_id → agency
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -280,7 +280,7 @@ fn route_agency_implicit() {
 }
 
 // ---------------------------------------------------------------------------
-// trips.route_id → routes (CA3)
+// trips.route_id → routes
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -295,7 +295,7 @@ fn trip_route_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// trips.service_id → calendar / calendar_dates (CA4)
+// trips.service_id → calendar / calendar_dates
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -320,7 +320,7 @@ fn trip_service_in_calendar_dates_only() {
 }
 
 // ---------------------------------------------------------------------------
-// trips.shape_id → shapes (CA5)
+// trips.shape_id → shapes
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -342,7 +342,7 @@ fn trip_shape_empty() {
 }
 
 // ---------------------------------------------------------------------------
-// stop_times.trip_id → trips (CA6)
+// stop_times.trip_id → trips
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -358,7 +358,7 @@ fn stop_time_trip_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// stop_times.stop_id → stops (CA7)
+// stop_times.stop_id → stops
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -373,7 +373,7 @@ fn stop_time_stop_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// frequencies.trip_id → trips (CA9)
+// frequencies.trip_id → trips
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -389,7 +389,7 @@ fn frequency_trip_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// stops.parent_station → stops (CA10)
+// stops.parent_station → stops
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -453,7 +453,7 @@ fn parent_station_valid() {
 }
 
 // ---------------------------------------------------------------------------
-// stops.level_id → levels (CA11)
+// stops.level_id → levels
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -515,7 +515,7 @@ fn perf_100k_stop_times() {
 }
 
 // ---------------------------------------------------------------------------
-// calendar_dates.service_id → calendar (CA8)
+// calendar_dates.service_id → calendar
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -571,7 +571,7 @@ fn frequency_trip_valid() {
 }
 
 // ---------------------------------------------------------------------------
-// Error context (CA12, CA13)
+// Error context
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -586,7 +586,7 @@ fn error_includes_correct_line_number() {
 }
 
 // ===========================================================================
-// HW-018 — Extended FK rules
+// - Extended FK rules
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
@@ -754,7 +754,7 @@ fn valid_feed_extended() -> GtfsFeed {
 }
 
 // ---------------------------------------------------------------------------
-// All extended rules — valid feed (Cas #1)
+// All extended rules - valid feed (Cas #1)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -783,7 +783,7 @@ fn valid_feed_extended_no_fk_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// transfers.from_stop_id / to_stop_id → stops (CA1, Cas #2)
+// transfers.from_stop_id / to_stop_id → stops
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -826,7 +826,7 @@ fn transfer_to_stop_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// transfers.from_trip_id / to_trip_id → trips (CA2, Cas #3, #4)
+// transfers.from_trip_id / to_trip_id → trips
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -858,7 +858,7 @@ fn transfer_from_trip_empty_no_error() {
 }
 
 // ---------------------------------------------------------------------------
-// transfers.from_route_id / to_route_id → routes (CA3)
+// transfers.from_route_id / to_route_id → routes
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -886,7 +886,7 @@ fn transfer_to_route_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// pathways.from_stop_id / to_stop_id → stops with location_type (CA4, Cas #5, #6)
+// pathways.from_stop_id / to_stop_id → stops with location_type
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -961,7 +961,7 @@ fn pathway_stop_valid_type4() {
 }
 
 // ---------------------------------------------------------------------------
-// fare_rules.fare_id → fare_attributes (CA5, Cas #7)
+// fare_rules.fare_id → fare_attributes
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -989,7 +989,7 @@ fn fare_rule_fare_valid() {
 }
 
 // ---------------------------------------------------------------------------
-// fare_rules.route_id → routes (CA6)
+// fare_rules.route_id → routes
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1006,7 +1006,7 @@ fn fare_rule_route_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// fare_rules.origin_id / destination_id / contains_id → stops.zone_id (CA7, Cas #8, #9)
+// fare_rules.origin_id / destination_id / contains_id → stops.zone_id
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1087,7 +1087,7 @@ fn fare_attributes_agency_empty_no_error() {
 }
 
 // ---------------------------------------------------------------------------
-// translations.record_id → target table (CA8, Cas #10, #11)
+// translations.record_id → target table
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1159,7 +1159,7 @@ fn translation_record_sub_id_stop_times_orphan() {
 }
 
 // ---------------------------------------------------------------------------
-// attributions.agency_id / route_id / trip_id (CA9, Cas #12)
+// attributions.agency_id / route_id / trip_id
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1217,7 +1217,7 @@ fn attribution_all_empty_no_error() {
 }
 
 // ---------------------------------------------------------------------------
-// Absent files generate no errors (CA11, Cas #13)
+// Absent files generate no errors
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1281,7 +1281,7 @@ fn multi_file_cumul_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Error metadata (CA12)
+// Error metadata
 // ---------------------------------------------------------------------------
 
 #[test]

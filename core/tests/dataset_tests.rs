@@ -6,7 +6,7 @@ use gapline_core::config::Config;
 use gapline_core::crud::{GtfsTarget, parse};
 use gapline_core::validation::validate;
 
-// ── CA2 / CA16 — Send + Sync ─────────────────────────────────────────────────
+// ── Send + Sync ─────────────────────────────────────────────────
 
 #[test]
 fn dataset_is_send_sync() {
@@ -14,7 +14,7 @@ fn dataset_is_send_sync() {
     assert_send_sync::<Dataset>();
 }
 
-// ── CA10 — canonical ValidationEngine path ───────────────────────────────────
+// ── canonical ValidationEngine path ───────────────────────────────────
 
 #[test]
 fn validation_engine_canonical_path_compiles() {
@@ -22,7 +22,7 @@ fn validation_engine_canonical_path_compiles() {
     let _ = std::mem::size_of::<ValidationEngine>();
 }
 
-// ── CA18 — legacy ValidationEngine path still works ──────────────────────────
+// ── legacy ValidationEngine path still works ──────────────────────────
 
 #[test]
 fn validation_engine_legacy_path_compiles() {
@@ -30,14 +30,14 @@ fn validation_engine_legacy_path_compiles() {
     let _ = std::mem::size_of::<ValidationEngine>();
 }
 
-// ── CA11 — GtfsTarget accessible from crud root ───────────────────────────────
+// ── GtfsTarget accessible from crud root ───────────────────────────────
 
 #[test]
 fn gtfs_target_from_crud_root() {
     let _ = GtfsTarget::Stops;
 }
 
-// ── CA3 / Test 5 — Dataset::empty ────────────────────────────────────────────
+// ── Test 5 - Dataset::empty ────────────────────────────────────────────
 
 #[test]
 fn dataset_empty_has_no_records() {
@@ -47,7 +47,7 @@ fn dataset_empty_has_no_records() {
     assert!(dataset.feed().routes.is_empty());
 }
 
-// ── CA3 / Test 1 — Dataset::from_path on valid feed ──────────────────────────
+// ── Test 1 - Dataset::from_path on valid feed ──────────────────────────
 
 #[test]
 fn dataset_from_path_valid_feed() {
@@ -66,9 +66,9 @@ fn dataset_from_path_valid_feed() {
     );
 }
 
-// ── CA21 — equivalence: structural + semantic == validation::validate ─────────
+// ── equivalence: structural + semantic == validation::validate ─────────
 //
-// Dataset::validate() = semantic only. For full-pipeline equivalence, we
+// Dataset::validate = semantic only. For full-pipeline equivalence, we
 // assemble structural + semantic manually and compare with the free function.
 
 fn full_pipeline_report(
@@ -117,7 +117,7 @@ fn validate_equivalence_valid_feed() {
     );
 }
 
-// ── CA9 — integrity rebuilt after delete ─────────────────────────────────────
+// ── integrity rebuilt after delete ─────────────────────────────────────
 
 #[test]
 fn integrity_rebuilt_after_mutation() {

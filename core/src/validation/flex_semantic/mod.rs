@@ -1,4 +1,4 @@
-//! Section 9 — GTFS-Flex semantic rules.
+//! Section 9 - GTFS-Flex semantic rules.
 
 use std::sync::Arc;
 

@@ -1,4 +1,4 @@
-//! Rule `unknown_column` — reports columns not recognized by the GTFS spec for a given file.
+//! Rule `unknown_column` - reports columns not recognized by the GTFS spec for a given file.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::StructuralValidationRule;

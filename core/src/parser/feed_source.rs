@@ -13,7 +13,7 @@ use crate::parser::error::ParserError;
 /// Abstraction over a loaded GTFS feed, whether from a ZIP archive or a directory.
 ///
 /// `FeedSource` provides uniform access to the raw file contents of a GTFS feed.
-/// It does **not** parse CSV data — it only provides file names and byte-level readers
+/// It does **not** parse CSV data - it only provides file names and byte-level readers
 /// for downstream stages (structural validation, then CSV parsing).
 ///
 /// Only files matching a known [`GtfsFiles`] variant are indexed for data access.
@@ -96,7 +96,7 @@ impl FeedSource {
 
     /// Returns a buffered reader for the given GTFS file within the feed.
     ///
-    /// For ZIP feeds the entry is decompressed on demand — only the requested
+    /// For ZIP feeds the entry is decompressed on demand - only the requested
     /// file is read from the archive.
     ///
     /// # Errors
@@ -620,7 +620,7 @@ impl GtfsFiles {
     /// Returns the **required** column names for this GTFS file according to the
     /// [GTFS Schedule Reference](https://gtfs.org/documentation/schedule/reference/).
     ///
-    /// Conditionally required columns are not included here — they depend on
+    /// Conditionally required columns are not included here - they depend on
     /// context that structural validation cannot evaluate (e.g. number of agencies,
     /// `location_type` values). Those are validated in later sections.
     #[must_use]

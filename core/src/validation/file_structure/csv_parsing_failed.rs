@@ -1,4 +1,4 @@
-//! Rule `csv_parsing_failed` — catch-all for CSV parsing errors (encoding, malformed data).
+//! Rule `csv_parsing_failed` - catch-all for CSV parsing errors (encoding, malformed data).
 
 use std::io::Read;
 

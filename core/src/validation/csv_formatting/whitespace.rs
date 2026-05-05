@@ -1,4 +1,4 @@
-//! Rule `superfluous_whitespace` (CA9) — warns about leading or trailing spaces
+//! Rule `superfluous_whitespace` - warns about leading or trailing spaces
 //! around field values adjacent to the delimiter.
 
 use std::io::Read;

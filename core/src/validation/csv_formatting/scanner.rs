@@ -3,11 +3,11 @@
 //! Merges the logic of 6 validation rules into one character-by-character pass
 //! per file, eliminating redundant I/O and UTF-8 decoding:
 //!
-//! - `invalid_encoding` (CA1)
-//! - `invalid_delimiter` (CA3/CA4)
-//! - `invalid_quoting` / `invalid_inner_quotes` (CA5/CA6)
-//! - `control_character` / `forbidden_content` (CA7/CA8)
-//! - `superfluous_whitespace` (CA9)
+//! - `invalid_encoding`
+//! - `invalid_delimiter`
+//! - `invalid_quoting` / `invalid_inner_quotes`
+//! - `control_character` / `forbidden_content`
+//! - `superfluous_whitespace`
 //! - `new_line_in_value` (section 1)
 
 use crate::parser::feed_source::GtfsFiles;
@@ -117,10 +117,10 @@ pub fn scan(file: GtfsFiles, raw_bytes: &[u8]) -> Vec<ValidationError> {
                         quote_open_line = line_num;
                     }
                     ',' | '\r' => {
-                        // Empty field or CR — nothing to check
+                        // Empty field or CR - nothing to check
                     }
                     '\n' => {
-                        // End of line — run line-level content checks
+                        // End of line - run line-level content checks
                         run_line_content_checks(
                             content,
                             line_start_byte,

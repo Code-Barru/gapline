@@ -1,4 +1,4 @@
-//! Tests for section 7 — Schedule Time Validation.
+//! Tests for section 7 - Schedule Time Validation.
 
 use gapline_core::models::*;
 use gapline_core::validation::ValidationRule;

@@ -1,4 +1,4 @@
-//! Rule `empty_file` — detects GTFS files that are empty or contain only a header.
+//! Rule `empty_file` - detects GTFS files that are empty or contain only a header.
 
 use std::io::BufRead;
 

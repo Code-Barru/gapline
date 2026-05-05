@@ -1,12 +1,12 @@
 //! Shape geometry validation for `shapes.txt` (section 7.3).
 //!
 //! Emits at most four distinct aggregated findings per shape:
-//! - `degenerate_shape` — a shape with fewer than 2 points.
-//! - `duplicate_shape_point` — N consecutive point pairs with identical
+//! - `degenerate_shape` - a shape with fewer than 2 points.
+//! - `duplicate_shape_point` - N consecutive point pairs with identical
 //!   coordinates (Haversine distance == 0).
-//! - `shape_points_too_close` — N consecutive point pairs closer than the
+//! - `shape_points_too_close` - N consecutive point pairs closer than the
 //!   configured minimum distance (0 < d < threshold).
-//! - `shape_dist_traveled_incoherent` — N segments whose declared
+//! - `shape_dist_traveled_incoherent` - N segments whose declared
 //!   `shape_dist_traveled` increment diverges from the shape's median
 //!   declared/Haversine ratio by more than the configured tolerance. This
 //!   approach is unit-agnostic: whether the feed uses meters, kilometers,
@@ -296,7 +296,7 @@ struct SegmentData {
 }
 
 /// Median of a slice of f64. Returns `None` if empty. Mutates the slice
-/// (partial sort). NaN values are treated as `Ordering::Equal` — shouldn't
+/// (partial sort). NaN values are treated as `Ordering::Equal` - shouldn't
 /// occur in practice since we filter d > 0 before division.
 fn median(values: &mut [f64]) -> Option<f64> {
     if values.is_empty() {

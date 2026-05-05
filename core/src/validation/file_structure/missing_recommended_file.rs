@@ -1,4 +1,4 @@
-//! Rule `missing_recommended_file` — warns when recommended files are absent.
+//! Rule `missing_recommended_file` - warns when recommended files are absent.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::StructuralValidationRule;

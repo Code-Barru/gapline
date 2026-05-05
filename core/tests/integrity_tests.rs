@@ -4,7 +4,7 @@ use gapline_core::integrity::{EntityRef, IntegrityIndex, RelationType};
 use gapline_core::models::*;
 
 // ---------------------------------------------------------------------------
-// Test helpers — small factory functions for GTFS entities
+// Test helpers - small factory functions for GTFS entities
 // ---------------------------------------------------------------------------
 
 fn make_agency(id: &str) -> Agency {
@@ -129,7 +129,7 @@ fn minimal_feed() -> GtfsFeed {
 }
 
 // ---------------------------------------------------------------------------
-// Test 1: Minimal feed — all entities registered, relations correct
+// Test 1: Minimal feed - all entities registered, relations correct
 // ---------------------------------------------------------------------------
 #[test]
 fn test_minimal_feed() {
@@ -357,7 +357,7 @@ fn test_fare_rules() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 10: Thread safety — Arc<IntegrityIndex> shared between threads
+// Test 10: Thread safety - Arc<IntegrityIndex> shared between threads
 // ---------------------------------------------------------------------------
 #[test]
 fn test_thread_safety() {

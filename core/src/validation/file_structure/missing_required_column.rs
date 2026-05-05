@@ -1,4 +1,4 @@
-//! Rule `missing_required_column` — reports required columns absent from a GTFS file header.
+//! Rule `missing_required_column` - reports required columns absent from a GTFS file header.
 
 use crate::parser::FeedSource;
 use crate::validation::file_structure::helpers::read_header;

@@ -1,4 +1,4 @@
-//! Rule `new_line_in_value` — detects unescaped newlines inside quoted CSV values.
+//! Rule `new_line_in_value` - detects unescaped newlines inside quoted CSV values.
 
 use std::io::Read;
 

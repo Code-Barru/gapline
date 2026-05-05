@@ -5,7 +5,7 @@
 /// type. `FeedInfo` is exposed as a 0-or-1 element slice via `Option::as_slice`.
 ///
 /// ```ignore
-/// let n = dispatch_slice!(target, feed, |records| records.len());
+/// let n = dispatch_slice!(target, feed, |records| records.len);
 /// ```
 macro_rules! dispatch_slice {
     ($target:expr, $feed:expr, |$c:ident| $body:expr) => {
@@ -248,8 +248,8 @@ macro_rules! dispatch_slice_mut {
 }
 
 /// Dispatches a purely type-level operation. Introduces `type $T = ConcreteType`
-/// as a local alias inside each arm so the body can use `$T::assoc_fn()` or
-/// `some_generic::<$T>()`.
+/// as a local alias inside each arm so the body can use `$T::assoc_fn` or
+/// `some_generic::<$T>`.
 macro_rules! for_each_target_type {
     ($target:expr, |$T:ident| $body:expr) => {
         match $target {

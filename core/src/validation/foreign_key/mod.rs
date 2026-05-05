@@ -35,6 +35,20 @@ pub mod transfers_to_stop;
 pub mod transfers_to_trip;
 pub mod translations_record;
 
+// Fares v2 FK rules (HW-E26)
+pub mod fare_leg_join_rules;
+pub mod fare_leg_rules_areas;
+pub mod fare_leg_rules_network;
+pub mod fare_leg_rules_product;
+pub mod fare_leg_rules_timeframes;
+pub mod fare_products_media;
+pub mod fare_products_rider;
+pub mod fare_transfer_rules_legs;
+pub mod fare_transfer_rules_product;
+pub mod route_networks;
+pub mod stop_areas;
+pub mod timeframes_service;
+
 use crate::validation::engine::ValidationEngine;
 
 /// Section number shared by every foreign-key rule.
@@ -72,4 +86,42 @@ pub fn register_rules(engine: &mut ValidationEngine) {
     engine.register_rule(Box::new(fare_attributes_agency::FareAttributesAgencyFkRule));
     engine.register_rule(Box::new(translations_record::TranslationsRecordFkRule));
     engine.register_rule(Box::new(attributions_refs::AttributionsRefsFkRule));
+
+    // Fares v2 (HW-E26)
+    engine.register_rule(Box::new(fare_products_media::FareProductsMediaFkRule));
+    engine.register_rule(Box::new(fare_products_rider::FareProductsRiderFkRule));
+    engine.register_rule(Box::new(fare_leg_rules_product::FareLegRulesProductFkRule));
+    engine.register_rule(Box::new(fare_leg_rules_areas::FareLegRulesFromAreaFkRule));
+    engine.register_rule(Box::new(fare_leg_rules_areas::FareLegRulesToAreaFkRule));
+    engine.register_rule(Box::new(
+        fare_leg_rules_timeframes::FareLegRulesFromTimeframeFkRule,
+    ));
+    engine.register_rule(Box::new(
+        fare_leg_rules_timeframes::FareLegRulesToTimeframeFkRule,
+    ));
+    engine.register_rule(Box::new(fare_leg_rules_network::FareLegRulesNetworkFkRule));
+    engine.register_rule(Box::new(
+        fare_transfer_rules_legs::FareTransferRulesFromLegFkRule,
+    ));
+    engine.register_rule(Box::new(
+        fare_transfer_rules_legs::FareTransferRulesToLegFkRule,
+    ));
+    engine.register_rule(Box::new(
+        fare_transfer_rules_product::FareTransferRulesProductFkRule,
+    ));
+    engine.register_rule(Box::new(stop_areas::StopAreasAreaFkRule));
+    engine.register_rule(Box::new(stop_areas::StopAreasStopFkRule));
+    engine.register_rule(Box::new(timeframes_service::TimeframesServiceFkRule));
+    engine.register_rule(Box::new(route_networks::RouteNetworksNetworkFkRule));
+    engine.register_rule(Box::new(route_networks::RouteNetworksRouteFkRule));
+    engine.register_rule(Box::new(
+        fare_leg_join_rules::FareLegJoinRulesFromNetworkFkRule,
+    ));
+    engine.register_rule(Box::new(
+        fare_leg_join_rules::FareLegJoinRulesToNetworkFkRule,
+    ));
+    engine.register_rule(Box::new(
+        fare_leg_join_rules::FareLegJoinRulesFromStopFkRule,
+    ));
+    engine.register_rule(Box::new(fare_leg_join_rules::FareLegJoinRulesToStopFkRule));
 }

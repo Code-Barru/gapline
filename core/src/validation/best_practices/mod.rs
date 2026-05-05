@@ -1,4 +1,4 @@
-//! Section 8 — Best-practice checks (WARNING / INFO only).
+//! Section 8 - Best-practice checks (WARNING / INFO only).
 //!
 //! These rules flag missing optional fields, naming conventions, and
 //! accessibility information that improve feed quality but are not

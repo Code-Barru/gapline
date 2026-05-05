@@ -1,4 +1,4 @@
-//! Section 6 — Primary Key Uniqueness.
+//! Section 6 - Primary Key Uniqueness.
 //!
 //! Detects duplicate primary keys (simple and composite) across all GTFS
 //! files. Each duplicate is an ERROR because it creates ambiguity in

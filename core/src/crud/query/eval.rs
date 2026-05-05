@@ -23,7 +23,7 @@ impl Query {
     /// # Errors
     ///
     /// Returns [`QueryError::UnknownField`] if any referenced field is not in
-    /// `T::valid_fields()`.
+    /// `T::valid_fields`.
     pub fn validate_fields<T: Filterable>(&self) -> Result<(), QueryError> {
         let valid = T::valid_fields();
         for field in self.fields() {

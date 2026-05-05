@@ -14,16 +14,16 @@ use crate::validation::{Severity, ValidationError};
 /// use gapline_core::validation::{ValidationError, ValidationReport, Severity};
 ///
 /// let errors = vec![
-///     ValidationError::new("rule_a", "1", Severity::Error)
-///         .message("Something is wrong"),
-///     ValidationError::new("rule_b", "8", Severity::Warning)
-///         .message("Consider improving this"),
+/// ValidationError::new("rule_a", "1", Severity::Error)
+/// .message("Something is wrong"),
+/// ValidationError::new("rule_b", "8", Severity::Warning)
+/// .message("Consider improving this"),
 /// ];
 ///
 /// let report = ValidationReport::from(errors);
-/// assert_eq!(report.error_count(), 1);
-/// assert_eq!(report.warning_count(), 1);
-/// assert!(report.has_errors());
+/// assert_eq!(report.error_count, 1);
+/// assert_eq!(report.warning_count, 1);
+/// assert!(report.has_errors);
 /// ```
 #[derive(Debug, Serialize)]
 pub struct ValidationReport {

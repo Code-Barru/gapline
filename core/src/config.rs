@@ -11,7 +11,7 @@
 //!
 //! Threshold field names keep their unit suffix (`_m`, `_kmh`, `_days`,
 //! `_hours`) for clarity at every call site. The TOML schema therefore
-//! diverges from the unit-less names in the architecture document — this
+//! diverges from the unit-less names in the architecture document - this
 //! is intentional and accepted.
 
 use std::path::{Path, PathBuf};
@@ -55,7 +55,7 @@ pub struct DefaultSection {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ValidationSection {
-    /// Stop validation at the first error. Forward-compat — not yet wired.
+    /// Stop validation at the first error. Forward-compat - not yet wired.
     pub fail_fast: bool,
     /// Cap on the number of findings emitted per rule. Forward-compat.
     pub max_errors_per_rule: Option<usize>,
@@ -73,7 +73,7 @@ pub struct ValidationSection {
     pub thresholds: Thresholds,
 }
 
-/// Numeric thresholds grouped by domain — mirrors `[validation.thresholds.*]`.
+/// Numeric thresholds grouped by domain - mirrors `[validation.thresholds.*]`.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Thresholds {
@@ -88,7 +88,7 @@ pub struct Thresholds {
 /// Per-route-type maximum speeds in km/h. Covers all ten GTFS basic route
 /// types; extended types (`Hvt`, `Unknown`) fall back to `default_kmh`.
 ///
-/// Field naming follows [`crate::models::RouteType`] — note that
+/// Field naming follows [`crate::models::RouteType`] - note that
 /// `route_type` 6 is `aerial_lift_kmh` in this codebase, not `gondola_kmh`
 /// as in the architecture spec.
 #[derive(Debug, Clone, Deserialize)]
@@ -191,7 +191,7 @@ pub struct Calendar {
     pub feed_expiration_warning_days: i64,
     pub min_trip_activity_days: u32,
     /// Date used as "today" for expiration checks. `None` uses the system
-    /// clock at validation time. Skipped by serde — kept programmatic so
+    /// clock at validation time. Skipped by serde - kept programmatic so
     /// tests can pin the clock without having to make `GtfsDate` deserializable.
     #[serde(skip)]
     pub reference_date: Option<GtfsDate>,
@@ -227,7 +227,7 @@ impl Default for Naming {
 // [performance]
 // ============================================================================
 
-/// Performance-tuning knobs. Forward-compat — none of these are wired yet.
+/// Performance-tuning knobs. Forward-compat - none of these are wired yet.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PerformanceSection {
@@ -255,7 +255,7 @@ impl Default for PerformanceSection {
 // ============================================================================
 
 /// Output formatting and progress display. `show_progress` replaces the old
-/// flat `Config::quiet` field — the inversion is documented at every call site.
+/// flat `Config::quiet` field - the inversion is documented at every call site.
 #[allow(clippy::struct_excessive_bools)] // mirrors the spec's TOML schema 1:1
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -310,7 +310,7 @@ pub enum TimestampFormat {
 // [batch]
 // ============================================================================
 
-/// `.gl` batch-runner behaviour. Forward-compat — not wired.
+/// `.gl` batch-runner behaviour. Forward-compat - not wired.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BatchSection {
@@ -331,7 +331,7 @@ impl Default for BatchSection {
 // [experimental]
 // ============================================================================
 
-/// Feature flags for post-MVP additions. Forward-compat — not wired.
+/// Feature flags for post-MVP additions. Forward-compat - not wired.
 #[allow(clippy::struct_excessive_bools)] // one bool per spec'd experimental flag
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -348,10 +348,10 @@ pub struct ExperimentalSection {
 
 /// Values supplied on the command line that take priority over any TOML
 /// file. Each `Option`-typed field uses `None` to mean "not provided on
-/// the CLI" — only `Some(_)` values overwrite the loaded config.
+/// the CLI" - only `Some(_)` values overwrite the loaded config.
 ///
 /// `disabled_rules` is **appended** to whatever the file already contained,
-/// not replaced — additive rule blacklisting from the CLI is the more
+/// not replaced - additive rule blacklisting from the CLI is the more
 /// useful semantics in practice.
 #[derive(Debug, Default)]
 pub struct CliOverrides {
@@ -377,7 +377,7 @@ pub struct CliOverrides {
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
     /// Failed to read a config file (file existed but was unreadable).
-    /// Missing files are not an error — they are silently skipped.
+    /// Missing files are not an error - they are silently skipped.
     #[error("Cannot read config file {path}: {source}")]
     Io {
         path: PathBuf,
@@ -419,7 +419,7 @@ impl Config {
     /// 3. Local `<base>/gapline.toml`, or `cli.config_path` if set
     /// 4. CLI overrides applied last
     ///
-    /// Missing files at any layer are silently skipped (CA2).
+    /// Missing files at any layer are silently skipped.
     ///
     /// # Errors
     ///
@@ -601,7 +601,7 @@ fn global_config_path() -> Option<PathBuf> {
 
 /// Reads a TOML file and returns its parsed root table along with the
 /// raw text (kept for future error-context use). Returns `Ok(None)` when
-/// the file does not exist — that is the silently-ignored case.
+/// the file does not exist - that is the silently-ignored case.
 fn read_table(path: &Path) -> Result<Option<(toml::Table, String)>, ConfigError> {
     if !path.exists() {
         return Ok(None);

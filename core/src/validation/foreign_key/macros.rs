@@ -9,10 +9,10 @@
 /// implementing a foreign-key check.
 ///
 /// Kinds:
-/// - `child_fk: <ident> (required)` — FK field is a required newtype `Id: AsRef<str>`.
-/// - `child_fk: <ident> (optional)` — FK field is `Option<Id>`.
-/// - `parent_pk: <ident> (required)` — PK field is a required newtype.
-/// - `parent_pk: <ident> (optional)` — PK field is `Option<Id>`.
+/// - `child_fk: <ident> (required)` - FK field is a required newtype `Id: AsRef<str>`.
+/// - `child_fk: <ident> (optional)` - FK field is `Option<Id>`.
+/// - `parent_pk: <ident> (required)` - PK field is a required newtype.
+/// - `parent_pk: <ident> (optional)` - PK field is `Option<Id>`.
 macro_rules! impl_fk_rule {
     (
         $struct:ident,

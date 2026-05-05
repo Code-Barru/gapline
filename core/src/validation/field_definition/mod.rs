@@ -16,6 +16,7 @@
 pub mod agency;
 pub mod attributions;
 pub mod booking_rules;
+pub mod fares_v2;
 pub mod feed_info;
 pub mod pathways;
 pub mod routes;
@@ -42,4 +43,5 @@ pub fn register_rules(engine: &mut ValidationEngine) {
     engine.register_rule(Box::new(attributions::AttributionsFieldDefinitionRule));
     engine.register_rule(Box::new(booking_rules::BookingRulesFieldDefinitionRule));
     engine.register_rule(Box::new(stop_times_flex::StopTimesFlexFieldDefinitionRule));
+    engine.register_rule(Box::new(fares_v2::FaresV2FieldDefinitionRule));
 }

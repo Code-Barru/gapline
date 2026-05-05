@@ -8,7 +8,7 @@
 //! ## Key Types
 //!
 //! - `ValidationError` -- A structured error with full context (file, line,
-//!   field, value, severity, rule ID). Built using a fluent builder pattern.
+//! field, value, severity, rule ID). Built using a fluent builder pattern.
 //! - `Severity` -- Classification of findings as `Error`, `Warning`, or `Info`.
 //! - `ValidationReport` -- Aggregated summary counts by severity.
 //! - `ValidationRule` -- Trait that all validation rules must implement.

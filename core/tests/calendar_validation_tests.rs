@@ -86,7 +86,7 @@ fn monday_only() -> [bool; 7] {
 }
 
 // ---------------------------------------------------------------------------
-// Test 1: valid calendar — no errors
+// Test 1: valid calendar - no errors
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -104,7 +104,7 @@ fn test_1_valid_calendar() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 2: inverted date range — CA1
+// Test 2: inverted date range
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -129,7 +129,7 @@ fn test_2_inverted_date_range() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 3: start_date == end_date is valid (one-day service) — CA1 edge
+// Test 3: start_date == end_date is valid (one-day service)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -151,7 +151,7 @@ fn test_3_single_day_service() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 4: inactive service (all days 0, no exceptions) — CA2
+// Test 4: inactive service (all days 0, no exceptions)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -174,7 +174,7 @@ fn test_4_inactive_service() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 5: all days 0 but exceptions add active days — CA2 (no warning)
+// Test 5: all days 0 but exceptions add active days
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -198,7 +198,7 @@ fn test_5_inactive_with_additions() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 6: expired feed — CA4
+// Test 6: expired feed
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -219,7 +219,7 @@ fn test_6_expired_feed() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 7: feed expires in 3 days (< 7 default) — CA5
+// Test 7: feed expires in 3 days (< 7 default)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -242,7 +242,7 @@ fn test_7_feed_expiring_soon() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 8: feed expires in 30 days (> 7 default) — no warning
+// Test 8: feed expires in 30 days (> 7 default) - no warning
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -262,7 +262,7 @@ fn test_8_feed_far_expiration() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 9: no feed_info — no expiration checks
+// Test 9: no feed_info - no expiration checks
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -278,7 +278,7 @@ fn test_9_no_feed_info() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 10: short feed coverage — CA3
+// Test 10: short feed coverage
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -305,7 +305,7 @@ fn test_10_short_feed_coverage() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 11: service only in calendar_dates with only exception_type=2 — CA6
+// Test 11: service only in calendar_dates with only exception_type=2
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -328,7 +328,7 @@ fn test_11_service_never_active() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 12: exception date out of range — CA8
+// Test 12: exception date out of range
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -358,7 +358,7 @@ fn test_12_exception_date_out_of_range() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 13: exception date inside calendar range — CA8 no warning
+// Test 13: exception date inside calendar range
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -386,7 +386,7 @@ fn test_13_exception_date_in_range() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 14: trip with low activity (only 3 days) — CA7
+// Test 14: trip with low activity (only 3 days)
 // ---------------------------------------------------------------------------
 
 #[test]

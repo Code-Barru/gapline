@@ -1,4 +1,4 @@
-//! Tests for section 8 — best-practice validation rules.
+//! Tests for section 8 - best-practice validation rules.
 
 use gapline_core::models::*;
 use gapline_core::validation::best_practices::NamingThresholds;
@@ -36,7 +36,7 @@ fn make_route(id: &str) -> Route {
         route_id: RouteId::from(id),
         agency_id: None,
         route_short_name: Some("A1".into()),
-        route_long_name: Some("Line A1 — Main".into()),
+        route_long_name: Some("Line A1 - Main".into()),
         route_desc: None,
         route_type: RouteType::Bus,
         route_url: None,
@@ -116,7 +116,7 @@ fn default_thresholds() -> NamingThresholds {
 }
 
 // ---------------------------------------------------------------------------
-//1 — Exemplary feed (0 issues)
+//1 - Exemplary feed (0 issues)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -139,7 +139,7 @@ fn test_exemplary_feed_no_warnings() {
 }
 
 // ---------------------------------------------------------------------------
-//3 — missing agency_email
+//3 - missing agency_email
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -160,7 +160,7 @@ fn test_missing_agency_email() {
 }
 
 // ---------------------------------------------------------------------------
-//4 — missing route_color
+//4 - missing route_color
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -186,7 +186,7 @@ fn test_missing_route_color() {
 }
 
 // ---------------------------------------------------------------------------
-//5 — missing direction_id (global)
+//5 - missing direction_id (global)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -207,7 +207,7 @@ fn test_missing_direction_id() {
 }
 
 // ---------------------------------------------------------------------------
-//6 — route_short_name too long
+//6 - route_short_name too long
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -228,7 +228,7 @@ fn test_route_short_name_too_long() {
 }
 
 // ---------------------------------------------------------------------------
-//7 — route_short_name OK
+//7 - route_short_name OK
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -240,7 +240,7 @@ fn test_route_short_name_ok() {
 }
 
 // ---------------------------------------------------------------------------
-//8 — stop_name all caps
+//8 - stop_name all caps
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -260,7 +260,7 @@ fn test_stop_name_all_caps() {
 }
 
 // ---------------------------------------------------------------------------
-//9 — stop_name mixed case
+//9 - stop_name mixed case
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -271,7 +271,7 @@ fn test_stop_name_mixed_case() {
 }
 
 // ---------------------------------------------------------------------------
-//10 — redundant route name
+//10 - redundant route name
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -292,7 +292,7 @@ fn test_redundant_route_name() {
 }
 
 // ---------------------------------------------------------------------------
-//11 — missing wheelchair_boarding in stops
+//11 - missing wheelchair_boarding in stops
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -313,7 +313,7 @@ fn test_missing_wheelchair_stops() {
 }
 
 // ---------------------------------------------------------------------------
-//12 — missing wheelchair_accessible in trips
+//12 - missing wheelchair_accessible in trips
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -337,7 +337,7 @@ fn test_missing_wheelchair_trips() {
 }
 
 // ---------------------------------------------------------------------------
-//13 — missing bikes_allowed
+//13 - missing bikes_allowed
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -357,7 +357,7 @@ fn test_missing_bikes_info() {
 }
 
 // ---------------------------------------------------------------------------
-//14 — cumulative issues
+//14 - cumulative issues
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -387,7 +387,7 @@ fn test_cumulative_issues() {
 }
 
 // ---------------------------------------------------------------------------
-//15 — custom short name threshold
+//15 - custom short name threshold
 // ---------------------------------------------------------------------------
 
 #[test]

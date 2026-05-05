@@ -1,4 +1,4 @@
-//! Section 3 — Field Type Validation.
+//! Section 3 - Field Type Validation.
 //!
 //! Validates field values in the parsed `GtfsFeed`: URLs, timezones, colors,
 //! language codes, currencies, emails, phones, numeric ranges, and text quality.

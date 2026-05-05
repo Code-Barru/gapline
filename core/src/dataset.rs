@@ -1,7 +1,7 @@
 //! Unified entry point for the gapline core API.
 //!
 //! [`Dataset`] is the **single entry point** for all gapline-core operations.
-//! CLI, server, and Python bindings must go through `Dataset` — never
+//! CLI, server, and Python bindings must go through `Dataset` - never
 //! re-implement orchestration by calling internal modules directly.
 //!
 //! [`Dataset`] owns a [`crate::models::GtfsFeed`] together with its
@@ -15,13 +15,13 @@
 //! use std::path::Path;
 //! use gapline_core::{Dataset, config::Config, crud::{GtfsTarget, parse}};
 //!
-//! let (mut dataset, _parse_errors) = Dataset::from_path(Path::new("feed.zip")).unwrap();
-//! let config = Config::default();
+//! let (mut dataset, _parse_errors) = Dataset::from_path(Path::new("feed.zip")).unwrap;
+//! let config = Config::default;
 //! let report = dataset.validate(&config);
-//! if !report.has_errors() {
-//!     let query = parse("stop_id=S1").unwrap();
-//!     dataset.delete(GtfsTarget::Stops, &query).unwrap();
-//!     dataset.write_zip(Path::new("out.zip")).unwrap();
+//! if !report.has_errors {
+//! let query = parse("stop_id=S1").unwrap;
+//! dataset.delete(GtfsTarget::Stops, &query).unwrap;
+//! dataset.write_zip(Path::new("out.zip")).unwrap;
 //! }
 //! ```
 //!
@@ -31,8 +31,8 @@
 //! use std::path::Path;
 //! use gapline_core::{Dataset, config::Config};
 //!
-//! let (dataset, _) = Dataset::from_path(Path::new("feed.zip")).unwrap();
-//! let report = dataset.validate(&Config::default());
+//! let (dataset, _) = Dataset::from_path(Path::new("feed.zip")).unwrap;
+//! let report = dataset.validate(&Config::default);
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -52,7 +52,7 @@ use crate::writer::{WriteError, write_modified_targets};
 
 /// Unified view of a loaded GTFS feed: data + integrity index.
 ///
-/// All core operations delegate to the existing modules — no business logic
+/// All core operations delegate to the existing modules - no business logic
 /// lives here.
 pub struct Dataset {
     feed: GtfsFeed,
@@ -64,7 +64,7 @@ pub struct Dataset {
     source_path: Option<PathBuf>,
 }
 
-// CA2 — static Send + Sync assertion
+// static Send + Sync assertion
 const _: fn() = || {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Dataset>();

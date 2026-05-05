@@ -27,14 +27,14 @@ use crate::validation::{Severity, ValidationError};
 /// pub struct MissingRequiredFileRule;
 ///
 /// impl StructuralValidationRule for MissingRequiredFileRule {
-///     fn rule_id(&self) -> &'static str { "missing_required_file" }
-///     fn section(&self) -> &'static str { "1" }
-///     fn severity(&self) -> Severity { Severity::Error }
+/// fn rule_id(&self) -> &'static str { "missing_required_file" }
+/// fn section(&self) -> &'static str { "1" }
+/// fn severity(&self) -> Severity { Severity::Error }
 ///
-///     fn validate(&self, source: &FeedSource) -> Vec<ValidationError> {
-///         // Check file_names() for required files...
-///         vec![]
-///     }
+/// fn validate(&self, source: &FeedSource) -> Vec<ValidationError> {
+/// // Check file_names for required files...
+/// vec![]
+/// }
 /// }
 /// ```
 pub trait StructuralValidationRule: Send + Sync {

@@ -1,4 +1,4 @@
-//! Rules `invalid_quoting` (CA5) and `invalid_inner_quotes` (CA6) —
+//! Rules `invalid_quoting` and `invalid_inner_quotes` -
 //! RFC 4180 quoting compliance.
 
 use std::io::Read;
@@ -20,7 +20,7 @@ enum State {
     InUnquoted,
     /// Inside a quoted field.
     InQuoted,
-    /// Just saw a `"` inside a quoted field — could be closing quote or escaped quote.
+    /// Just saw a `"` inside a quoted field - could be closing quote or escaped quote.
     AfterQuote,
 }
 

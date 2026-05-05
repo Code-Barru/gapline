@@ -1,4 +1,4 @@
-//! Rule `missing_header` — detects files whose first line looks like data
+//! Rule `missing_header` - detects files whose first line looks like data
 //! rather than column headers.
 
 use crate::parser::FeedSource;

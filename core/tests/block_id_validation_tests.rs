@@ -1,4 +1,4 @@
-//! Tests for section 7.12 — `block_id` overlap validation.
+//! Tests for section 7.12 - `block_id` overlap validation.
 
 use std::sync::Arc;
 
@@ -249,7 +249,7 @@ fn trips_without_block_id_skipped() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 6: trip with no stop_times — no crash
+// Test 6: trip with no stop_times - no crash
 // ---------------------------------------------------------------------------
 
 #[test]

@@ -37,7 +37,7 @@ impl ValidationRule for CalendarRangesRule {
         }
 
         // Pre-compute the set of service_ids that have at least one
-        // `exception_type=1` (Added) entry — these services remain active
+        // `exception_type=1` (Added) entry - these services remain active
         // even when all weekday flags are 0.
         let services_with_additions: HashSet<&str> = feed
             .calendar_dates

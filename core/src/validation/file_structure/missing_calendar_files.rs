@@ -1,4 +1,4 @@
-//! Rule `missing_calendar_and_calendar_date_files` — both calendar files are absent.
+//! Rule `missing_calendar_and_calendar_date_files` - both calendar files are absent.
 
 use crate::parser::{FeedSource, GtfsFiles};
 use crate::validation::file_structure::StructuralValidationRule;

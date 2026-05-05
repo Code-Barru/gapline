@@ -79,7 +79,7 @@ fn count(errors: &[gapline_core::validation::ValidationError], severity: Severit
 }
 
 // ---------------------------------------------------------------------------
-// CA1 — Boarding Area (type 4) parent must be Stop/Platform (type 0)
+// Boarding Area (type 4) parent must be Stop/Platform (type 0)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -137,7 +137,7 @@ fn boarding_area_under_node_error() {
 }
 
 // ---------------------------------------------------------------------------
-// CA2 — Entrance/Exit (type 2) parent must be Station (type 1)
+// Entrance/Exit (type 2) parent must be Station (type 1)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -181,7 +181,7 @@ fn entrance_under_boarding_area_error() {
 }
 
 // ---------------------------------------------------------------------------
-// CA3 — Generic Node (type 3) parent must be Station (type 1)
+// Generic Node (type 3) parent must be Station (type 1)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -211,7 +211,7 @@ fn generic_node_under_station_valid() {
 }
 
 // ---------------------------------------------------------------------------
-// CA5 — Unused station
+// Unused station
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -263,7 +263,7 @@ fn multiple_stations_mixed() {
 }
 
 // ---------------------------------------------------------------------------
-// CA6 — Unused stop
+// Unused stop
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -302,7 +302,7 @@ fn station_not_in_stop_times_no_warning() {
 }
 
 // ---------------------------------------------------------------------------
-// CA7 — Unknown route_type → WARNING
+// Unknown route_type → WARNING
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -341,7 +341,7 @@ fn route_type_unknown_9999_warning() {
 }
 
 // ---------------------------------------------------------------------------
-// CA8 — Extended route_type → INFO
+// Extended route_type → INFO
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -382,7 +382,7 @@ fn route_type_hvt_not_official_warning() {
 }
 
 // ---------------------------------------------------------------------------
-// CA9 — Error context completeness
+// Error context completeness
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -406,7 +406,7 @@ fn error_includes_full_context() {
 }
 
 // ---------------------------------------------------------------------------
-// Integration — Valid full hierarchy produces no errors
+// Integration - Valid full hierarchy produces no errors
 // ---------------------------------------------------------------------------
 
 #[test]

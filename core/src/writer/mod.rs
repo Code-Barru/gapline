@@ -1,4 +1,4 @@
-//! Feed writer — writes modified GTFS data back to disk.
+//! Feed writer - writes modified GTFS data back to disk.
 //!
 //! Two strategies are supported:
 //! - **ZIP**: copies unmodified files from the source, re-serializes only the changed file.

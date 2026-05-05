@@ -1,5 +1,6 @@
 .opencode
-agile
+/agile
+*.csv
 
 /docs
 

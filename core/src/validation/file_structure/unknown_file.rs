@@ -1,4 +1,4 @@
-//! Rule `unknown_file` — reports files in the archive not recognized by the GTFS spec.
+//! Rule `unknown_file` - reports files in the archive not recognized by the GTFS spec.
 
 use crate::parser::{FeedSource, GtfsFiles};
 use crate::validation::file_structure::StructuralValidationRule;

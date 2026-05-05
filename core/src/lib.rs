@@ -4,8 +4,8 @@
 //!
 //! ## Modules
 //!
-//! - [`parser`] — GTFS feed loading (ZIP / directory), raw file access.
-//! - [`validation`] — Validation engine: trait-based rules, errors, reports.
+//! - [`parser`] - GTFS feed loading (ZIP / directory), raw file access.
+//! - [`validation`] - Validation engine: trait-based rules, errors, reports.
 //!
 //! ## Quick Example
 //!
@@ -13,11 +13,11 @@
 //! use gapline_core::validation::{ValidationError, Severity};
 //!
 //! let error = ValidationError::new("missing_required_file", "1", Severity::Error)
-//!     .message("Required file agency.txt is missing")
-//!     .file("agency.txt");
+//! .message("Required file agency.txt is missing")
+//! .file("agency.txt");
 //! ```
 
-/// Unified dataset type — the primary entry point for core consumers.
+/// Unified dataset type - the primary entry point for core consumers.
 pub mod dataset;
 pub use dataset::Dataset;
 
@@ -42,7 +42,7 @@ pub mod geo;
 /// CRUD operations on GTFS feeds.
 pub mod crud;
 
-/// Feed writer — serialize a [`models::GtfsFeed`] to a GTFS ZIP archive.
+/// Feed writer - serialize a [`models::GtfsFeed`] to a GTFS ZIP archive.
 pub mod writer;
 
 /// Batch command execution on a loaded [`Dataset`].

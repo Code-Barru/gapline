@@ -1,4 +1,4 @@
-//! Tests for section 7.10 — pathway validation.
+//! Tests for section 7.10 - pathway validation.
 
 use gapline_core::models::*;
 use gapline_core::validation::schedule_time_validation::pathways::PathwayValidationRule;
@@ -56,7 +56,7 @@ fn rule() -> PathwayValidationRule {
 }
 
 // ---------------------------------------------------------------------------
-// CA5: invalid_traversal_time
+// invalid_traversal_time
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -121,7 +121,7 @@ fn traversal_time_none_ok() {
 }
 
 // ---------------------------------------------------------------------------
-// CA6: one_way_pathway_without_return
+// one_way_pathway_without_return
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -201,7 +201,7 @@ fn bidirectional_covers_unidirectional_return() {
 }
 
 // ---------------------------------------------------------------------------
-// CA7: station_without_entrance_pathway
+// station_without_entrance_pathway
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -274,7 +274,7 @@ fn no_pathways_skips_ca7() {
 }
 
 // ---------------------------------------------------------------------------
-// CA13: error context completeness
+// error context completeness
 // ---------------------------------------------------------------------------
 
 #[test]

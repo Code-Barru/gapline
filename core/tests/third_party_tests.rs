@@ -1,4 +1,4 @@
-//! Tests for section 13 — third-party validator compatibility rules.
+//! Tests for section 13 - third-party validator compatibility rules.
 
 use gapline_core::models::*;
 use gapline_core::validation::third_party::conveyal::ConveyalTripWithoutShapeRule;
@@ -130,7 +130,7 @@ fn exemplary_feed() -> GtfsFeed {
 }
 
 // ---------------------------------------------------------------------------
-// 1 — Exemplary feed (0 section-13 issues)
+// 1 - Exemplary feed (0 section-13 issues)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -150,7 +150,7 @@ fn test_feed_compatible_all_validators() {
 }
 
 // ---------------------------------------------------------------------------
-// 2 — Trip with 1 stop_time
+// 2 - Trip with 1 stop_time
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -171,7 +171,7 @@ fn test_trip_one_stop_time() {
 }
 
 // ---------------------------------------------------------------------------
-// 3 — Trip with 2 stop_times
+// 3 - Trip with 2 stop_times
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -186,7 +186,7 @@ fn test_trip_two_stop_times() {
 }
 
 // ---------------------------------------------------------------------------
-// 4 — Missing feed_version
+// 4 - Missing feed_version
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -205,7 +205,7 @@ fn test_missing_feed_version() {
 }
 
 // ---------------------------------------------------------------------------
-// 5 — Missing feed_contact_email
+// 5 - Missing feed_contact_email
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -224,7 +224,7 @@ fn test_missing_contact_email() {
 }
 
 // ---------------------------------------------------------------------------
-// 6 — Coordinates in stop_name
+// 6 - Coordinates in stop_name
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -243,7 +243,7 @@ fn test_coordinates_in_stop_name() {
 }
 
 // ---------------------------------------------------------------------------
-// 7 — Normal stop_name
+// 7 - Normal stop_name
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -257,7 +257,7 @@ fn test_normal_stop_name() {
 }
 
 // ---------------------------------------------------------------------------
-// 8 — Identical route colors
+// 8 - Identical route colors
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -277,7 +277,7 @@ fn test_identical_route_colors() {
 }
 
 // ---------------------------------------------------------------------------
-// 9 — Different route colors
+// 9 - Different route colors
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -291,7 +291,7 @@ fn test_different_route_colors() {
 }
 
 // ---------------------------------------------------------------------------
-// 10 — Invisible route text (white on white)
+// 10 - Invisible route text (white on white)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -309,7 +309,7 @@ fn test_invisible_route_text() {
 }
 
 // ---------------------------------------------------------------------------
-// 11 — Trip without shape when shapes exist
+// 11 - Trip without shape when shapes exist
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -330,7 +330,7 @@ fn test_trip_without_shape() {
 }
 
 // ---------------------------------------------------------------------------
-// 12 — No feed_info.txt (feed_info rules skipped)
+// 12 - No feed_info.txt (feed_info rules skipped)
 // ---------------------------------------------------------------------------
 
 #[test]

@@ -96,7 +96,7 @@ impl ValidationRule for InvalidParentTypeRule {
     }
 }
 
-/// Warns when a Station (`location_type=1`) has no children — no stop references
+/// Warns when a Station (`location_type=1`) has no children - no stop references
 /// it as `parent_station`.
 pub struct UnusedStationRule;
 

@@ -7,14 +7,14 @@
 //! - CLI override semantics (replace vs append for `disabled_rules`)
 //!
 //! The global `~/.config/gapline/config.toml` is intentionally **not**
-//! exercised here — these tests use [`Config::load_from`] with an explicit
+//! exercised here - these tests use [`Config::load_from`] with an explicit
 //! base directory plus `cli.config_path`, which together pin the local
 //! lookup to a tempdir. The user-global file is still consulted by
 //! `load_from`, but tests asserting on the merged result must tolerate the
 //! possibility that a developer machine has one. We work around this by
 //! only asserting on fields the test sets explicitly.
 //!
-//! `#[allow(clippy::float_cmp)]` — assertions compare against the *exact*
+//! `#[allow(clippy::float_cmp)]` - assertions compare against the *exact*
 //! literal defaults declared in `core/src/config.rs`. There is no rounding
 //! source between the literal and the deserialized value, so a strict `==`
 //! is the assertion we want.
@@ -116,7 +116,7 @@ fn partial_section_overrides_only_named_fields() {
 #[test]
 fn unknown_field_rejected() {
     // `max_stop_to_shape` is the architecture-spec name without the `_m`
-    // suffix — a typo against our actual schema. The loader must reject it
+    // suffix - a typo against our actual schema. The loader must reject it
     // instead of silently ignoring the line.
     let toml = r"
         [validation.thresholds.distances]
@@ -132,7 +132,7 @@ fn unknown_field_rejected() {
 }
 
 // ---------------------------------------------------------------------------
-// Loader tests — exercise Config::load_from end-to-end
+// Loader tests - exercise Config::load_from end-to-end
 // ---------------------------------------------------------------------------
 
 /// Ticket scenario 1: no config file at all → built-in defaults are used.
@@ -140,7 +140,7 @@ fn unknown_field_rejected() {
 fn load_no_local_file_returns_defaults() {
     let dir = tempfile::tempdir().unwrap();
     // Note: no gapline.toml is written. The global config may or may not
-    // exist on the dev machine — assert only on a defaults-only sanity field
+    // exist on the dev machine - assert only on a defaults-only sanity field
     // that no realistic global config would override.
     let cli = CliOverrides {
         config_path: Some(dir.path().join("gapline.toml")),
@@ -148,8 +148,8 @@ fn load_no_local_file_returns_defaults() {
     };
     let config = Config::load_from(Some(dir.path()), cli).expect("load_from");
     assert!(config.default.feed.is_none());
-    // The defaults `Config::default()` exposes for these fields are pinned
-    // in the source — if a stray global config sets them, the test would
+    // The defaults `Config::default` exposes for these fields are pinned
+    // in the source - if a stray global config sets them, the test would
     // need to be reworked, but in practice none of these are commonly set.
     assert_eq!(
         config

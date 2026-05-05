@@ -1,4 +1,4 @@
-//! Validation engine — orchestrates rule execution against a feed source.
+//! Validation engine - orchestrates rule execution against a feed source.
 //!
 //! The engine collects both structural (pre-parsing) and semantic (post-parsing)
 //! validation rules, groups them by GTFS specification section, and runs them
@@ -50,7 +50,7 @@ fn progress_label(group: &str) -> &str {
     }
 }
 
-/// Maps a rule's `progress_group()` to a display group so that related
+/// Maps a rule's `progress_group` to a display group so that related
 /// sections share one progress bar without touching each rule struct.
 fn display_group(progress_group: &str) -> &str {
     match progress_group {
@@ -70,9 +70,9 @@ fn display_group(progress_group: &str) -> &str {
 /// use gapline_core::parser::FeedLoader;
 /// use gapline_core::validation::engine::ValidationEngine;
 ///
-/// let config = Arc::new(Config::default());
+/// let config = Arc::new(Config::default);
 /// let engine = ValidationEngine::new(config);
-/// let source = FeedLoader::open(std::path::Path::new("feed.zip")).unwrap();
+/// let source = FeedLoader::open(std::path::Path::new("feed.zip")).unwrap;
 /// let report = engine.validate_structural(&source);
 /// ```
 pub struct ValidationEngine {
@@ -83,7 +83,7 @@ pub struct ValidationEngine {
     rules: Vec<Box<dyn ValidationRule>>,
 }
 
-/// Bundle of every threshold struct needed to register rules — built once in
+/// Bundle of every threshold struct needed to register rules - built once in
 /// [`ValidationEngine::new`] from the global [`Config`].
 struct Thresholds {
     max_trip_duration_hours: Option<u32>,
@@ -146,7 +146,7 @@ impl ValidationEngine {
         // Aggregate pre-parsing rules from each owning module. The 6
         // content-scanning rules (encoding, delimiter, quoting, content,
         // whitespace, new_line_in_value) are handled by the single-pass
-        // scanner in validate_structural() and are not listed here.
+        // scanner in validate_structural and are not listed here.
         let mut pre_rules = crate::validation::file_structure::pre_rules(max_rows);
         pre_rules.extend(crate::validation::csv_formatting::pre_rules());
 
@@ -301,7 +301,7 @@ impl ValidationEngine {
     }
 
     /// Groups the registered post-parsing rules by their progress-bar group.
-    /// Rules can override `progress_group()` to split themselves out of the
+    /// Rules can override `progress_group` to split themselves out of the
     /// default section-based bucket (e.g. geometric rules of section 7).
     fn group_post_rules_by_section(&self) -> HashMap<String, Vec<&dyn ValidationRule>> {
         let mut map: HashMap<String, Vec<&dyn ValidationRule>> = HashMap::new();

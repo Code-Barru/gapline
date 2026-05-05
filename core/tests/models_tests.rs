@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use gapline_core::models::*;
 
-// --- IDs (CA1, CA2) ---
+// --- IDs ---
 
 #[test]
 fn stop_id_display() {
@@ -39,7 +39,7 @@ fn id_as_ref_str() {
 
 // StopId("S01") == TripId("S01") ne compile pas (types différents).
 
-// --- Types (CA3) ---
+// --- Types ---
 
 #[test]
 fn latitude_debug() {
@@ -75,7 +75,7 @@ fn color_stores_hex() {
     assert_eq!(c.0, "00AAFF");
 }
 
-// --- Enums (CA14, CA15) ---
+// --- Enums ---
 
 #[test]
 fn location_type_from_i32_valid() {
@@ -146,7 +146,7 @@ fn binary_enums() {
     );
 }
 
-// --- GtfsFeed (CA12, CA13) ---
+// --- GtfsFeed ---
 
 #[test]
 fn gtfs_feed_default() {
@@ -170,7 +170,7 @@ fn gtfs_feed_default() {
     assert!(feed.attributions.is_empty());
 }
 
-// --- Records serialization (CA4, CA5) ---
+// --- Records serialization ---
 
 #[test]
 fn agency_serializes_to_json() {

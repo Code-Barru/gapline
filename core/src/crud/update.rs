@@ -119,8 +119,8 @@ pub fn has_pk_assignments(target: GtfsTarget, raw_set: &[String]) -> bool {
 /// Returns the GTFS files that must be loaded to validate an update on `target`.
 ///
 /// When `include_dependents` is `true`, the result also includes files that
-/// reference this target's primary keys — needed only when `--set` modifies a
-/// PK field (see [`has_pk_assignments`]).  When `false`, only the target file
+/// reference this target's primary keys - needed only when `--set` modifies a
+/// PK field (see [`has_pk_assignments`]). When `false`, only the target file
 /// and its FK dependencies are returned (same set as `create::required_files`).
 #[must_use]
 pub fn required_files(target: GtfsTarget, include_dependents: bool) -> Vec<GtfsFiles> {
@@ -254,7 +254,7 @@ pub fn validate_update(
         });
     }
 
-    // 6. Check PK fields — only for targets with simple PKs
+    // 6. Check PK fields - only for targets with simple PKs
     let pk_fields = primary_key_fields(target);
     let pk_assignments: Vec<_> = assignments
         .iter()
@@ -277,7 +277,7 @@ pub fn validate_update(
     // 7. Validate FK fields
     validate_foreign_keys(&index, target, &fields)?;
 
-    // 8. Type validation — apply assignments to a cloned first-matched record
+    // 8. Type validation - apply assignments to a cloned first-matched record
     validate_types(feed, target, &matched_indices, &assignments)?;
 
     Ok(UpdatePlan {
@@ -333,7 +333,7 @@ fn check_pk_constraints(
             }));
         }
 
-        // Not cascading — report the first dependent as an error
+        // Not cascading - report the first dependent as an error
         let first = &entries[0];
         return Err(UpdateError::PrimaryKeyReferenced {
             field: pk_field.to_string(),

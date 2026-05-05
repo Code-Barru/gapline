@@ -1,4 +1,4 @@
-//! Tests for section 9 — Flex semantic validation rules.
+//! Tests for section 9 - Flex semantic validation rules.
 
 use std::sync::Arc;
 
@@ -96,7 +96,7 @@ fn calendar(service: &str, start: GtfsDate, end: GtfsDate, every_day: bool) -> C
     }
 }
 
-/// Returns a feed pre-marked as Flex so rule guards (`has_flex()`) don't
+/// Returns a feed pre-marked as Flex so rule guards (`has_flex`) don't
 /// short-circuit. Tests then push only the records they care about.
 fn flex_feed() -> GtfsFeed {
     let mut feed = GtfsFeed::default();
@@ -170,7 +170,7 @@ fn zero_length_window_emits_error() {
     assert_eq!(errors.len(), 1);
 }
 
-// `prior_notice_duration_min` is `Option<u32>` — negative values are rejected
+// `prior_notice_duration_min` is `Option<u32>` - negative values are rejected
 // by the parser, so 0 is the only invalid value reachable at this layer.
 #[test]
 fn prior_notice_min_zero_emits_error() {
