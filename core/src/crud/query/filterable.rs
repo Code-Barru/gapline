@@ -1,7 +1,8 @@
 use crate::models::{
-    Agency, Attribution, BookingRule, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo,
-    Frequency, Level, LocationGroup, LocationGroupStop, Pathway, Route, Shape, Stop, StopTime,
-    Transfer, Translation, Trip,
+    Agency, Area, Attribution, BookingRule, Calendar, CalendarDate, FareAttribute, FareLegJoinRule,
+    FareLegRule, FareMedia, FareProduct, FareRule, FareTransferRule, FeedInfo, Frequency, Level,
+    LocationGroup, LocationGroupStop, Network, Pathway, RiderCategory, Route, RouteNetwork, Shape,
+    Stop, StopArea, StopTime, Timeframe, Transfer, Translation, Trip,
 };
 
 /// Trait for GTFS records that can be filtered by the query engine.
@@ -295,4 +296,82 @@ impl_filterable!(LocationGroup {
 impl_filterable!(LocationGroupStop {
     location_group_id: req,
     stop_id: req,
+});
+
+impl_filterable!(FareMedia {
+    fare_media_id: req,
+    fare_media_name: opt,
+    fare_media_type: req_enum,
+});
+
+impl_filterable!(FareProduct {
+    fare_product_id: req,
+    fare_product_name: opt,
+    fare_media_id: opt,
+    amount: req,
+    currency: req,
+    rider_category_id: opt,
+});
+
+impl_filterable!(FareLegRule {
+    leg_group_id: opt,
+    network_id: opt,
+    from_area_id: opt,
+    to_area_id: opt,
+    from_timeframe_group_id: opt,
+    to_timeframe_group_id: opt,
+    fare_product_id: req,
+    rule_priority: opt,
+});
+
+impl_filterable!(FareTransferRule {
+    from_leg_group_id: opt,
+    to_leg_group_id: opt,
+    transfer_count: opt,
+    duration_limit: opt,
+    duration_limit_type: opt_enum,
+    fare_transfer_type: req_enum,
+    fare_product_id: opt,
+});
+
+impl_filterable!(RiderCategory {
+    rider_category_id: req,
+    rider_category_name: req,
+    min_age: opt,
+    max_age: opt,
+    eligibility_url: opt,
+});
+
+impl_filterable!(Timeframe {
+    timeframe_group_id: req,
+    start_time: req,
+    end_time: req,
+    service_id: req,
+});
+
+impl_filterable!(Area {
+    area_id: req,
+    area_name: opt,
+});
+
+impl_filterable!(StopArea {
+    area_id: req,
+    stop_id: req,
+});
+
+impl_filterable!(Network {
+    network_id: req,
+    network_name: opt,
+});
+
+impl_filterable!(RouteNetwork {
+    network_id: req,
+    route_id: req,
+});
+
+impl_filterable!(FareLegJoinRule {
+    from_network_id: req,
+    to_network_id: req,
+    from_stop_id: opt,
+    to_stop_id: opt,
 });

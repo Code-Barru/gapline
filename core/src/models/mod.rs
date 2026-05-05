@@ -1,4 +1,5 @@
 mod enums;
+mod fares_v2;
 mod feed;
 mod flex;
 mod ids;
@@ -7,14 +8,20 @@ mod types;
 
 pub use enums::{
     BikesAllowed, BookingType, ContinuousDropOff, ContinuousPickup, DirectionId, DropOffType,
-    ExactTimes, ExceptionType, IsBidirectional, LocationType, PathwayMode, PickupType, RouteType,
-    Timepoint, TransferType, WheelchairAccessible,
+    DurationLimitType, ExactTimes, ExceptionType, FareMediaType, FareTransferType, IsBidirectional,
+    LocationType, PathwayMode, PickupType, RouteType, Timepoint, TransferType,
+    WheelchairAccessible,
+};
+pub use fares_v2::{
+    Area, FareLegJoinRule, FareLegRule, FareMedia, FareProduct, FareTransferRule, Network,
+    RiderCategory, RouteNetwork, StopArea, Timeframe,
 };
 pub use feed::GtfsFeed;
 pub use flex::{BookingRule, LocationGroup, LocationGroupStop};
 pub use ids::{
-    AgencyId, BookingRuleId, FareId, FareMediaId, LevelId, LocationGroupId, PathwayId, RouteId,
-    ServiceId, ShapeId, StopId, TripId, ZoneId,
+    AgencyId, AreaId, BookingRuleId, FareId, FareMediaId, FareProductId, LegGroupId, LevelId,
+    LocationGroupId, NetworkId, PathwayId, RiderCategoryId, RouteId, ServiceId, ShapeId, StopId,
+    TimeframeId, TripId, ZoneId,
 };
 pub use records::{
     Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,

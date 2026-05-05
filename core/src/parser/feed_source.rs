@@ -504,7 +504,12 @@ impl GtfsFiles {
                 "fare_product_id",
                 "rule_priority",
             ],
-            Self::FareLegJoinRules => &["from_leg_group_id", "to_leg_group_id", "join_type"],
+            Self::FareLegJoinRules => &[
+                "from_network_id",
+                "to_network_id",
+                "from_stop_id",
+                "to_stop_id",
+            ],
             Self::FareTransferRules => &[
                 "from_leg_group_id",
                 "to_leg_group_id",
@@ -653,7 +658,7 @@ impl GtfsFiles {
             Self::FareMedia => &["fare_media_id", "fare_media_type"],
             Self::FareProducts => &["fare_product_id", "amount", "currency"],
             Self::FareLegRules => &["fare_product_id"],
-            Self::FareLegJoinRules => &["from_leg_group_id", "to_leg_group_id"],
+            Self::FareLegJoinRules => &["from_network_id", "to_network_id"],
             Self::FareTransferRules => &["fare_transfer_type"],
             Self::Areas => &["area_id"],
             Self::StopAreas => &["area_id", "stop_id"],

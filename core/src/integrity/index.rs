@@ -119,6 +119,17 @@ fn estimate_capacity(feed: &GtfsFeed) -> usize {
         + feed.fare_rules.len()
         + feed.stop_times.len()
         + feed.attributions.len()
+        + feed.fare_media.len()
+        + feed.fare_products.len()
+        + feed.fare_leg_rules.len()
+        + feed.fare_transfer_rules.len()
+        + feed.rider_categories.len()
+        + feed.timeframes.len()
+        + feed.areas.len()
+        + feed.stop_areas.len()
+        + feed.networks.len()
+        + feed.route_networks.len()
+        + feed.fare_leg_join_rules.len()
 }
 
 fn register_entities(feed: &GtfsFeed, forward: &mut RelMap) {
@@ -230,6 +241,69 @@ fn register_entities(feed: &GtfsFeed, forward: &mut RelMap) {
     for (index, _) in feed.attributions.iter().enumerate() {
         forward.entry(EntityRef::Attribution(index)).or_default();
     }
+
+    register_fares_v2_entities(feed, forward);
+}
+
+fn register_fares_v2_entities(feed: &GtfsFeed, forward: &mut RelMap) {
+    for fm in &feed.fare_media {
+        forward
+            .entry(EntityRef::FareMedia(fm.fare_media_id.clone()))
+            .or_default();
+    }
+    for fp in &feed.fare_products {
+        forward
+            .entry(EntityRef::FareProduct(fp.fare_product_id.clone()))
+            .or_default();
+    }
+    for rc in &feed.rider_categories {
+        forward
+            .entry(EntityRef::RiderCategory(rc.rider_category_id.clone()))
+            .or_default();
+    }
+    for tf in &feed.timeframes {
+        forward
+            .entry(EntityRef::Timeframe(tf.timeframe_group_id.clone()))
+            .or_default();
+    }
+    for area in &feed.areas {
+        forward
+            .entry(EntityRef::Area(area.area_id.clone()))
+            .or_default();
+    }
+    for net in &feed.networks {
+        forward
+            .entry(EntityRef::Network(net.network_id.clone()))
+            .or_default();
+    }
+    for flr in &feed.fare_leg_rules {
+        if let Some(ref lg) = flr.leg_group_id {
+            forward.entry(EntityRef::LegGroup(lg.clone())).or_default();
+        }
+    }
+    for ftr in &feed.fare_transfer_rules {
+        if let Some(ref lg) = ftr.from_leg_group_id {
+            forward.entry(EntityRef::LegGroup(lg.clone())).or_default();
+        }
+        if let Some(ref lg) = ftr.to_leg_group_id {
+            forward.entry(EntityRef::LegGroup(lg.clone())).or_default();
+        }
+    }
+    for (i, _) in feed.fare_leg_rules.iter().enumerate() {
+        forward.entry(EntityRef::FareLegRule(i)).or_default();
+    }
+    for (i, _) in feed.fare_transfer_rules.iter().enumerate() {
+        forward.entry(EntityRef::FareTransferRule(i)).or_default();
+    }
+    for (i, _) in feed.stop_areas.iter().enumerate() {
+        forward.entry(EntityRef::StopArea(i)).or_default();
+    }
+    for (i, _) in feed.route_networks.iter().enumerate() {
+        forward.entry(EntityRef::RouteNetwork(i)).or_default();
+    }
+    for (i, _) in feed.fare_leg_join_rules.iter().enumerate() {
+        forward.entry(EntityRef::FareLegJoinRule(i)).or_default();
+    }
 }
 
 fn build_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &mut RelMap) {
@@ -243,6 +317,7 @@ fn build_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &mut RelMap) 
     build_pathway_relations(feed, forward, reverse);
     build_fare_relations(feed, forward, reverse);
     build_attribution_relations(feed, forward, reverse);
+    build_fares_v2_relations(feed, forward, reverse);
 }
 
 fn build_route_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &mut RelMap) {
@@ -532,6 +607,146 @@ fn build_attribution_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &
                 RelationType::TripOfAttribution,
             );
         }
+    }
+}
+
+macro_rules! edge_opt {
+    ($field:expr, $variant:ident, $rel:expr) => {
+        (
+            $field.as_ref().map(|v| EntityRef::$variant(v.clone())),
+            $rel,
+        )
+    };
+}
+macro_rules! edge_req {
+    ($expr:expr, $variant:ident, $rel:expr) => {
+        (Some(EntityRef::$variant($expr.clone())), $rel)
+    };
+}
+
+fn add_edges(
+    forward: &mut RelMap,
+    reverse: &mut RelMap,
+    source: &EntityRef,
+    edges: &[(Option<EntityRef>, RelationType)],
+) {
+    for (target, rel) in edges {
+        if let Some(t) = target {
+            add_relation(forward, reverse, source.clone(), t.clone(), *rel);
+        }
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn build_fares_v2_relations(feed: &GtfsFeed, forward: &mut RelMap, reverse: &mut RelMap) {
+    use RelationType as R;
+
+    for fp in &feed.fare_products {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::FareProduct(fp.fare_product_id.clone()),
+            &[
+                edge_opt!(fp.fare_media_id, FareMedia, R::MediaOfFareProduct),
+                edge_opt!(
+                    fp.rider_category_id,
+                    RiderCategory,
+                    R::RiderCategoryOfFareProduct
+                ),
+            ],
+        );
+    }
+
+    for (i, flr) in feed.fare_leg_rules.iter().enumerate() {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::FareLegRule(i),
+            &[
+                edge_opt!(flr.leg_group_id, LegGroup, R::LegGroupOfFareLegRule),
+                edge_opt!(flr.network_id, Network, R::NetworkOfFareLegRule),
+                edge_opt!(flr.from_area_id, Area, R::FromAreaOfFareLegRule),
+                edge_opt!(flr.to_area_id, Area, R::ToAreaOfFareLegRule),
+                edge_opt!(
+                    flr.from_timeframe_group_id,
+                    Timeframe,
+                    R::FromTimeframeOfFareLegRule
+                ),
+                edge_opt!(
+                    flr.to_timeframe_group_id,
+                    Timeframe,
+                    R::ToTimeframeOfFareLegRule
+                ),
+                edge_req!(flr.fare_product_id, FareProduct, R::ProductOfFareLegRule),
+            ],
+        );
+    }
+
+    for (i, ftr) in feed.fare_transfer_rules.iter().enumerate() {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::FareTransferRule(i),
+            &[
+                edge_opt!(
+                    ftr.from_leg_group_id,
+                    LegGroup,
+                    R::FromLegGroupOfFareTransferRule
+                ),
+                edge_opt!(
+                    ftr.to_leg_group_id,
+                    LegGroup,
+                    R::ToLegGroupOfFareTransferRule
+                ),
+                edge_opt!(
+                    ftr.fare_product_id,
+                    FareProduct,
+                    R::ProductOfFareTransferRule
+                ),
+            ],
+        );
+    }
+
+    for (i, sa) in feed.stop_areas.iter().enumerate() {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::StopArea(i),
+            &[
+                edge_req!(sa.area_id, Area, R::AreaOfStopArea),
+                edge_req!(sa.stop_id, Stop, R::StopOfStopArea),
+            ],
+        );
+    }
+
+    for (i, rn) in feed.route_networks.iter().enumerate() {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::RouteNetwork(i),
+            &[
+                edge_req!(rn.network_id, Network, R::NetworkOfRouteNetwork),
+                edge_req!(rn.route_id, Route, R::RouteOfRouteNetwork),
+            ],
+        );
+    }
+
+    for (i, fjr) in feed.fare_leg_join_rules.iter().enumerate() {
+        add_edges(
+            forward,
+            reverse,
+            &EntityRef::FareLegJoinRule(i),
+            &[
+                edge_req!(
+                    fjr.from_network_id,
+                    Network,
+                    R::FromNetworkOfFareLegJoinRule
+                ),
+                edge_req!(fjr.to_network_id, Network, R::ToNetworkOfFareLegJoinRule),
+                edge_opt!(fjr.from_stop_id, Stop, R::FromStopOfFareLegJoinRule),
+                edge_opt!(fjr.to_stop_id, Stop, R::ToStopOfFareLegJoinRule),
+            ],
+        );
     }
 }
 

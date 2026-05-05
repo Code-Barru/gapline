@@ -3,11 +3,14 @@
 use crate::crud::common::CrudError;
 use crate::crud::query::Filterable;
 use crate::models::{
-    Agency, AgencyId, Attribution, BikesAllowed, Calendar, CalendarDate, Color, ContinuousDropOff,
-    ContinuousPickup, CurrencyCode, DirectionId, DropOffType, Email, ExactTimes, ExceptionType,
-    FareAttribute, FareId, FareRule, FeedInfo, Frequency, IsBidirectional, LanguageCode, Latitude,
-    Level, LevelId, LocationType, Longitude, Pathway, PathwayId, PathwayMode, Phone, PickupType,
-    Route, RouteId, RouteType, ServiceId, Shape, ShapeId, Stop, StopId, StopTime, Timepoint,
+    Agency, AgencyId, Area, AreaId, Attribution, BikesAllowed, Calendar, CalendarDate, Color,
+    ContinuousDropOff, ContinuousPickup, CurrencyCode, DirectionId, DropOffType, DurationLimitType,
+    Email, ExactTimes, ExceptionType, FareAttribute, FareId, FareLegJoinRule, FareLegRule,
+    FareMedia, FareMediaId, FareMediaType, FareProduct, FareProductId, FareRule, FareTransferRule,
+    FareTransferType, FeedInfo, Frequency, IsBidirectional, LanguageCode, Latitude, LegGroupId,
+    Level, LevelId, LocationType, Longitude, Network, NetworkId, Pathway, PathwayId, PathwayMode,
+    Phone, PickupType, RiderCategory, RiderCategoryId, Route, RouteId, RouteNetwork, RouteType,
+    ServiceId, Shape, ShapeId, Stop, StopArea, StopId, StopTime, Timeframe, TimeframeId, Timepoint,
     Timezone, Transfer, TransferType, Translation, Trip, TripId, Url, WheelchairAccessible,
 };
 
@@ -53,6 +56,17 @@ impl_field_setter! {
     FareRule => set_fare_rule_field,
     Translation => set_translation_field,
     Attribution => set_attribution_field,
+    FareMedia => set_fare_media_field,
+    FareProduct => set_fare_product_field,
+    FareLegRule => set_fare_leg_rule_field,
+    FareTransferRule => set_fare_transfer_rule_field,
+    RiderCategory => set_rider_category_field,
+    Timeframe => set_timeframe_field,
+    Area => set_area_field,
+    StopArea => set_stop_area_field,
+    Network => set_network_field,
+    RouteNetwork => set_route_network_field,
+    FareLegJoinRule => set_fare_leg_join_rule_field,
 }
 
 fn parse_value<T: std::str::FromStr>(
@@ -304,4 +318,82 @@ define_setter!(set_attribution_field(attr: Attribution, field, value) {
     attribution_url => Some(Url::from(value.to_string())),
     attribution_email => Some(Email::from(value.to_string())),
     attribution_phone => Some(Phone::from(value.to_string())),
+});
+
+define_setter!(set_fare_media_field(fm: FareMedia, field, value) {
+    fare_media_id => FareMediaId::from(value.to_string()),
+    fare_media_name => Some(value.to_string()),
+    fare_media_type => parse_enum(value, field, FareMediaType::from_i32, "0-4")?,
+});
+
+define_setter!(set_fare_product_field(fp: FareProduct, field, value) {
+    fare_product_id => FareProductId::from(value.to_string()),
+    fare_product_name => Some(value.to_string()),
+    fare_media_id => Some(FareMediaId::from(value.to_string())),
+    amount => parse_value(value, field, "number")?,
+    currency => CurrencyCode::from(value.to_string()),
+    rider_category_id => Some(RiderCategoryId::from(value.to_string())),
+});
+
+define_setter!(set_fare_leg_rule_field(flr: FareLegRule, field, value) {
+    leg_group_id => Some(LegGroupId::from(value.to_string())),
+    network_id => Some(NetworkId::from(value.to_string())),
+    from_area_id => Some(AreaId::from(value.to_string())),
+    to_area_id => Some(AreaId::from(value.to_string())),
+    from_timeframe_group_id => Some(TimeframeId::from(value.to_string())),
+    to_timeframe_group_id => Some(TimeframeId::from(value.to_string())),
+    fare_product_id => FareProductId::from(value.to_string()),
+    rule_priority => Some(parse_value(value, field, "integer")?),
+});
+
+define_setter!(set_fare_transfer_rule_field(ftr: FareTransferRule, field, value) {
+    from_leg_group_id => Some(LegGroupId::from(value.to_string())),
+    to_leg_group_id => Some(LegGroupId::from(value.to_string())),
+    transfer_count => Some(parse_value(value, field, "integer")?),
+    duration_limit => Some(parse_value(value, field, "integer")?),
+    duration_limit_type => Some(parse_enum(value, field, DurationLimitType::from_i32, "0-3")?),
+    fare_transfer_type => parse_enum(value, field, FareTransferType::from_i32, "0-2")?,
+    fare_product_id => Some(FareProductId::from(value.to_string())),
+});
+
+define_setter!(set_rider_category_field(rc: RiderCategory, field, value) {
+    rider_category_id => RiderCategoryId::from(value.to_string()),
+    rider_category_name => value.to_string(),
+    min_age => Some(parse_value(value, field, "integer")?),
+    max_age => Some(parse_value(value, field, "integer")?),
+    eligibility_url => Some(Url::from(value.to_string())),
+});
+
+define_setter!(set_timeframe_field(tf: Timeframe, field, value) {
+    timeframe_group_id => TimeframeId::from(value.to_string()),
+    start_time => parse_value(value, field, "time HH:MM:SS")?,
+    end_time => parse_value(value, field, "time HH:MM:SS")?,
+    service_id => ServiceId::from(value.to_string()),
+});
+
+define_setter!(set_area_field(area: Area, field, value) {
+    area_id => AreaId::from(value.to_string()),
+    area_name => Some(value.to_string()),
+});
+
+define_setter!(set_stop_area_field(sa: StopArea, field, value) {
+    area_id => AreaId::from(value.to_string()),
+    stop_id => StopId::from(value.to_string()),
+});
+
+define_setter!(set_network_field(net: Network, field, value) {
+    network_id => NetworkId::from(value.to_string()),
+    network_name => Some(value.to_string()),
+});
+
+define_setter!(set_route_network_field(rn: RouteNetwork, field, value) {
+    network_id => NetworkId::from(value.to_string()),
+    route_id => RouteId::from(value.to_string()),
+});
+
+define_setter!(set_fare_leg_join_rule_field(fjr: FareLegJoinRule, field, value) {
+    from_network_id => NetworkId::from(value.to_string()),
+    to_network_id => NetworkId::from(value.to_string()),
+    from_stop_id => Some(StopId::from(value.to_string())),
+    to_stop_id => Some(StopId::from(value.to_string())),
 });

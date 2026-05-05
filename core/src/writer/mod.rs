@@ -269,6 +269,17 @@ fn write_target_to_file(
         GtfsTarget::FareRules => serialize_records(&feed.fare_rules, &mut w),
         GtfsTarget::Translations => serialize_records(&feed.translations, &mut w),
         GtfsTarget::Attributions => serialize_records(&feed.attributions, &mut w),
+        GtfsTarget::FareMedia => serialize_records(&feed.fare_media, &mut w),
+        GtfsTarget::FareProducts => serialize_records(&feed.fare_products, &mut w),
+        GtfsTarget::FareLegRules => serialize_records(&feed.fare_leg_rules, &mut w),
+        GtfsTarget::FareTransferRules => serialize_records(&feed.fare_transfer_rules, &mut w),
+        GtfsTarget::RiderCategories => serialize_records(&feed.rider_categories, &mut w),
+        GtfsTarget::Timeframes => serialize_records(&feed.timeframes, &mut w),
+        GtfsTarget::Areas => serialize_records(&feed.areas, &mut w),
+        GtfsTarget::StopAreas => serialize_records(&feed.stop_areas, &mut w),
+        GtfsTarget::Networks => serialize_records(&feed.networks, &mut w),
+        GtfsTarget::RouteNetworks => serialize_records(&feed.route_networks, &mut w),
+        GtfsTarget::FareLegJoinRules => serialize_records(&feed.fare_leg_join_rules, &mut w),
     }
 }
 
@@ -304,6 +315,17 @@ fn write_target_to_zip(
         GtfsTarget::FareRules => serialize_records(&feed.fare_rules, zip),
         GtfsTarget::Translations => serialize_records(&feed.translations, zip),
         GtfsTarget::Attributions => serialize_records(&feed.attributions, zip),
+        GtfsTarget::FareMedia => serialize_records(&feed.fare_media, zip),
+        GtfsTarget::FareProducts => serialize_records(&feed.fare_products, zip),
+        GtfsTarget::FareLegRules => serialize_records(&feed.fare_leg_rules, zip),
+        GtfsTarget::FareTransferRules => serialize_records(&feed.fare_transfer_rules, zip),
+        GtfsTarget::RiderCategories => serialize_records(&feed.rider_categories, zip),
+        GtfsTarget::Timeframes => serialize_records(&feed.timeframes, zip),
+        GtfsTarget::Areas => serialize_records(&feed.areas, zip),
+        GtfsTarget::StopAreas => serialize_records(&feed.stop_areas, zip),
+        GtfsTarget::Networks => serialize_records(&feed.networks, zip),
+        GtfsTarget::RouteNetworks => serialize_records(&feed.route_networks, zip),
+        GtfsTarget::FareLegJoinRules => serialize_records(&feed.fare_leg_join_rules, zip),
     }
 }
 
@@ -364,5 +386,16 @@ fn target_to_gtfs_file(target: GtfsTarget) -> GtfsFiles {
         GtfsTarget::FareRules => GtfsFiles::FareRules,
         GtfsTarget::Translations => GtfsFiles::Translations,
         GtfsTarget::Attributions => GtfsFiles::Attributions,
+        GtfsTarget::FareMedia => GtfsFiles::FareMedia,
+        GtfsTarget::FareProducts => GtfsFiles::FareProducts,
+        GtfsTarget::FareLegRules => GtfsFiles::FareLegRules,
+        GtfsTarget::FareTransferRules => GtfsFiles::FareTransferRules,
+        GtfsTarget::RiderCategories => GtfsFiles::RiderCategories,
+        GtfsTarget::Timeframes => GtfsFiles::Timeframes,
+        GtfsTarget::Areas => GtfsFiles::Areas,
+        GtfsTarget::StopAreas => GtfsFiles::StopAreas,
+        GtfsTarget::Networks => GtfsFiles::Networks,
+        GtfsTarget::RouteNetworks => GtfsFiles::RouteNetworks,
+        GtfsTarget::FareLegJoinRules => GtfsFiles::FareLegJoinRules,
     }
 }

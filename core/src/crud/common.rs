@@ -179,6 +179,17 @@ pub fn valid_fields_for(target: GtfsTarget) -> &'static [&'static str] {
         GtfsTarget::FareRules => FareRule::valid_fields(),
         GtfsTarget::Translations => Translation::valid_fields(),
         GtfsTarget::Attributions => Attribution::valid_fields(),
+        GtfsTarget::FareMedia => crate::models::FareMedia::valid_fields(),
+        GtfsTarget::FareProducts => crate::models::FareProduct::valid_fields(),
+        GtfsTarget::FareLegRules => crate::models::FareLegRule::valid_fields(),
+        GtfsTarget::FareTransferRules => crate::models::FareTransferRule::valid_fields(),
+        GtfsTarget::RiderCategories => crate::models::RiderCategory::valid_fields(),
+        GtfsTarget::Timeframes => crate::models::Timeframe::valid_fields(),
+        GtfsTarget::Areas => crate::models::Area::valid_fields(),
+        GtfsTarget::StopAreas => crate::models::StopArea::valid_fields(),
+        GtfsTarget::Networks => crate::models::Network::valid_fields(),
+        GtfsTarget::RouteNetworks => crate::models::RouteNetwork::valid_fields(),
+        GtfsTarget::FareLegJoinRules => crate::models::FareLegJoinRule::valid_fields(),
     }
 }
 
@@ -355,7 +366,18 @@ impl<'a> FeedIndex<'a> {
                 idx.fare_ids = fare_ids_set(feed);
                 idx.route_ids = route_ids_set(feed);
             }
-            GtfsTarget::Translations => {}
+            GtfsTarget::Translations
+            | GtfsTarget::FareMedia
+            | GtfsTarget::FareProducts
+            | GtfsTarget::FareLegRules
+            | GtfsTarget::FareTransferRules
+            | GtfsTarget::RiderCategories
+            | GtfsTarget::Timeframes
+            | GtfsTarget::Areas
+            | GtfsTarget::StopAreas
+            | GtfsTarget::Networks
+            | GtfsTarget::RouteNetworks
+            | GtfsTarget::FareLegJoinRules => {}
             GtfsTarget::Attributions => {
                 idx.agency_ids = agency_ids_set(feed);
                 idx.route_ids = route_ids_set(feed);
@@ -563,9 +585,20 @@ pub fn primary_key_fields(target: GtfsTarget) -> &'static [&'static str] {
         | GtfsTarget::FeedInfo
         | GtfsTarget::FareRules
         | GtfsTarget::Translations
-        | GtfsTarget::Attributions => &[],
+        | GtfsTarget::Attributions
+        | GtfsTarget::FareLegRules
+        | GtfsTarget::FareTransferRules
+        | GtfsTarget::StopAreas
+        | GtfsTarget::RouteNetworks
+        | GtfsTarget::FareLegJoinRules => &[],
         GtfsTarget::Pathways => &["pathway_id"],
         GtfsTarget::Levels => &["level_id"],
         GtfsTarget::FareAttributes => &["fare_id"],
+        GtfsTarget::FareMedia => &["fare_media_id"],
+        GtfsTarget::FareProducts => &["fare_product_id"],
+        GtfsTarget::RiderCategories => &["rider_category_id"],
+        GtfsTarget::Timeframes => &["timeframe_group_id"],
+        GtfsTarget::Areas => &["area_id"],
+        GtfsTarget::Networks => &["network_id"],
     }
 }

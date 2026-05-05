@@ -78,6 +78,50 @@ macro_rules! dispatch_slice {
                 let $c = &$feed.attributions[..];
                 $body
             }
+            $crate::crud::read::GtfsTarget::FareMedia => {
+                let $c = &$feed.fare_media[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareProducts => {
+                let $c = &$feed.fare_products[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegRules => {
+                let $c = &$feed.fare_leg_rules[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareTransferRules => {
+                let $c = &$feed.fare_transfer_rules[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RiderCategories => {
+                let $c = &$feed.rider_categories[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Timeframes => {
+                let $c = &$feed.timeframes[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Areas => {
+                let $c = &$feed.areas[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::StopAreas => {
+                let $c = &$feed.stop_areas[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Networks => {
+                let $c = &$feed.networks[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RouteNetworks => {
+                let $c = &$feed.route_networks[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegJoinRules => {
+                let $c = &$feed.fare_leg_join_rules[..];
+                $body
+            }
         }
     };
 }
@@ -153,6 +197,50 @@ macro_rules! dispatch_slice_mut {
             }
             $crate::crud::read::GtfsTarget::Attributions => {
                 let $c = &mut $feed.attributions[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareMedia => {
+                let $c = &mut $feed.fare_media[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareProducts => {
+                let $c = &mut $feed.fare_products[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegRules => {
+                let $c = &mut $feed.fare_leg_rules[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareTransferRules => {
+                let $c = &mut $feed.fare_transfer_rules[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RiderCategories => {
+                let $c = &mut $feed.rider_categories[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Timeframes => {
+                let $c = &mut $feed.timeframes[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Areas => {
+                let $c = &mut $feed.areas[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::StopAreas => {
+                let $c = &mut $feed.stop_areas[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Networks => {
+                let $c = &mut $feed.networks[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RouteNetworks => {
+                let $c = &mut $feed.route_networks[..];
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegJoinRules => {
+                let $c = &mut $feed.fare_leg_join_rules[..];
                 $body
             }
         }
@@ -231,6 +319,50 @@ macro_rules! for_each_target_type {
             }
             $crate::crud::read::GtfsTarget::Attributions => {
                 type $T = $crate::models::Attribution;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareMedia => {
+                type $T = $crate::models::FareMedia;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareProducts => {
+                type $T = $crate::models::FareProduct;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegRules => {
+                type $T = $crate::models::FareLegRule;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareTransferRules => {
+                type $T = $crate::models::FareTransferRule;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RiderCategories => {
+                type $T = $crate::models::RiderCategory;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Timeframes => {
+                type $T = $crate::models::Timeframe;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Areas => {
+                type $T = $crate::models::Area;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::StopAreas => {
+                type $T = $crate::models::StopArea;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::Networks => {
+                type $T = $crate::models::Network;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::RouteNetworks => {
+                type $T = $crate::models::RouteNetwork;
+                $body
+            }
+            $crate::crud::read::GtfsTarget::FareLegJoinRules => {
+                type $T = $crate::models::FareLegJoinRule;
                 $body
             }
         }

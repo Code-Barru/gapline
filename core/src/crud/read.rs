@@ -23,6 +23,17 @@ pub enum GtfsTarget {
     FareRules,
     Translations,
     Attributions,
+    FareMedia,
+    FareProducts,
+    FareLegRules,
+    FareTransferRules,
+    RiderCategories,
+    Timeframes,
+    Areas,
+    StopAreas,
+    Networks,
+    RouteNetworks,
+    FareLegJoinRules,
 }
 
 impl GtfsTarget {
@@ -47,6 +58,17 @@ impl GtfsTarget {
             Self::FareRules => "fare_rules.txt",
             Self::Translations => "translations.txt",
             Self::Attributions => "attributions.txt",
+            Self::FareMedia => "fare_media.txt",
+            Self::FareProducts => "fare_products.txt",
+            Self::FareLegRules => "fare_leg_rules.txt",
+            Self::FareTransferRules => "fare_transfer_rules.txt",
+            Self::RiderCategories => "rider_categories.txt",
+            Self::Timeframes => "timeframes.txt",
+            Self::Areas => "areas.txt",
+            Self::StopAreas => "stop_areas.txt",
+            Self::Networks => "networks.txt",
+            Self::RouteNetworks => "route_networks.txt",
+            Self::FareLegJoinRules => "fare_leg_join_rules.txt",
         }
     }
 }

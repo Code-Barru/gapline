@@ -10,13 +10,16 @@ use crate::crud::common::{
 };
 use crate::crud::read::GtfsTarget;
 use crate::models::{
-    Agency, AgencyId, Attribution, BikesAllowed, BookingRuleId, Calendar, CalendarDate, Color,
-    ContinuousDropOff, ContinuousPickup, CurrencyCode, DirectionId, DropOffType, Email, ExactTimes,
-    ExceptionType, FareAttribute, FareId, FareRule, FeedInfo, Frequency, GtfsDate, GtfsFeed,
-    GtfsTime, IsBidirectional, LanguageCode, Latitude, Level, LevelId, LocationType, Longitude,
-    Pathway, PathwayId, PathwayMode, Phone, PickupType, Route, RouteId, RouteType, ServiceId,
-    Shape, ShapeId, Stop, StopId, StopTime, Timepoint, Timezone, Transfer, TransferType,
-    Translation, Trip, TripId, Url, WheelchairAccessible,
+    Agency, AgencyId, Area, AreaId, Attribution, BikesAllowed, BookingRuleId, Calendar,
+    CalendarDate, Color, ContinuousDropOff, ContinuousPickup, CurrencyCode, DirectionId,
+    DropOffType, DurationLimitType, Email, ExactTimes, ExceptionType, FareAttribute, FareId,
+    FareLegJoinRule, FareLegRule, FareMedia, FareMediaId, FareMediaType, FareProduct,
+    FareProductId, FareRule, FareTransferRule, FareTransferType, FeedInfo, Frequency, GtfsDate,
+    GtfsFeed, GtfsTime, IsBidirectional, LanguageCode, Latitude, LegGroupId, Level, LevelId,
+    LocationType, Longitude, Network, NetworkId, Pathway, PathwayId, PathwayMode, Phone,
+    PickupType, RiderCategory, RiderCategoryId, Route, RouteId, RouteNetwork, RouteType, ServiceId,
+    Shape, ShapeId, Stop, StopArea, StopId, StopTime, Timeframe, TimeframeId, Timepoint, Timezone,
+    Transfer, TransferType, Translation, Trip, TripId, Url, WheelchairAccessible,
 };
 use crate::parser::feed_source::GtfsFiles;
 
@@ -101,6 +104,17 @@ pub enum CreatedRecord {
     FareRule(FareRule),
     Translation(Translation),
     Attribution(Attribution),
+    FareMedia(FareMedia),
+    FareProduct(FareProduct),
+    FareLegRule(FareLegRule),
+    FareTransferRule(FareTransferRule),
+    RiderCategory(RiderCategory),
+    Timeframe(Timeframe),
+    Area(Area),
+    StopArea(StopArea),
+    Network(Network),
+    RouteNetwork(RouteNetwork),
+    FareLegJoinRule(FareLegJoinRule),
 }
 
 /// Validates field assignments and builds a [`CreatePlan`] without mutating the feed.
@@ -157,6 +171,17 @@ pub fn apply_create(feed: &mut GtfsFeed, plan: CreatePlan) {
         CreatedRecord::FareRule(r) => feed.fare_rules.push(r),
         CreatedRecord::Translation(r) => feed.translations.push(r),
         CreatedRecord::Attribution(r) => feed.attributions.push(r),
+        CreatedRecord::FareMedia(r) => feed.fare_media.push(r),
+        CreatedRecord::FareProduct(r) => feed.fare_products.push(r),
+        CreatedRecord::FareLegRule(r) => feed.fare_leg_rules.push(r),
+        CreatedRecord::FareTransferRule(r) => feed.fare_transfer_rules.push(r),
+        CreatedRecord::RiderCategory(r) => feed.rider_categories.push(r),
+        CreatedRecord::Timeframe(r) => feed.timeframes.push(r),
+        CreatedRecord::Area(r) => feed.areas.push(r),
+        CreatedRecord::StopArea(r) => feed.stop_areas.push(r),
+        CreatedRecord::Network(r) => feed.networks.push(r),
+        CreatedRecord::RouteNetwork(r) => feed.route_networks.push(r),
+        CreatedRecord::FareLegJoinRule(r) => feed.fare_leg_join_rules.push(r),
     }
 }
 
@@ -185,6 +210,17 @@ pub fn required_files(target: GtfsTarget) -> Vec<GtfsFiles> {
         GtfsTarget::FareRules => vec![F::FareAttributes, F::Routes],
         GtfsTarget::Translations => vec![F::Translations],
         GtfsTarget::Attributions => vec![F::Agency, F::Routes, F::Trips],
+        GtfsTarget::FareMedia => vec![F::FareMedia],
+        GtfsTarget::FareProducts => vec![F::FareProducts],
+        GtfsTarget::FareLegRules => vec![F::FareLegRules],
+        GtfsTarget::FareTransferRules => vec![F::FareTransferRules],
+        GtfsTarget::RiderCategories => vec![F::RiderCategories],
+        GtfsTarget::Timeframes => vec![F::Timeframes],
+        GtfsTarget::Areas => vec![F::Areas],
+        GtfsTarget::StopAreas => vec![F::StopAreas],
+        GtfsTarget::Networks => vec![F::Networks],
+        GtfsTarget::RouteNetworks => vec![F::RouteNetworks],
+        GtfsTarget::FareLegJoinRules => vec![F::FareLegJoinRules],
     }
 }
 
@@ -222,6 +258,17 @@ fn check_required_for(
         GtfsTarget::FareRules => GtfsFiles::FareRules,
         GtfsTarget::Translations => GtfsFiles::Translations,
         GtfsTarget::Attributions => GtfsFiles::Attributions,
+        GtfsTarget::FareMedia => GtfsFiles::FareMedia,
+        GtfsTarget::FareProducts => GtfsFiles::FareProducts,
+        GtfsTarget::FareLegRules => GtfsFiles::FareLegRules,
+        GtfsTarget::FareTransferRules => GtfsFiles::FareTransferRules,
+        GtfsTarget::RiderCategories => GtfsFiles::RiderCategories,
+        GtfsTarget::Timeframes => GtfsFiles::Timeframes,
+        GtfsTarget::Areas => GtfsFiles::Areas,
+        GtfsTarget::StopAreas => GtfsFiles::StopAreas,
+        GtfsTarget::Networks => GtfsFiles::Networks,
+        GtfsTarget::RouteNetworks => GtfsFiles::RouteNetworks,
+        GtfsTarget::FareLegJoinRules => GtfsFiles::FareLegJoinRules,
     };
 
     check_required(fields, gtfs_file.required_columns())?;
@@ -401,6 +448,23 @@ fn build_record(target: GtfsTarget, fields: &Fields) -> Result<CreatedRecord, Cr
         GtfsTarget::FareRules => Ok(CreatedRecord::FareRule(build_fare_rule(fields))),
         GtfsTarget::Translations => Ok(CreatedRecord::Translation(build_translation(fields))),
         GtfsTarget::Attributions => build_attribution(fields).map(CreatedRecord::Attribution),
+        GtfsTarget::FareMedia => build_fare_media(fields).map(CreatedRecord::FareMedia),
+        GtfsTarget::FareProducts => build_fare_product(fields).map(CreatedRecord::FareProduct),
+        GtfsTarget::FareLegRules => build_fare_leg_rule(fields).map(CreatedRecord::FareLegRule),
+        GtfsTarget::FareTransferRules => {
+            build_fare_transfer_rule(fields).map(CreatedRecord::FareTransferRule)
+        }
+        GtfsTarget::RiderCategories => {
+            build_rider_category(fields).map(CreatedRecord::RiderCategory)
+        }
+        GtfsTarget::Timeframes => build_timeframe(fields).map(CreatedRecord::Timeframe),
+        GtfsTarget::Areas => Ok(CreatedRecord::Area(build_area(fields))),
+        GtfsTarget::StopAreas => Ok(CreatedRecord::StopArea(build_stop_area(fields))),
+        GtfsTarget::Networks => Ok(CreatedRecord::Network(build_network(fields))),
+        GtfsTarget::RouteNetworks => Ok(CreatedRecord::RouteNetwork(build_route_network(fields))),
+        GtfsTarget::FareLegJoinRules => Ok(CreatedRecord::FareLegJoinRule(
+            build_fare_leg_join_rule(fields),
+        )),
     }
 }
 
@@ -834,5 +898,105 @@ build_record! {
         attribution_url: opt_id<Url>,
         attribution_email: opt_id<Email>,
         attribution_phone: opt_id<Phone>,
+    }
+}
+
+build_record! {
+    build_fare_media -> FareMedia {
+        fare_media_id: req_id<FareMediaId>,
+        fare_media_name: opt_str,
+        fare_media_type: req_enum(FareMediaType::from_i32, "0-4"),
+    }
+}
+
+build_record! {
+    build_fare_product -> FareProduct {
+        fare_product_id: req_id<FareProductId>,
+        fare_product_name: opt_str,
+        fare_media_id: opt_id<FareMediaId>,
+        amount: req_parse("number"),
+        currency: req_id<CurrencyCode>,
+        rider_category_id: opt_id<RiderCategoryId>,
+    }
+}
+
+build_record! {
+    build_fare_leg_rule -> FareLegRule {
+        leg_group_id: opt_id<LegGroupId>,
+        network_id: opt_id<NetworkId>,
+        from_area_id: opt_id<AreaId>,
+        to_area_id: opt_id<AreaId>,
+        from_timeframe_group_id: opt_id<TimeframeId>,
+        to_timeframe_group_id: opt_id<TimeframeId>,
+        fare_product_id: req_id<FareProductId>,
+        rule_priority: opt_parse("integer"),
+    }
+}
+
+build_record! {
+    build_fare_transfer_rule -> FareTransferRule {
+        from_leg_group_id: opt_id<LegGroupId>,
+        to_leg_group_id: opt_id<LegGroupId>,
+        transfer_count: opt_parse("integer"),
+        duration_limit: opt_parse("integer"),
+        duration_limit_type: opt_enum(DurationLimitType::from_i32, "0-3"),
+        fare_transfer_type: req_enum(FareTransferType::from_i32, "0-2"),
+        fare_product_id: opt_id<FareProductId>,
+    }
+}
+
+build_record! {
+    build_rider_category -> RiderCategory {
+        rider_category_id: req_id<RiderCategoryId>,
+        rider_category_name: req_str,
+        min_age: opt_parse("integer"),
+        max_age: opt_parse("integer"),
+        eligibility_url: opt_id<Url>,
+    }
+}
+
+build_record! {
+    build_timeframe -> Timeframe {
+        timeframe_group_id: req_id<TimeframeId>,
+        start_time: req_parse("time HH:MM:SS"),
+        end_time: req_parse("time HH:MM:SS"),
+        service_id: req_id<ServiceId>,
+    }
+}
+
+build_record_plain! {
+    build_area -> Area {
+        area_id: req_id<AreaId>,
+        area_name: opt_str,
+    }
+}
+
+build_record_plain! {
+    build_stop_area -> StopArea {
+        area_id: req_id<AreaId>,
+        stop_id: req_id<StopId>,
+    }
+}
+
+build_record_plain! {
+    build_network -> Network {
+        network_id: req_id<NetworkId>,
+        network_name: opt_str,
+    }
+}
+
+build_record_plain! {
+    build_route_network -> RouteNetwork {
+        network_id: req_id<NetworkId>,
+        route_id: req_id<RouteId>,
+    }
+}
+
+build_record_plain! {
+    build_fare_leg_join_rule -> FareLegJoinRule {
+        from_network_id: req_id<NetworkId>,
+        to_network_id: req_id<NetworkId>,
+        from_stop_id: opt_id<StopId>,
+        to_stop_id: opt_id<StopId>,
     }
 }

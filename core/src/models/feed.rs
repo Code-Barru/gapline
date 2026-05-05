@@ -2,6 +2,10 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use super::fares_v2::{
+    Area, FareLegJoinRule, FareLegRule, FareMedia, FareProduct, FareTransferRule, Network,
+    RiderCategory, RouteNetwork, StopArea, Timeframe,
+};
 use super::flex::{BookingRule, LocationGroup, LocationGroupStop};
 use super::records::{
     Agency, Attribution, Calendar, CalendarDate, FareAttribute, FareRule, FeedInfo, Frequency,
@@ -37,6 +41,28 @@ pub struct GtfsFeed {
     pub booking_rules: Vec<BookingRule>,
     pub location_groups: Vec<LocationGroup>,
     pub location_group_stops: Vec<LocationGroupStop>,
+    #[serde(default)]
+    pub fare_media: Vec<FareMedia>,
+    #[serde(default)]
+    pub fare_products: Vec<FareProduct>,
+    #[serde(default)]
+    pub fare_leg_rules: Vec<FareLegRule>,
+    #[serde(default)]
+    pub fare_transfer_rules: Vec<FareTransferRule>,
+    #[serde(default)]
+    pub rider_categories: Vec<RiderCategory>,
+    #[serde(default)]
+    pub timeframes: Vec<Timeframe>,
+    #[serde(default)]
+    pub areas: Vec<Area>,
+    #[serde(default)]
+    pub stop_areas: Vec<StopArea>,
+    #[serde(default)]
+    pub networks: Vec<Network>,
+    #[serde(default)]
+    pub route_networks: Vec<RouteNetwork>,
+    #[serde(default)]
+    pub fare_leg_join_rules: Vec<FareLegJoinRule>,
 }
 
 impl GtfsFeed {
@@ -44,6 +70,25 @@ impl GtfsFeed {
     #[must_use]
     pub fn has_file(&self, name: &str) -> bool {
         self.loaded_files.contains(name)
+    }
+
+    #[must_use]
+    pub fn has_fares_v2(&self) -> bool {
+        [
+            "fare_media.txt",
+            "fare_products.txt",
+            "fare_leg_rules.txt",
+            "fare_transfer_rules.txt",
+            "rider_categories.txt",
+            "timeframes.txt",
+            "areas.txt",
+            "stop_areas.txt",
+            "networks.txt",
+            "route_networks.txt",
+            "fare_leg_join_rules.txt",
+        ]
+        .iter()
+        .any(|f| self.has_file(f))
     }
 
     #[must_use]

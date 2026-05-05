@@ -355,3 +355,66 @@ impl Timepoint {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FareMediaType {
+    None = 0,
+    PhysicalPaperTicket = 1,
+    PhysicalTransitCard = 2,
+    Cemv = 3,
+    MobileApp = 4,
+}
+
+impl FareMediaType {
+    #[must_use]
+    pub const fn from_i32(val: i32) -> Option<Self> {
+        match val {
+            0 => Some(Self::None),
+            1 => Some(Self::PhysicalPaperTicket),
+            2 => Some(Self::PhysicalTransitCard),
+            3 => Some(Self::Cemv),
+            4 => Some(Self::MobileApp),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FareTransferType {
+    FromLeg = 0,
+    ToLeg = 1,
+    Sum = 2,
+}
+
+impl FareTransferType {
+    #[must_use]
+    pub const fn from_i32(val: i32) -> Option<Self> {
+        match val {
+            0 => Some(Self::FromLeg),
+            1 => Some(Self::ToLeg),
+            2 => Some(Self::Sum),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DurationLimitType {
+    DepartureToArrival = 0,
+    DepartureToDeparture = 1,
+    ArrivalToDeparture = 2,
+    ArrivalToArrival = 3,
+}
+
+impl DurationLimitType {
+    #[must_use]
+    pub const fn from_i32(val: i32) -> Option<Self> {
+        match val {
+            0 => Some(Self::DepartureToArrival),
+            1 => Some(Self::DepartureToDeparture),
+            2 => Some(Self::ArrivalToDeparture),
+            3 => Some(Self::ArrivalToArrival),
+            _ => None,
+        }
+    }
+}

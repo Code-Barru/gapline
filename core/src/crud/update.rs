@@ -144,6 +144,11 @@ pub fn required_files(target: GtfsTarget, include_dependents: bool) -> Vec<GtfsF
         GtfsTarget::Shapes => vec![F::Trips],
         GtfsTarget::Levels => vec![F::Stops],
         GtfsTarget::FareAttributes => vec![F::FareRules],
+        GtfsTarget::Networks => vec![F::FareLegRules, F::RouteNetworks, F::FareLegJoinRules],
+        GtfsTarget::Areas => vec![F::FareLegRules, F::StopAreas],
+        GtfsTarget::FareProducts => vec![F::FareLegRules, F::FareTransferRules],
+        GtfsTarget::FareMedia | GtfsTarget::RiderCategories => vec![F::FareProducts],
+        GtfsTarget::Timeframes => vec![F::FareLegRules],
         GtfsTarget::StopTimes
         | GtfsTarget::Frequencies
         | GtfsTarget::Transfers
@@ -151,7 +156,12 @@ pub fn required_files(target: GtfsTarget, include_dependents: bool) -> Vec<GtfsF
         | GtfsTarget::FeedInfo
         | GtfsTarget::FareRules
         | GtfsTarget::Translations
-        | GtfsTarget::Attributions => vec![],
+        | GtfsTarget::Attributions
+        | GtfsTarget::FareLegRules
+        | GtfsTarget::FareTransferRules
+        | GtfsTarget::StopAreas
+        | GtfsTarget::RouteNetworks
+        | GtfsTarget::FareLegJoinRules => vec![],
     };
 
     let mut set = HashSet::new();

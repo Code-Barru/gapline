@@ -167,6 +167,32 @@ impl FeedLoader {
             file_parsers::location_group_stops::parse
         );
 
+        let fare_media_r = parse_vec!(GtfsFiles::FareMedia, file_parsers::fare_media::parse);
+        let fare_products_r =
+            parse_vec!(GtfsFiles::FareProducts, file_parsers::fare_products::parse);
+        let fare_leg_rules_r =
+            parse_vec!(GtfsFiles::FareLegRules, file_parsers::fare_leg_rules::parse);
+        let fare_transfer_rules_r = parse_vec!(
+            GtfsFiles::FareTransferRules,
+            file_parsers::fare_transfer_rules::parse
+        );
+        let rider_categories_r = parse_vec!(
+            GtfsFiles::RiderCategories,
+            file_parsers::rider_categories::parse
+        );
+        let timeframes_r = parse_vec!(GtfsFiles::Timeframes, file_parsers::timeframes::parse);
+        let areas_r = parse_vec!(GtfsFiles::Areas, file_parsers::areas::parse);
+        let stop_areas_r = parse_vec!(GtfsFiles::StopAreas, file_parsers::stop_areas::parse);
+        let networks_r = parse_vec!(GtfsFiles::Networks, file_parsers::networks::parse);
+        let route_networks_r = parse_vec!(
+            GtfsFiles::RouteNetworks,
+            file_parsers::route_networks::parse
+        );
+        let fare_leg_join_rules_r = parse_vec!(
+            GtfsFiles::FareLegJoinRules,
+            file_parsers::fare_leg_join_rules::parse
+        );
+
         let mut all_errors = Vec::new();
 
         macro_rules! unpack {
@@ -195,6 +221,17 @@ impl FeedLoader {
         let mut booking_rules_r = booking_rules_r;
         let mut location_groups_r = location_groups_r;
         let mut location_group_stops_r = location_group_stops_r;
+        let mut fare_media_r = fare_media_r;
+        let mut fare_products_r = fare_products_r;
+        let mut fare_leg_rules_r = fare_leg_rules_r;
+        let mut fare_transfer_rules_r = fare_transfer_rules_r;
+        let mut rider_categories_r = rider_categories_r;
+        let mut timeframes_r = timeframes_r;
+        let mut areas_r = areas_r;
+        let mut stop_areas_r = stop_areas_r;
+        let mut networks_r = networks_r;
+        let mut route_networks_r = route_networks_r;
+        let mut fare_leg_join_rules_r = fare_leg_join_rules_r;
         let (feed_info, feed_info_line_count, mut feed_info_errors) = feed_info_r;
         all_errors.append(&mut feed_info_errors);
 
@@ -226,6 +263,17 @@ impl FeedLoader {
             booking_rules: unpack!(booking_rules_r, all_errors),
             location_groups: unpack!(location_groups_r, all_errors),
             location_group_stops: unpack!(location_group_stops_r, all_errors),
+            fare_media: unpack!(fare_media_r, all_errors),
+            fare_products: unpack!(fare_products_r, all_errors),
+            fare_leg_rules: unpack!(fare_leg_rules_r, all_errors),
+            fare_transfer_rules: unpack!(fare_transfer_rules_r, all_errors),
+            rider_categories: unpack!(rider_categories_r, all_errors),
+            timeframes: unpack!(timeframes_r, all_errors),
+            areas: unpack!(areas_r, all_errors),
+            stop_areas: unpack!(stop_areas_r, all_errors),
+            networks: unpack!(networks_r, all_errors),
+            route_networks: unpack!(route_networks_r, all_errors),
+            fare_leg_join_rules: unpack!(fare_leg_join_rules_r, all_errors),
         };
 
         (feed, all_errors)
@@ -291,6 +339,32 @@ impl FeedLoader {
             file_parsers::location_group_stops::parse
         );
 
+        let fare_media_r = parse_vec!(GtfsFiles::FareMedia, file_parsers::fare_media::parse);
+        let fare_products_r =
+            parse_vec!(GtfsFiles::FareProducts, file_parsers::fare_products::parse);
+        let fare_leg_rules_r =
+            parse_vec!(GtfsFiles::FareLegRules, file_parsers::fare_leg_rules::parse);
+        let fare_transfer_rules_r = parse_vec!(
+            GtfsFiles::FareTransferRules,
+            file_parsers::fare_transfer_rules::parse
+        );
+        let rider_categories_r = parse_vec!(
+            GtfsFiles::RiderCategories,
+            file_parsers::rider_categories::parse
+        );
+        let timeframes_r = parse_vec!(GtfsFiles::Timeframes, file_parsers::timeframes::parse);
+        let areas_r = parse_vec!(GtfsFiles::Areas, file_parsers::areas::parse);
+        let stop_areas_r = parse_vec!(GtfsFiles::StopAreas, file_parsers::stop_areas::parse);
+        let networks_r = parse_vec!(GtfsFiles::Networks, file_parsers::networks::parse);
+        let route_networks_r = parse_vec!(
+            GtfsFiles::RouteNetworks,
+            file_parsers::route_networks::parse
+        );
+        let fare_leg_join_rules_r = parse_vec!(
+            GtfsFiles::FareLegJoinRules,
+            file_parsers::fare_leg_join_rules::parse
+        );
+
         let feed_info_r = if want(GtfsFiles::FeedInfo) {
             match source.read_file(GtfsFiles::FeedInfo) {
                 Ok(r) => file_parsers::feed_info::parse(r),
@@ -342,6 +416,17 @@ impl FeedLoader {
             booking_rules: unpack!(booking_rules_r, all_errors),
             location_groups: unpack!(location_groups_r, all_errors),
             location_group_stops: unpack!(location_group_stops_r, all_errors),
+            fare_media: unpack!(fare_media_r, all_errors),
+            fare_products: unpack!(fare_products_r, all_errors),
+            fare_leg_rules: unpack!(fare_leg_rules_r, all_errors),
+            fare_transfer_rules: unpack!(fare_transfer_rules_r, all_errors),
+            rider_categories: unpack!(rider_categories_r, all_errors),
+            timeframes: unpack!(timeframes_r, all_errors),
+            areas: unpack!(areas_r, all_errors),
+            stop_areas: unpack!(stop_areas_r, all_errors),
+            networks: unpack!(networks_r, all_errors),
+            route_networks: unpack!(route_networks_r, all_errors),
+            fare_leg_join_rules: unpack!(fare_leg_join_rules_r, all_errors),
         };
 
         (feed, all_errors)

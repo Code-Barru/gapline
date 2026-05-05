@@ -141,6 +141,17 @@ gtfs_target_file_map! {
     FareRules,
     Translations,
     Attributions,
+    FareMedia,
+    FareProducts,
+    FareLegRules,
+    FareTransferRules,
+    RiderCategories,
+    Timeframes,
+    Areas,
+    StopAreas,
+    Networks,
+    RouteNetworks,
+    FareLegJoinRules,
 }
 
 /// Validates a delete operation and builds a [`DeletePlan`] without mutating
@@ -341,6 +352,17 @@ fn remove_by_indices(feed: &mut GtfsFeed, target: GtfsTarget, indices: &HashSet<
         GtfsTarget::FareRules => retain_by_idx!(feed.fare_rules),
         GtfsTarget::Translations => retain_by_idx!(feed.translations),
         GtfsTarget::Attributions => retain_by_idx!(feed.attributions),
+        GtfsTarget::FareMedia => retain_by_idx!(feed.fare_media),
+        GtfsTarget::FareProducts => retain_by_idx!(feed.fare_products),
+        GtfsTarget::FareLegRules => retain_by_idx!(feed.fare_leg_rules),
+        GtfsTarget::FareTransferRules => retain_by_idx!(feed.fare_transfer_rules),
+        GtfsTarget::RiderCategories => retain_by_idx!(feed.rider_categories),
+        GtfsTarget::Timeframes => retain_by_idx!(feed.timeframes),
+        GtfsTarget::Areas => retain_by_idx!(feed.areas),
+        GtfsTarget::StopAreas => retain_by_idx!(feed.stop_areas),
+        GtfsTarget::Networks => retain_by_idx!(feed.networks),
+        GtfsTarget::RouteNetworks => retain_by_idx!(feed.route_networks),
+        GtfsTarget::FareLegJoinRules => retain_by_idx!(feed.fare_leg_join_rules),
     }
 }
 
@@ -396,6 +418,7 @@ macro_rules! remove_by_index {
 
 /// Removes records from a target whose [`EntityRef`] is in the given set.
 /// Returns the number of records removed.
+#[allow(clippy::too_many_lines)]
 fn remove_by_entity_refs(
     feed: &mut GtfsFeed,
     target: GtfsTarget,
@@ -477,5 +500,38 @@ fn remove_by_entity_refs(
             }
         }
         GtfsTarget::Translations => 0,
+        GtfsTarget::FareMedia => {
+            remove_by_pk!(feed.fare_media, refs, EntityRef::FareMedia(id) => id, |fm| fm.fare_media_id.as_ref())
+        }
+        GtfsTarget::FareProducts => {
+            remove_by_pk!(feed.fare_products, refs, EntityRef::FareProduct(id) => id, |fp| fp.fare_product_id.as_ref())
+        }
+        GtfsTarget::RiderCategories => {
+            remove_by_pk!(feed.rider_categories, refs, EntityRef::RiderCategory(id) => id, |rc| rc.rider_category_id.as_ref())
+        }
+        GtfsTarget::Timeframes => {
+            remove_by_pk!(feed.timeframes, refs, EntityRef::Timeframe(id) => id, |tf| tf.timeframe_group_id.as_ref())
+        }
+        GtfsTarget::Areas => {
+            remove_by_pk!(feed.areas, refs, EntityRef::Area(id) => id, |a| a.area_id.as_ref())
+        }
+        GtfsTarget::Networks => {
+            remove_by_pk!(feed.networks, refs, EntityRef::Network(id) => id, |n| n.network_id.as_ref())
+        }
+        GtfsTarget::FareLegRules => {
+            remove_by_index!(feed.fare_leg_rules, refs, EntityRef::FareLegRule(i) => i)
+        }
+        GtfsTarget::FareTransferRules => {
+            remove_by_index!(feed.fare_transfer_rules, refs, EntityRef::FareTransferRule(i) => i)
+        }
+        GtfsTarget::StopAreas => {
+            remove_by_index!(feed.stop_areas, refs, EntityRef::StopArea(i) => i)
+        }
+        GtfsTarget::RouteNetworks => {
+            remove_by_index!(feed.route_networks, refs, EntityRef::RouteNetwork(i) => i)
+        }
+        GtfsTarget::FareLegJoinRules => {
+            remove_by_index!(feed.fare_leg_join_rules, refs, EntityRef::FareLegJoinRule(i) => i)
+        }
     }
 }
