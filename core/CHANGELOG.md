@@ -4,6 +4,14 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.0] - 2026-05-05
+
+### Features
+
+- feat: fares v2 semantic rumes
+- feat: Fares v2 field definition & FK + comments cleanup
+- feat: fares v2 data model + crud
+
 ## [1.3.0] - 2026-05-04
 
 ### Features
