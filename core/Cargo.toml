@@ -11,6 +11,7 @@ dirs       = { workspace = true }
 geo        = { workspace = true }
 url        = { workspace = true }
 indicatif  = { workspace = true }
+prost      = { workspace = true }
 rayon      = { workspace = true }
 regex      = { workspace = true }
 serde      = { workspace = true }
@@ -18,6 +19,10 @@ serde_json = { workspace = true }
 thiserror  = { workspace = true }
 toml       = { workspace = true }
 zip        = { workspace = true }
+
+[build-dependencies]
+prost-build = { workspace = true }
+protox      = { workspace = true }
 
 [dev-dependencies]
 tempfile  = { workspace = true }

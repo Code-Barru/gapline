@@ -20,6 +20,9 @@ regex      = "1.11.1"
 thiserror  = "2.0.18"
 toml       = "1.0.3"
 zip        = "8.2.0"
+prost       = "0.13"
+prost-build = { version = "0.13", default-features = false }
+protox      = "0.7"
 # CLI
 clap          = { version = "4.5.60", features = ["derive"] }
 clap_complete = "4.5"

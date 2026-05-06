@@ -5,6 +5,7 @@ mod flex;
 mod geojson;
 mod ids;
 mod records;
+pub mod rt;
 mod types;
 
 pub use enums::{
