@@ -83,6 +83,7 @@ pub struct Thresholds {
     pub coordinates: Coordinates,
     pub calendar: Calendar,
     pub naming: Naming,
+    pub realtime: Realtime,
 }
 
 /// Per-route-type maximum speeds in km/h. Covers all ten GTFS basic route
@@ -219,6 +220,21 @@ impl Default for Naming {
     fn default() -> Self {
         Self {
             max_route_short_name_length: 12,
+        }
+    }
+}
+
+/// GTFS-Realtime semantic thresholds.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Realtime {
+    pub max_delay_seconds: u32,
+}
+
+impl Default for Realtime {
+    fn default() -> Self {
+        Self {
+            max_delay_seconds: 3600,
         }
     }
 }
@@ -559,6 +575,12 @@ impl Config {
         if t.naming.max_route_short_name_length == 0 {
             return Err(ConfigError::Invalid(
                 "[validation.thresholds.naming] max_route_short_name_length must be > 0".into(),
+            ));
+        }
+
+        if t.realtime.max_delay_seconds == 0 {
+            return Err(ConfigError::Invalid(
+                "[validation.thresholds.realtime] max_delay_seconds must be > 0".into(),
             ));
         }
 

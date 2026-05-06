@@ -28,8 +28,10 @@ pub mod foreign_key;
 pub mod locations_geojson_semantic;
 pub mod primary_key;
 mod report;
+pub mod rt_rules;
 mod rules;
 pub mod schedule_time_validation;
+pub mod section_12;
 mod structural_rule;
 pub mod third_party;
 pub(crate) mod utils;
@@ -38,6 +40,7 @@ mod validate;
 pub use engine::ValidationEngine;
 pub use error::{Severity, ValidationError};
 pub use report::ValidationReport;
+pub use rt_rules::{RtValidationContext, RtValidationRule, ScheduleIndex};
 pub use rules::ValidationRule;
 pub use structural_rule::StructuralValidationRule;
 pub use validate::validate;
@@ -61,6 +64,7 @@ pub fn all_rule_ids() -> &'static [&'static str] {
             .iter()
             .map(|r| r.rule_id())
             .chain(engine.post_rules().iter().map(|r| r.rule_id()))
+            .chain(engine.rt_rules().iter().map(|r| r.rule_id()))
             .collect();
         ids.sort_unstable();
         ids.dedup();

@@ -23,11 +23,13 @@ static BAR_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 
 use crate::config::Config;
 use crate::models::GtfsFeed;
+use crate::models::rt::GtfsRtFeed;
 use crate::parser::FeedSource;
 use crate::parser::error::ParseError;
 use crate::validation::csv_formatting::scanner;
 use crate::validation::field_type::parse_error_converter;
 use crate::validation::flex_semantic::register_rules as register_flex_semantic_rules;
+use crate::validation::rt_rules::{RtValidationContext, RtValidationRule, ScheduleIndex};
 use crate::validation::schedule_time_validation::{
     CalendarThresholds, DistanceThresholds, SpeedThresholds, TransferThresholds,
     service_dates::ServiceDateCache,
@@ -81,6 +83,10 @@ pub struct ValidationEngine {
     pre_rules: Vec<Box<dyn StructuralValidationRule>>,
     /// Post-parsing rules (sections 3+) operating on the loaded `GtfsFeed`.
     rules: Vec<Box<dyn ValidationRule>>,
+    /// Section 12 rules operating on a `GtfsRtFeed` and an optional Schedule.
+    rt_rules: Vec<Box<dyn RtValidationRule>>,
+    /// Threshold for the section-12 `excessive_delay` rule.
+    rt_max_delay_seconds: u32,
 }
 
 /// Bundle of every threshold struct needed to register rules - built once in
@@ -93,6 +99,7 @@ struct Thresholds {
     transfer: TransferThresholds,
     speed: SpeedThresholds,
     service_cache: Arc<ServiceDateCache>,
+    rt_max_delay_seconds: u32,
 }
 
 impl Thresholds {
@@ -132,6 +139,7 @@ impl Thresholds {
                 default_kmh: t.speed_limits.default_kmh,
             },
             service_cache: Arc::new(ServiceDateCache::new()),
+            rt_max_delay_seconds: t.realtime.max_delay_seconds,
         }
     }
 }
@@ -154,6 +162,8 @@ impl ValidationEngine {
             config,
             pre_rules,
             rules: Vec::new(),
+            rt_rules: Vec::new(),
+            rt_max_delay_seconds: t.rt_max_delay_seconds,
         };
         crate::validation::field_type::register_rules(&mut engine);
         crate::validation::field_definition::register_rules(&mut engine);
@@ -176,6 +186,7 @@ impl ValidationEngine {
         };
         crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
         crate::validation::third_party::register_rules(&mut engine);
+        crate::validation::section_12::register_rules(&mut engine);
 
         // Apply [validation.disabled_rules] / [validation.enabled_rules].
         // Blacklist beats whitelist when both are set.
@@ -202,6 +213,10 @@ impl ValidationEngine {
                 let id = r.rule_id();
                 !disabled.contains(id) && (enabled.is_empty() || enabled.contains(id))
             });
+            engine.rt_rules.retain(|r| {
+                let id = r.rule_id();
+                !disabled.contains(id) && (enabled.is_empty() || enabled.contains(id))
+            });
         }
 
         engine
@@ -223,6 +238,12 @@ impl ValidationEngine {
         &self.rules
     }
 
+    /// Section 12 rules currently registered with the engine.
+    #[must_use]
+    pub fn rt_rules(&self) -> &[Box<dyn RtValidationRule>] {
+        &self.rt_rules
+    }
+
     /// Adds a pre-parsing (structural) rule dynamically.
     pub fn register_pre_rule(&mut self, rule: Box<dyn StructuralValidationRule>) {
         self.pre_rules.push(rule);
@@ -231,6 +252,11 @@ impl ValidationEngine {
     /// Adds a post-parsing rule that operates on the loaded `GtfsFeed`.
     pub fn register_rule(&mut self, rule: Box<dyn ValidationRule>) {
         self.rules.push(rule);
+    }
+
+    /// Adds a section 12 rule that operates on a `GtfsRtFeed`.
+    pub fn register_rt_rule(&mut self, rule: Box<dyn RtValidationRule>) {
+        self.rt_rules.push(rule);
     }
 
     /// Groups the registered pre-parsing rules by their section identifier.
@@ -366,6 +392,34 @@ impl ValidationEngine {
 
         all_errors.extend(rule_errors);
 
+        ValidationReport::from(all_errors)
+    }
+
+    /// Runs section 12 (GTFS-Realtime) rules against an RT feed, optionally
+    /// cross-validating against a Schedule [`GtfsFeed`].
+    ///
+    /// `now_unix` is the current time used for the future-timestamp check; it
+    /// is a parameter so tests can pin the clock without globals.
+    #[must_use]
+    pub fn validate_rt(
+        &self,
+        rt: &GtfsRtFeed,
+        schedule: Option<&GtfsFeed>,
+        now_unix: u64,
+    ) -> ValidationReport {
+        let schedule_index = schedule.map(ScheduleIndex::from_feed);
+        let ctx = RtValidationContext {
+            rt,
+            schedule,
+            schedule_index: schedule_index.as_ref(),
+            now_unix,
+            max_delay_seconds: self.rt_max_delay_seconds,
+        };
+
+        let mut all_errors: Vec<ValidationError> = Vec::new();
+        for rule in &self.rt_rules {
+            all_errors.extend(rule.validate(&ctx));
+        }
         ValidationReport::from(all_errors)
     }
 }
