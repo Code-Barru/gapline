@@ -4,6 +4,13 @@ All notable changes to `core` will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.0] - 2026-05-06
+
+### Features
+
+- feat: geojson validation rules
+- feat: GeoJSON parser & Data model
+
 ## [1.4.0] - 2026-05-05
 
 ### Features
