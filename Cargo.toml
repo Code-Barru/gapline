@@ -11,6 +11,7 @@ chrono     = { version = "0.4", features = ["serde"] }
 chrono-tz  = "0.10"
 csv        = "1.4.0"
 dirs       = "6"
+geo        = "0.30"
 rayon      = "1.11.0"
 url        = "2"
 serde      = { version = "1.0.228", features = ["derive", "rc"] }

@@ -44,15 +44,27 @@ pub fn parse(bytes: &[u8]) -> Result<(Vec<GeoJsonLocation>, Vec<GeoJsonParseErro
             _ => (format!("__autogen_{idx}"), true),
         };
 
-        let geometry = match serde_json::from_value::<GeoJsonGeometry>(feature.geometry) {
-            Ok(g) => g,
-            Err(e) => {
-                errors.push(GeoJsonParseError {
-                    feature_index: Some(idx),
-                    message: format!("unsupported or invalid geometry: {e}"),
-                });
-                continue;
-            }
+        let geometry = match feature
+            .geometry
+            .get("type")
+            .and_then(serde_json::Value::as_str)
+        {
+            Some(
+                t @ ("Point" | "MultiPoint" | "LineString" | "MultiLineString"
+                | "GeometryCollection"),
+            ) => GeoJsonGeometry::Unsupported {
+                type_: t.to_string(),
+            },
+            _ => match serde_json::from_value::<GeoJsonGeometry>(feature.geometry) {
+                Ok(g) => g,
+                Err(e) => {
+                    errors.push(GeoJsonParseError {
+                        feature_index: Some(idx),
+                        message: format!("invalid geometry: {e}"),
+                    });
+                    continue;
+                }
+            },
         };
 
         out.push(GeoJsonLocation {

@@ -63,7 +63,7 @@ fn parses_multipolygon() {
         GeoJsonGeometry::MultiPolygon { coordinates } => {
             assert_eq!(coordinates.len(), 2);
         }
-        GeoJsonGeometry::Polygon { .. } => panic!("expected MultiPolygon"),
+        other => panic!("expected MultiPolygon, got {other:?}"),
     }
 }
 
@@ -94,7 +94,7 @@ fn parses_polygon_with_hole() {
             assert_eq!(coordinates[0].len(), 5);
             assert_eq!(coordinates[1].len(), 5);
         }
-        GeoJsonGeometry::MultiPolygon { .. } => panic!("expected Polygon"),
+        other => panic!("expected Polygon, got {other:?}"),
     }
 }
 
@@ -189,12 +189,15 @@ fn coordinates_with_altitude_are_accepted() {
             assert!((p.lon - 0.0).abs() < f64::EPSILON);
             assert!((p.lat - 0.0).abs() < f64::EPSILON);
         }
-        GeoJsonGeometry::MultiPolygon { .. } => panic!("expected Polygon"),
+        other => panic!("expected Polygon, got {other:?}"),
     }
 }
 
 #[test]
-fn unsupported_geometry_soft_rejected() {
+fn unsupported_geometry_kept_as_unsupported_variant() {
+    // Point / LineString / etc. are kept in the model as `Unsupported` so
+    // section 11 can report them with feature context. The parser itself
+    // does not emit a `GeoJsonParseError` for these.
     let json = br#"{
         "type": "FeatureCollection",
         "features": [
@@ -214,10 +217,12 @@ fn unsupported_geometry_soft_rejected() {
     }"#;
 
     let (locations, errors) = locations_geojson::parse(json).unwrap();
-    assert_eq!(locations.len(), 1);
-    assert_eq!(locations[0].id, "ok");
-    assert_eq!(errors.len(), 1);
-    assert_eq!(errors[0].feature_index, Some(1));
+    assert_eq!(locations.len(), 2);
+    assert!(errors.is_empty());
+    match &locations[1].geometry {
+        GeoJsonGeometry::Unsupported { type_ } => assert_eq!(type_, "Point"),
+        other => panic!("expected Unsupported, got {other:?}"),
+    }
 }
 
 #[test]

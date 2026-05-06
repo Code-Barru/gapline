@@ -25,6 +25,7 @@ pub mod field_type;
 pub mod file_structure;
 pub mod flex_semantic;
 pub mod foreign_key;
+pub mod locations_geojson_semantic;
 pub mod primary_key;
 mod report;
 mod rules;

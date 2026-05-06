@@ -47,8 +47,19 @@ pub type LinearRing = Vec<Position>;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum GeoJsonGeometry {
-    Polygon { coordinates: Vec<LinearRing> },
-    MultiPolygon { coordinates: Vec<Vec<LinearRing>> },
+    Polygon {
+        coordinates: Vec<LinearRing>,
+    },
+    MultiPolygon {
+        coordinates: Vec<Vec<LinearRing>>,
+    },
+    /// Syntactically valid `GeoJSON` types disallowed by GTFS-Locations
+    /// (`Point`, `LineString`, …). Constructed by the parser; the
+    /// validation layer then reports them with feature context.
+    #[serde(skip)]
+    Unsupported {
+        type_: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

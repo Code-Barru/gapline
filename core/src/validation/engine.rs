@@ -53,9 +53,9 @@ fn progress_label(group: &str) -> &str {
 /// sections share one progress bar without touching each rule struct.
 fn display_group(progress_group: &str) -> &str {
     match progress_group {
-        "4" => "3",        // Field Definition → merged with Field Type
-        "6" => "5",        // Primary Key → merged with Foreign Key
-        "9" | "10" => "7", // Flex / Fares v2 Semantic → merged with Semantic & Logic
+        "4" => "3",               // Field Definition → merged with Field Type
+        "6" => "5",               // Primary Key → merged with Foreign Key
+        "9" | "10" | "11" => "7", // Flex / Fares v2 / Locations GeoJSON Semantic → merged with Semantic & Logic
         g => g,
     }
 }
@@ -170,6 +170,7 @@ impl ValidationEngine {
         );
         register_flex_semantic_rules(&mut engine, t.service_cache);
         crate::validation::fares_v2_semantic::register_rules(&mut engine);
+        crate::validation::locations_geojson_semantic::register_rules(&mut engine);
         let naming_thresholds = crate::validation::best_practices::NamingThresholds {
             max_route_short_name_length: t.max_route_short_name_length,
         };

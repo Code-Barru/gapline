@@ -8,6 +8,7 @@ chrono     = { workspace = true }
 chrono-tz  = { workspace = true }
 csv        = { workspace = true }
 dirs       = { workspace = true }
+geo        = { workspace = true }
 url        = { workspace = true }
 indicatif  = { workspace = true }
 rayon      = { workspace = true }
