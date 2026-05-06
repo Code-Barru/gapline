@@ -22,6 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Fetch upstream gtfs-realtime.proto
-        run: curl -fsSL -o /tmp/upstream.proto https://raw.githubusercontent.com/MobilityData/gtfs-realtime/master/gtfs-realtime/proto/gtfs-realtime.proto
+        run: curl -fsSL -o /tmp/upstream.proto https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto
       - name: Diff against vendored copy
         run: diff -u proto/gtfs-realtime.proto /tmp/upstream.proto
