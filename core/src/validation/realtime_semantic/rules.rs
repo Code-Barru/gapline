@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::models::rt::{TripUpdate, trip_update::StopTimeUpdate};
+use crate::models::rt::{
+    TripUpdate, trip_descriptor::ScheduleRelationship as TripScheduleRelationship,
+    trip_update::StopTimeUpdate,
+};
 use crate::validation::rt_rules::{RtValidationContext, RtValidationRule, ScheduleIndex};
 use crate::validation::{Severity, ValidationError};
 
@@ -55,11 +58,11 @@ impl RtValidationRule for UnsupportedVersionRule {
     }
     fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
         let v = ctx.rt.gtfs_realtime_version();
-        if !v.is_empty() && v != "2.0" {
+        if !v.is_empty() && v != "1.0" && v != "2.0" {
             vec![err(
                 self.rule_id(),
                 Severity::Warning,
-                format!("gtfs_realtime_version `{v}` is not 2.0"),
+                format!("gtfs_realtime_version `{v}` is not 1.0 or 2.0"),
             )]
         } else {
             Vec::new()
@@ -145,6 +148,7 @@ impl RtValidationRule for RtTripNotInScheduleRule {
                 check_trip(
                     &entity.id,
                     tu.trip.trip_id.as_ref(),
+                    tu.trip.schedule_relationship,
                     idx,
                     "TripUpdate",
                     &mut errors,
@@ -156,6 +160,7 @@ impl RtValidationRule for RtTripNotInScheduleRule {
                 check_trip(
                     &entity.id,
                     trip.trip_id.as_ref(),
+                    trip.schedule_relationship,
                     idx,
                     "VehiclePosition",
                     &mut errors,
@@ -169,10 +174,15 @@ impl RtValidationRule for RtTripNotInScheduleRule {
 fn check_trip(
     entity_id: &str,
     trip_id: Option<&String>,
+    schedule_relationship: Option<i32>,
     idx: &ScheduleIndex,
     source: &str,
     errors: &mut Vec<ValidationError>,
 ) {
+    // ADDED trips are not expected to exist in the static Schedule.
+    if schedule_relationship == Some(TripScheduleRelationship::Added as i32) {
+        return;
+    }
     match trip_id {
         None => errors.push(err(
             "rt_trip_not_in_schedule",
@@ -570,5 +580,401 @@ impl RtValidationRule for DuplicateEntityIdRule {
                 )
             })
             .collect()
+    }
+}
+
+pub struct StopTimeSequenceUnsortedRule;
+impl RtValidationRule for StopTimeSequenceUnsortedRule {
+    fn rule_id(&self) -> &'static str {
+        "stop_time_sequence_unsorted"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            for pair in tu.stop_time_update.windows(2) {
+                if let (Some(a), Some(b)) = (pair[0].stop_sequence, pair[1].stop_sequence)
+                    && b <= a
+                {
+                    errors.push(err(
+                        "stop_time_sequence_unsorted",
+                        Severity::Error,
+                        format!(
+                            "TripUpdate {} stop_sequence not strictly increasing ({a} → {b}, trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
+    }
+}
+
+pub struct MissingStopSequenceForRepeatedStopRule;
+impl RtValidationRule for MissingStopSequenceForRepeatedStopRule {
+    fn rule_id(&self) -> &'static str {
+        "missing_stop_sequence_for_repeated_stop"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let Some(idx) = schedule_or_skip(ctx) else {
+            return Vec::new();
+        };
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            let Some(trip_id) = tu.trip.trip_id.as_ref() else {
+                continue;
+            };
+            if !idx.trip_repeated_stops.contains(trip_id) {
+                continue;
+            }
+            for stu in &tu.stop_time_update {
+                if stu.stop_sequence.is_none() {
+                    errors.push(err(
+                        "missing_stop_sequence_for_repeated_stop",
+                        Severity::Error,
+                        format!(
+                            "TripUpdate {} omits stop_sequence on a stop_time_update for trip_id `{trip_id}` whose Schedule has repeated stop_ids",
+                            entity_label(&entity.id),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
+    }
+}
+
+pub struct RtStopWrongLocationTypeRule;
+impl RtValidationRule for RtStopWrongLocationTypeRule {
+    fn rule_id(&self) -> &'static str {
+        "rt_stop_wrong_location_type"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let Some(idx) = schedule_or_skip(ctx) else {
+            return Vec::new();
+        };
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            if let Some(tu) = &entity.trip_update {
+                for stu in &tu.stop_time_update {
+                    if let Some(sid) = &stu.stop_id
+                        && let Some(&lt) = idx.stop_location_types.get(sid)
+                        && lt != 0
+                    {
+                        errors.push(err(
+                            "rt_stop_wrong_location_type",
+                            Severity::Error,
+                            format!(
+                                "TripUpdate {} references stop_id `{sid}` with location_type={lt} (must be 0)",
+                                entity_label(&entity.id),
+                            ),
+                        ));
+                    }
+                }
+            }
+            if let Some(vp) = &entity.vehicle
+                && let Some(sid) = &vp.stop_id
+                && let Some(&lt) = idx.stop_location_types.get(sid)
+                && lt != 0
+            {
+                errors.push(err(
+                    "rt_stop_wrong_location_type",
+                    Severity::Error,
+                    format!(
+                        "VehiclePosition {} references stop_id `{sid}` with location_type={lt} (must be 0)",
+                        entity_label(&entity.id),
+                    ),
+                ));
+            }
+        }
+        errors
+    }
+}
+
+pub struct StopTimeUpdateTimesNotIncreasingRule;
+impl RtValidationRule for StopTimeUpdateTimesNotIncreasingRule {
+    fn rule_id(&self) -> &'static str {
+        "stop_time_update_times_not_increasing"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            for pair in tu.stop_time_update.windows(2) {
+                let prev_arr = stop_time_event_time(&pair[0], TimeKind::Arrival);
+                let next_arr = stop_time_event_time(&pair[1], TimeKind::Arrival);
+                if let (Some(a), Some(b)) = (prev_arr, next_arr)
+                    && b <= a
+                {
+                    errors.push(err(
+                        "stop_time_update_times_not_increasing",
+                        Severity::Error,
+                        format!(
+                            "TripUpdate {} arrival times not strictly increasing ({a} → {b}, trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+                let prev_dep = stop_time_event_time(&pair[0], TimeKind::Departure);
+                let next_dep = stop_time_event_time(&pair[1], TimeKind::Departure);
+                if let (Some(a), Some(b)) = (prev_dep, next_dep)
+                    && b <= a
+                {
+                    errors.push(err(
+                        "stop_time_update_times_not_increasing",
+                        Severity::Error,
+                        format!(
+                            "TripUpdate {} departure times not strictly increasing ({a} → {b}, trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
+    }
+}
+
+pub struct StartTimeMismatchFirstArrivalRule;
+impl RtValidationRule for StartTimeMismatchFirstArrivalRule {
+    fn rule_id(&self) -> &'static str {
+        "start_time_mismatch_first_arrival"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let Some(idx) = schedule_or_skip(ctx) else {
+            return Vec::new();
+        };
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            let Some(start_time) = tu.trip.start_time.as_ref() else {
+                continue;
+            };
+            let Some(trip_id) = tu.trip.trip_id.as_ref() else {
+                continue;
+            };
+            if idx.trips_in_frequencies.contains(trip_id) {
+                continue;
+            }
+            if let Some(expected) = idx.trip_first_arrivals.get(trip_id)
+                && expected != start_time
+            {
+                errors.push(err(
+                    "start_time_mismatch_first_arrival",
+                    Severity::Error,
+                    format!(
+                        "TripUpdate {} start_time `{start_time}` does not match first GTFS arrival_time `{expected}` (trip_id=`{trip_id}`)",
+                        entity_label(&entity.id),
+                    ),
+                ));
+            }
+        }
+        errors
+    }
+}
+
+pub struct ConsecutiveSameStopIdRule;
+impl RtValidationRule for ConsecutiveSameStopIdRule {
+    fn rule_id(&self) -> &'static str {
+        "consecutive_same_stop_id"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            for pair in tu.stop_time_update.windows(2) {
+                if let (Some(a), Some(b)) = (&pair[0].stop_id, &pair[1].stop_id)
+                    && a == b
+                {
+                    errors.push(err(
+                        "consecutive_same_stop_id",
+                        Severity::Error,
+                        format!(
+                            "TripUpdate {} consecutive stop_time_updates share stop_id `{a}` (trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
+    }
+}
+
+pub struct MissingVehicleIdRule;
+impl RtValidationRule for MissingVehicleIdRule {
+    fn rule_id(&self) -> &'static str {
+        "missing_vehicle_id"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Warning
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            if let Some(tu) = &entity.trip_update {
+                let id = tu.vehicle.as_ref().and_then(|v| v.id.as_deref());
+                if id.is_none_or(str::is_empty) {
+                    errors.push(err(
+                        "missing_vehicle_id",
+                        Severity::Warning,
+                        format!(
+                            "TripUpdate {} has no vehicle.id (trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+            }
+            if let Some(vp) = &entity.vehicle {
+                let id = vp.vehicle.as_ref().and_then(|v| v.id.as_deref());
+                if id.is_none_or(str::is_empty) {
+                    errors.push(err(
+                        "missing_vehicle_id",
+                        Severity::Warning,
+                        format!(
+                            "VehiclePosition {} has no vehicle.id",
+                            entity_label(&entity.id),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
+    }
+}
+
+pub struct FeedNotFreshRule;
+impl RtValidationRule for FeedNotFreshRule {
+    fn rule_id(&self) -> &'static str {
+        "feed_not_fresh"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Warning
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let Some(ts) = ctx.rt.timestamp() else {
+            return Vec::new();
+        };
+        if ts == 0 {
+            return Vec::new();
+        }
+        let age = ctx.now_unix.saturating_sub(ts);
+        if age > 60 {
+            vec![err(
+                "feed_not_fresh",
+                Severity::Warning,
+                format!(
+                    "FeedHeader.timestamp is {age}s old (must be < 60s; ts={ts}, now={})",
+                    ctx.now_unix
+                ),
+            )]
+        } else {
+            Vec::new()
+        }
+    }
+}
+
+pub struct MissingScheduleRelationshipRule;
+impl RtValidationRule for MissingScheduleRelationshipRule {
+    fn rule_id(&self) -> &'static str {
+        "missing_schedule_relationship"
+    }
+    fn section(&self) -> &'static str {
+        SECTION
+    }
+    fn severity(&self) -> Severity {
+        Severity::Warning
+    }
+    fn validate(&self, ctx: &RtValidationContext<'_>) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        for entity in &ctx.rt.message().entity {
+            let Some(tu) = &entity.trip_update else {
+                continue;
+            };
+            if tu.trip.schedule_relationship.is_none() {
+                errors.push(err(
+                    "missing_schedule_relationship",
+                    Severity::Warning,
+                    format!(
+                        "TripUpdate {} trip.schedule_relationship is unset (trip_id={})",
+                        entity_label(&entity.id),
+                        trip_id_str(tu.trip.trip_id.as_ref()),
+                    ),
+                ));
+            }
+            for stu in &tu.stop_time_update {
+                if stu.schedule_relationship.is_none() {
+                    errors.push(err(
+                        "missing_schedule_relationship",
+                        Severity::Warning,
+                        format!(
+                            "TripUpdate {} stop_time_update.schedule_relationship is unset (trip_id={})",
+                            entity_label(&entity.id),
+                            trip_id_str(tu.trip.trip_id.as_ref()),
+                        ),
+                    ));
+                }
+            }
+        }
+        errors
     }
 }

@@ -95,12 +95,21 @@ impl SeverityArg {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Validate a GTFS feed against the full specification.
-    #[command(about = "Validates a GTFS feed")]
+    #[command(about = "Validates a GTFS Schedule and/or GTFS-Realtime feed")]
     Validate {
-        /// Path or HTTPS URL to the GTFS feed (`.zip` archive or directory).
-        /// May be omitted if `[default] feed` is set in the config file.
-        #[arg(short, long, value_name = "FEED", help = "Path or URL to GTFS feed")]
-        feed: Option<FeedInput>,
+        /// Path or HTTPS URL to a GTFS feed. Accepts a Schedule (`.zip` /
+        /// directory) or a GTFS-Realtime protobuf (`.pb`); the kind is
+        /// detected from the file contents. Pass twice (in any order) for
+        /// RT + Schedule cross-validation. May be omitted if
+        /// `[default] feed` is set in the config file.
+        #[arg(
+            short,
+            long,
+            value_name = "FEED",
+            num_args = 0..=2,
+            help = "Path or URL to GTFS feed (Schedule .zip/dir or RT .pb). Pass twice for RT + Schedule cross-validation."
+        )]
+        feed: Vec<FeedInput>,
         /// Skip HTTP cache and force re-download (only applies to URL feeds).
         #[arg(long, help = "Skip HTTP cache, force re-download")]
         no_cache: bool,

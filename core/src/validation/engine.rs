@@ -83,9 +83,9 @@ pub struct ValidationEngine {
     pre_rules: Vec<Box<dyn StructuralValidationRule>>,
     /// Post-parsing rules (sections 3+) operating on the loaded `GtfsFeed`.
     rules: Vec<Box<dyn ValidationRule>>,
-    /// Section 12 rules operating on a `GtfsRtFeed` and an optional Schedule.
+    /// GTFS-Realtime rules operating on a `GtfsRtFeed` and an optional Schedule.
     rt_rules: Vec<Box<dyn RtValidationRule>>,
-    /// Threshold for the section-12 `excessive_delay` rule.
+    /// Threshold for the realtime `excessive_delay` rule.
     rt_max_delay_seconds: u32,
 }
 
@@ -186,7 +186,7 @@ impl ValidationEngine {
         };
         crate::validation::best_practices::register_rules(&mut engine, naming_thresholds);
         crate::validation::third_party::register_rules(&mut engine);
-        crate::validation::section_12::register_rules(&mut engine);
+        crate::validation::realtime_semantic::register_rules(&mut engine);
 
         // Apply [validation.disabled_rules] / [validation.enabled_rules].
         // Blacklist beats whitelist when both are set.
@@ -238,7 +238,7 @@ impl ValidationEngine {
         &self.rules
     }
 
-    /// Section 12 rules currently registered with the engine.
+    /// GTFS-Realtime rules currently registered with the engine.
     #[must_use]
     pub fn rt_rules(&self) -> &[Box<dyn RtValidationRule>] {
         &self.rt_rules
@@ -254,7 +254,7 @@ impl ValidationEngine {
         self.rules.push(rule);
     }
 
-    /// Adds a section 12 rule that operates on a `GtfsRtFeed`.
+    /// Adds a GTFS-Realtime rule that operates on a `GtfsRtFeed`.
     pub fn register_rt_rule(&mut self, rule: Box<dyn RtValidationRule>) {
         self.rt_rules.push(rule);
     }
@@ -395,7 +395,7 @@ impl ValidationEngine {
         ValidationReport::from(all_errors)
     }
 
-    /// Runs section 12 (GTFS-Realtime) rules against an RT feed, optionally
+    /// Runs GTFS-Realtime rules against an RT feed, optionally
     /// cross-validating against a Schedule [`GtfsFeed`].
     ///
     /// `now_unix` is the current time used for the future-timestamp check; it

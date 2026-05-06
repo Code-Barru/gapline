@@ -49,6 +49,23 @@ pub(super) fn resolve_feed(cli_feed: Option<&Path>, config: &Config) -> PathBuf 
     process::exit(exit::COMMAND_FAILED);
 }
 
+/// Like [`resolve_feed`] but returns one or two paths. Used by `validate`,
+/// which accepts a Schedule and/or a GTFS-RT feed in any order. Falls back
+/// to a single-element vector built from `[default] feed` when nothing is
+/// passed on the command line.
+pub(super) fn resolve_feeds(cli_feeds: &[PathBuf], config: &Config) -> Vec<PathBuf> {
+    if !cli_feeds.is_empty() {
+        return cli_feeds.to_vec();
+    }
+    if let Some(p) = config.default.feed.as_ref() {
+        return vec![p.clone()];
+    }
+    tracing::error!(
+        "Missing feed path. Pass --feed PATH or set [default] feed = \"...\" in your config."
+    );
+    process::exit(exit::COMMAND_FAILED);
+}
+
 /// Opens, preloads, and loads a GTFS feed, exiting with `INPUT_ERROR` on failure.
 ///
 /// Returns the loaded dataset and any parse errors encountered during loading.

@@ -4,7 +4,10 @@
 //! [`gapline::cli::bootstrap`], then dispatches to the appropriate handler
 //! in [`gapline::cli::commands`].
 
+use std::path::PathBuf;
+
 use clap::Parser;
+use tempfile::NamedTempFile;
 
 use gapline::cli::{Cli, Commands, RulesCommand, bootstrap, commands};
 use gapline::http::{DownloadOptions, resolve_feed};
@@ -28,11 +31,22 @@ fn main() {
                 max_size_bytes: *max_size,
                 ..Default::default()
             };
-            let (path, _temp) = resolve_feed(feed.as_ref(), &opts).unwrap_or_else(|e| {
-                eprintln!("error: {e}");
-                std::process::exit(1)
-            });
-            commands::run_validate(&config, path.as_deref(), *format, output.as_deref());
+            let mut paths: Vec<PathBuf> = Vec::with_capacity(feed.len());
+            let mut tmps: Vec<NamedTempFile> = Vec::new();
+            for f in feed {
+                let (p, t) = resolve_feed(Some(f), &opts).unwrap_or_else(|e| {
+                    eprintln!("error: {e}");
+                    std::process::exit(1)
+                });
+                if let Some(p) = p {
+                    paths.push(p);
+                }
+                if let Some(t) = t {
+                    tmps.push(t);
+                }
+            }
+            commands::run_validate(&config, &paths, *format, output.as_deref());
+            drop(tmps);
         }
         Commands::Read {
             feed,

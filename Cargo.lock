@@ -773,6 +773,7 @@ dependencies = [
  "dirs",
  "gapline-core",
  "indicatif",
+ "prost",
  "quick-xml",
  "rayon",
  "reqwest",

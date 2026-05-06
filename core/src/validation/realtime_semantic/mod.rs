@@ -1,4 +1,4 @@
-//! Section 12 — GTFS-Realtime semantic validation.
+//! GTFS-Realtime semantic validation (spec section 12).
 //!
 //! Header/version sanity, cross-validation against a Schedule feed, and
 //! RT-only semantic checks (timestamps order, delays, alerts).
@@ -21,4 +21,13 @@ pub fn register_rules(engine: &mut ValidationEngine) {
     engine.register_rt_rule(Box::new(rules::AlertWithoutTargetRule));
     engine.register_rt_rule(Box::new(rules::AlertTargetNotInScheduleRule));
     engine.register_rt_rule(Box::new(rules::DuplicateEntityIdRule));
+    engine.register_rt_rule(Box::new(rules::StopTimeSequenceUnsortedRule));
+    engine.register_rt_rule(Box::new(rules::MissingStopSequenceForRepeatedStopRule));
+    engine.register_rt_rule(Box::new(rules::RtStopWrongLocationTypeRule));
+    engine.register_rt_rule(Box::new(rules::StopTimeUpdateTimesNotIncreasingRule));
+    engine.register_rt_rule(Box::new(rules::StartTimeMismatchFirstArrivalRule));
+    engine.register_rt_rule(Box::new(rules::ConsecutiveSameStopIdRule));
+    engine.register_rt_rule(Box::new(rules::MissingVehicleIdRule));
+    engine.register_rt_rule(Box::new(rules::FeedNotFreshRule));
+    engine.register_rt_rule(Box::new(rules::MissingScheduleRelationshipRule));
 }
